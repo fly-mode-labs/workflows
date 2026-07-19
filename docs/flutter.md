@@ -83,5 +83,5 @@ versión completa en el nombre. Las lanes/tareas no deben generar otra versión;
 deben usar estas variables y asegurar que el build number no haya sido publicado
 antes. Una promoción no recompila: promueve el binario que ya pasó por beta.
 
-Este número es independiente de la versión del pipeline central (`@v1.0.0`). La
+Este número es independiente de la versión mayor del pipeline central (`@v1`). La
 primera versiona la aplicación; la segunda versiona las reglas de CI/CD.

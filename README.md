@@ -14,7 +14,7 @@ self-hosted.
 | Merge a `main` (`closed` + `merged`) | Promueve ambas betas a producción. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
-2.3.0+47`). Es independiente del tag del pipeline (`@v1.0.0`).
+2.3.0+47`). Es independiente del tag mayor del pipeline (`@v1`).
 
 El cambio de draft a open debe hacerse con **Ready for review**. Nuevos commits
 en una PR que ya está abierta no vuelven a distribuir una beta automáticamente;
@@ -25,8 +25,8 @@ esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
 
 1. Copiar `templates/flutter/.github/workflows/main.yml` a la app.
 2. Sustituir `YOUR_GITHUB_USER/workflows` por tu usuario y el nombre real de
-   este repositorio. El template queda fijado a una versión exacta, nunca a
-   `main`.
+   este repositorio. El template consume el alias compatible `@v1`, nunca
+   `@main`.
 3. Crear en GitHub el environment `beta` y el environment `production`, con sus
    secretos y protecciones.
 4. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
@@ -46,7 +46,7 @@ también deben ser privadas y pertenecer a esa misma cuenta.
 Por ejemplo, si el usuario es `juanpbedoya`, la referencia será:
 
 ```yaml
-uses: juanpbedoya/workflows/.github/workflows/main.yml@v1.0.0
+uses: juanpbedoya/workflows/.github/workflows/main.yml@v1
 ```
 
 Hay una limitación importante para los runners: en una cuenta personal cada
@@ -58,9 +58,10 @@ organización y registrar runners a nivel de organización.
 
 ## Versionado del pipeline
 
-Los callers siempre fijan un tag SemVer exacto, por ejemplo `@v1.0.0`. No usan
-`@main` ni un tag flotante como `@v1`; así, una app solo cambia de pipeline
-cuando se actualiza deliberadamente su referencia.
+Los callers usan el alias mayor `@v1`. Las versiones exactas (`v1.0.1`,
+`v1.1.0`) permanecen inmutables y el release actualiza `v1` al último cambio
+compatible. Así las apps reciben fixes y capacidades compatibles sin modificar
+sus repositorios. Solo un breaking change exige cambiar los callers a `@v2`.
 
 - `PATCH` (`1.0.1`): correcciones compatibles.
 - `MINOR` (`1.1.0`): capacidades nuevas compatibles.
@@ -70,12 +71,13 @@ Para publicar una versión:
 
 1. Actualizar `VERSION` y `CHANGELOG.md` en una PR.
 2. Fusionar la PR a `main`.
-3. Crear y subir el tag exacto: `git tag v1.0.0` y `git push origin v1.0.0`.
+3. Crear y subir el tag exacto: `git tag v1.0.1` y `git push origin v1.0.1`.
 4. El workflow `Release pipeline version` valida que el tag coincida con
    `VERSION` y crea el GitHub Release.
-5. Actualizar cada app de `@v1.0.0` a la nueva versión mediante una PR.
+5. El release mueve automáticamente el alias `v1`; las apps no cambian.
 
-Los tags publicados se consideran inmutables: no deben eliminarse ni moverse.
+Los tags SemVer exactos son inmutables. Únicamente el alias mayor (`v1`, `v2`)
+es flotante por diseño.
 
 Las distribuciones beta y production se serializan por repositorio para impedir
 que dos promociones compitan. Los builds draft anteriores sí se cancelan cuando
@@ -143,6 +145,7 @@ directorios presentes en el proyecto.
 Al incorporar otra tecnología, se crea un directorio propio bajo `templates/`
 y documentación separada; los contratos compartidos permanecen en
 `.github/workflows/`.
+# workflows
 # workflows
 # workflows
 # workflows

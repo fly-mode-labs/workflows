@@ -22,7 +22,7 @@ on:
 
 jobs:
   pipeline:
-    uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v1.0.0
+    uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v1
     with:
       technology: flutter
     secrets: inherit
