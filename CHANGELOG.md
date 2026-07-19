@@ -3,6 +3,13 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [1.0.5] - 2026-07-19
+
+### Changed
+
+- Static analysis y tests aparecen al mismo nivel que los builds de Android,
+  iOS y Web dentro de una única matriz paralela.
+
 ## [1.0.4] - 2026-07-19
 
 ### Fixed

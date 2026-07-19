@@ -13,7 +13,7 @@ on:
         type: string
         default: '["self-hosted", "macOS", "ARM64"]'
       platforms-json:
-        description: JSON array containing only selected platforms
+        description: JSON matrix containing checks and selected platforms
         required: true
         type: string
 
@@ -25,32 +25,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: Static analysis and tests
-    runs-on: ${{ fromJSON(inputs.runner-labels) }}
-    timeout-minutes: 40
-    defaults:
-      run:
-        working-directory: ${{ inputs.working-directory }}
-    steps:
-      - name: Checkout application
-        uses: actions/checkout@v4
-      - name: Setup Flutter SDK and dependencies
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
-        with:
-          flutter-version: ${{ inputs.flutter-version }}
-          working-directory: ${{ inputs.working-directory }}
-      - name: Run Flutter static analysis and tests
-        run: |
-          flutter analyze
-          flutter test
-
-  platform:
-    name: Build ${{ matrix.platform.name }}
+  task:
+    name: ${{ matrix.task.id == 'checks' && matrix.task.name || format('Build {0}', matrix.task.name) }}
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJSON(inputs.platforms-json) }}
+        task: ${{ fromJSON(inputs.platforms-json) }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 40
     steps:
@@ -64,23 +44,29 @@ jobs:
       - name: Read and validate application version
         uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1
         id: version
+        if: matrix.task.id != 'checks'
         with:
           working-directory: ${{ inputs.working-directory }}
+      - name: Run Flutter static analysis and tests
+        if: matrix.task.id == 'checks'
+        run: |
+          flutter analyze
+          flutter test
       - name: Build Android artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v1
-        if: matrix.platform.id == 'android'
+        if: matrix.task.id == 'android'
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
       - name: Build iOS artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v1
-        if: matrix.platform.id == 'ios'
+        if: matrix.task.id == 'ios'
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
       - name: Build Web artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-web@v1
-        if: matrix.platform.id == 'web'
+        if: matrix.task.id == 'web'
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}

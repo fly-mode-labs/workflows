@@ -97,8 +97,9 @@ jobs:
             done
           fi
 
-          platforms_json='['
-          platform_separator=''
+          platforms_json='[{"id":"checks","name":"Static analysis and tests"}'
+          platform_separator=','
+          platform_count=0
           for platform in android ios web; do
             enabled=false
             if [[ "${normalized_platforms}" == "auto" && -d "${app_directory}/${platform}" ]]; then
@@ -112,6 +113,7 @@ jobs:
             fi
             echo "${platform}=${enabled}" >> "${GITHUB_OUTPUT}"
             if [[ "${enabled}" == "true" ]]; then
+              platform_count=$((platform_count + 1))
               case "${platform}" in
                 android) platform_name='Android' ;;
                 ios) platform_name='iOS' ;;
@@ -122,7 +124,7 @@ jobs:
             fi
           done
           platforms_json="${platforms_json}]"
-          if [[ "${platforms_json}" == "[]" ]]; then
+          if [[ "${platform_count}" -eq 0 ]]; then
             echo "No build platforms were selected."
             exit 1
           fi
