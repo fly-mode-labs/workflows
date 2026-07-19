@@ -3,6 +3,14 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [1.0.4] - 2026-07-19
+
+### Fixed
+
+- Static analysis y tests se ejecutan dentro de un único job.
+- Los checks y los builds de las plataformas seleccionadas comienzan en
+  paralelo, sin dependencias innecesarias entre ellos.
+
 ## [1.0.3] - 2026-07-19
 
 ### Fixed
