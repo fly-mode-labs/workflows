@@ -117,7 +117,7 @@ jobs:
       (needs.validate.outputs.stage == 'draft') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.pull_request.draft == true && github.event.action != 'closed')
-    uses: Juanpabedoyav/workflows/.github/workflows/flutter-build.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/flutter-build.yml@v1
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
@@ -134,7 +134,7 @@ jobs:
       (needs.validate.outputs.stage == 'beta') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.action == 'ready_for_review')
-    uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v1
     with:
       stage: beta
       working-directory: ${{ needs.validate.outputs.working-directory }}
@@ -151,7 +151,7 @@ jobs:
       (needs.validate.outputs.stage == 'production') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.action == 'closed' && github.event.pull_request.merged == true)
-    uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v1
     with:
       stage: production
       working-directory: ${{ needs.validate.outputs.working-directory }}

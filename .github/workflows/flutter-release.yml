@@ -33,7 +33,7 @@ jobs:
   app-store:
     name: Release / Integration / App Store
     if: inputs.release-ios
-    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-app-store.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-app-store.yml@v1
     with:
       stage: ${{ inputs.stage }}
       working-directory: ${{ inputs.working-directory }}
@@ -44,7 +44,7 @@ jobs:
   google-play:
     name: Release / Integration / Google Play
     if: inputs.release-android
-    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-google-play.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-google-play.yml@v1
     with:
       stage: ${{ inputs.stage }}
       working-directory: ${{ inputs.working-directory }}

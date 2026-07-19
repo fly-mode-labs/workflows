@@ -32,7 +32,7 @@ concurrency:
 jobs:
   quality:
     name: Build / Flutter / Quality
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-quality.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-quality.yml@v1
     with:
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
@@ -42,7 +42,7 @@ jobs:
     name: Build / Flutter / Android
     needs: quality
     if: inputs.build-android
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-android.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-android.yml@v1
     with:
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
@@ -53,7 +53,7 @@ jobs:
     name: Build / Flutter / iOS
     needs: quality
     if: inputs.build-ios
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-ios.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-ios.yml@v1
     with:
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
@@ -64,7 +64,7 @@ jobs:
     name: Build / Flutter / Web
     needs: quality
     if: inputs.build-web
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-web.yml@v1.0.1
+    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-web.yml@v1
     with:
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
