@@ -13,6 +13,12 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Los builds Android usan una caché de proyecto Gradle aislada por ejecución,
+  desactivan el daemon persistente y fallan con un diagnóstico claro cuando el
+  runner tiene menos de 5 GiB libres, evitando reutilizar locks de builds
+  cancelados o incompletos.
+- El setup muestra y valida la versión efectiva de Flutter leída desde la
+  variable `FLUTTER_VERSION` del repositorio consumidor.
 - La firma Android ahora consume explícitamente
   `ANDROID_KEYSTORE_BASE64`, `KEYALIAS`, `STOREPASSWORD` y `KEYPASSWORD`,
   decodifica y valida el keystore antes del build y elimina los archivos

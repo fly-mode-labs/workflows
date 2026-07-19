@@ -25,6 +25,28 @@ runs:
       with:
         flutter-version: ${{ inputs.flutter-version }}
         cache: true
+    - name: Verify Flutter toolchain
+      shell: bash
+      env:
+        EXPECTED_FLUTTER_VERSION: ${{ inputs.flutter-version }}
+      run: |
+        set -euo pipefail
+
+        version_output="$(flutter --version)"
+        printf '%s\n' "${version_output}"
+
+        if [[ ! "${version_output}" =~ Flutter[[:space:]]+([^[:space:]]+) ]]; then
+          echo "Could not determine the installed Flutter SDK version." >&2
+          exit 1
+        fi
+        actual_flutter_version="${BASH_REMATCH[1]}"
+        echo "Requested Flutter SDK: ${EXPECTED_FLUTTER_VERSION}"
+        echo "Installed Flutter SDK: ${actual_flutter_version}"
+
+        if [[ "${EXPECTED_FLUTTER_VERSION}" != "stable" && "${actual_flutter_version}" != "${EXPECTED_FLUTTER_VERSION}" ]]; then
+          echo "Expected Flutter ${EXPECTED_FLUTTER_VERSION}, but ${actual_flutter_version} is active." >&2
+          exit 1
+        fi
     - name: Resolve Flutter dependencies
       shell: bash
       working-directory: ${{ inputs.working-directory }}

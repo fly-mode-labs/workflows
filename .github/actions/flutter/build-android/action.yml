@@ -13,6 +13,27 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Prepare Gradle build state
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}/android
+      run: |
+        set -euo pipefail
+
+        available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
+        minimum_kb=$((5 * 1024 * 1024))
+        if (( available_kb < minimum_kb )); then
+          echo "Android release builds require at least 5 GiB of free disk space; only $((available_kb / 1024)) MiB is available." >&2
+          df -h .
+          exit 1
+        fi
+
+        gradle_project_cache=".gradle/ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
+        rm -rf -- "${gradle_project_cache}"
+        echo "GRADLE_PROJECT_CACHE_DIR=${gradle_project_cache}" >> "${GITHUB_ENV}"
+        echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.daemon=false -Dorg.gradle.projectcachedir=${gradle_project_cache}" >> "${GITHUB_ENV}"
+
+        echo "Gradle project cache: ${PWD}/${gradle_project_cache}"
+        echo "Gradle daemon: disabled for this CI build"
     - name: Setup Android signing
       id: android_signing
       uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-android-signing@v1
@@ -32,6 +53,11 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: flutter build appbundle --release
+    - name: Remove Gradle CI project cache
+      if: always()
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}/android
+      run: rm -rf -- "${GRADLE_PROJECT_CACHE_DIR}"
     - name: Upload Android artifacts
       uses: actions/upload-artifact@v4
       with:
