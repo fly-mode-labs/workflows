@@ -1,4 +1,4 @@
-name: Build / Flutter orchestrator
+name: Build - Flutter orchestrator
 
 on:
   workflow_call:
