@@ -3,7 +3,7 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.2.0] - 2026-07-19
 
 ### Added
 
