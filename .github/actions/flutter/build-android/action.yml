@@ -5,10 +5,23 @@ inputs:
   working-directory: {required: true, description: Flutter application directory}
   full-version: {required: true, description: Full pubspec version}
   build-format: {required: false, default: both, description: apk, appbundle or both}
+  keystore-base64: {required: false, description: Base64-encoded Android keystore}
+  key-alias: {required: false, description: Android signing key alias}
+  store-password: {required: false, description: Android keystore password}
+  key-password: {required: false, description: Android signing key password}
 
 runs:
   using: composite
   steps:
+    - name: Setup Android signing
+      id: android_signing
+      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-android-signing@v1
+      with:
+        working-directory: ${{ inputs.working-directory }}
+        keystore-base64: ${{ inputs.keystore-base64 }}
+        key-alias: ${{ inputs.key-alias }}
+        store-password: ${{ inputs.store-password }}
+        key-password: ${{ inputs.key-password }}
     - name: Compile release APK
       if: inputs.build-format == 'apk' || inputs.build-format == 'both'
       shell: bash
@@ -28,3 +41,10 @@ runs:
           ${{ inputs.working-directory }}/build/app/outputs/bundle/**/*.aab
         retention-days: 14
         if-no-files-found: error
+    - name: Remove temporary Android signing files
+      if: ${{ always() && steps.android_signing.outputs.configured == 'true' }}
+      shell: bash
+      env:
+        SIGNING_KEYSTORE_PATH: ${{ steps.android_signing.outputs.keystore-path }}
+        SIGNING_PROPERTIES_PATH: ${{ steps.android_signing.outputs.properties-path }}
+      run: rm -f -- "${SIGNING_KEYSTORE_PATH}" "${SIGNING_PROPERTIES_PATH}"

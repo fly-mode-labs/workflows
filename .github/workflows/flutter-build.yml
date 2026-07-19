@@ -80,6 +80,10 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
           build-format: ${{ inputs.android-build-format }}
+          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          key-alias: ${{ secrets.KEYALIAS }}
+          store-password: ${{ secrets.STOREPASSWORD }}
+          key-password: ${{ secrets.KEYPASSWORD }}
       - name: Build iOS artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v1
         if: matrix.task.id == 'ios'

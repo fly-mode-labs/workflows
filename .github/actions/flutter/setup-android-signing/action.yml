@@ -1,0 +1,122 @@
+name: Setup Android signing
+description: Decodes an Android keystore and creates a temporary key.properties file.
+
+inputs:
+  working-directory: {required: true, description: Flutter application directory}
+  keystore-base64: {required: false, description: Base64-encoded Android keystore}
+  key-alias: {required: false, description: Android signing key alias}
+  store-password: {required: false, description: Android keystore password}
+  key-password: {required: false, description: Android signing key password}
+
+outputs:
+  configured:
+    description: Whether temporary Android signing files were created
+    value: ${{ steps.signing.outputs.configured }}
+  keystore-path:
+    description: Path to the temporary decoded keystore
+    value: ${{ steps.signing.outputs.keystore-path }}
+  properties-path:
+    description: Path to the temporary key.properties file
+    value: ${{ steps.signing.outputs.properties-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure Android signing
+      id: signing
+      shell: bash
+      env:
+        APPLICATION_DIRECTORY: ${{ inputs.working-directory }}
+        ANDROID_KEYSTORE_BASE64: ${{ inputs.keystore-base64 }}
+        ANDROID_KEY_ALIAS: ${{ inputs.key-alias }}
+        ANDROID_STORE_PASSWORD: ${{ inputs.store-password }}
+        ANDROID_KEY_PASSWORD: ${{ inputs.key-password }}
+      run: |
+        set -euo pipefail
+
+        provided_values=0
+        for value in "${ANDROID_KEYSTORE_BASE64}" "${ANDROID_KEY_ALIAS}" "${ANDROID_STORE_PASSWORD}" "${ANDROID_KEY_PASSWORD}"; do
+          if [[ -n "${value}" ]]; then
+            provided_values=$((provided_values + 1))
+          fi
+        done
+
+        if [[ "${provided_values}" -eq 0 ]]; then
+          echo "configured=false" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        if [[ "${provided_values}" -ne 4 ]]; then
+          echo "Android signing is partially configured. Set ANDROID_KEYSTORE_BASE64, KEYALIAS, STOREPASSWORD and KEYPASSWORD." >&2
+          exit 1
+        fi
+
+        application_path="${APPLICATION_DIRECTORY}"
+        if [[ "${application_path}" != /* ]]; then
+          application_path="${GITHUB_WORKSPACE}/${application_path}"
+        fi
+        android_path="${application_path}/android"
+        if [[ ! -d "${android_path}" ]]; then
+          echo "Android directory not found: ${android_path}" >&2
+          exit 1
+        fi
+
+        umask 077
+        keystore_path="$(mktemp "${RUNNER_TEMP}/android-keystore.XXXXXX")"
+        properties_path="${android_path}/key.properties"
+
+        cleanup_on_error() {
+          status=$?
+          trap - EXIT
+          if [[ "${status}" -ne 0 ]]; then
+            rm -f -- "${keystore_path}" "${properties_path}"
+          fi
+          exit "${status}"
+        }
+        trap cleanup_on_error EXIT
+
+        decode_keystore() {
+          if printf '%s' "${ANDROID_KEYSTORE_BASE64}" | tr -d '\r\n' | base64 --decode > "${keystore_path}" 2>/dev/null; then
+            return 0
+          fi
+          if printf '%s' "${ANDROID_KEYSTORE_BASE64}" | tr -d '\r\n' | base64 -D > "${keystore_path}"; then
+            return 0
+          fi
+          return 1
+        }
+
+        if ! decode_keystore || [[ ! -s "${keystore_path}" ]]; then
+          echo "ANDROID_KEYSTORE_BASE64 is not a valid base64-encoded keystore." >&2
+          exit 1
+        fi
+
+        if ! keytool -list -keystore "${keystore_path}" -storepass "${ANDROID_STORE_PASSWORD}" -alias "${ANDROID_KEY_ALIAS}" >/dev/null 2>&1; then
+          echo "The decoded keystore, store password or key alias is invalid." >&2
+          exit 1
+        fi
+
+        escape_property() {
+          local value="$1"
+          value="${value//\\/\\\\}"
+          value="${value//$'\t'/\\t}"
+          value="${value//$'\n'/\\n}"
+          value="${value//$'\r'/\\r}"
+          value="${value// /\\ }"
+          value="${value//#/\\#}"
+          value="${value//!/\\!}"
+          value="${value//=/\\=}"
+          value="${value//:/\\:}"
+          printf '%s' "${value}"
+        }
+
+        {
+          printf 'storeFile=%s\n' "$(escape_property "${keystore_path}")"
+          printf 'keyAlias=%s\n' "$(escape_property "${ANDROID_KEY_ALIAS}")"
+          printf 'storePassword=%s\n' "$(escape_property "${ANDROID_STORE_PASSWORD}")"
+          printf 'keyPassword=%s\n' "$(escape_property "${ANDROID_KEY_PASSWORD}")"
+        } > "${properties_path}"
+
+        echo "configured=true" >> "${GITHUB_OUTPUT}"
+        echo "keystore-path=${keystore_path}" >> "${GITHUB_OUTPUT}"
+        echo "properties-path=${properties_path}" >> "${GITHUB_OUTPUT}"
+        trap - EXIT
