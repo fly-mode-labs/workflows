@@ -3,6 +3,14 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 2026-07-19
+
+### Changed
+
+- Build usa una matriz dinámica y solo crea jobs para las plataformas
+  seleccionadas; las plataformas omitidas ya no aparecen en la gráfica.
+- Builds de Android, iOS y Web se implementan como composite actions separadas.
+
 ## [1.0.1] - 2026-07-19
 
 ### Fixed

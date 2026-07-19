@@ -12,15 +12,10 @@ on:
       runner-labels:
         type: string
         default: '["self-hosted", "macOS", "ARM64"]'
-      build-android:
-        type: boolean
-        default: false
-      build-ios:
-        type: boolean
-        default: false
-      build-web:
-        type: boolean
-        default: false
+      platforms-json:
+        description: JSON array containing only selected platforms
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -38,35 +33,33 @@ jobs:
       flutter-version: ${{ inputs.flutter-version }}
       runner-labels: ${{ inputs.runner-labels }}
 
-  android:
-    name: Build / Flutter / Android
+  platform:
+    name: Build / Flutter / ${{ matrix.platform }}
     needs: quality
-    if: inputs.build-android
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-android.yml@v1
-    with:
-      working-directory: ${{ inputs.working-directory }}
-      flutter-version: ${{ inputs.flutter-version }}
-      runner-labels: ${{ inputs.runner-labels }}
-      full-version: ${{ needs.quality.outputs.full-version }}
-
-  ios:
-    name: Build / Flutter / iOS
-    needs: quality
-    if: inputs.build-ios
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-ios.yml@v1
-    with:
-      working-directory: ${{ inputs.working-directory }}
-      flutter-version: ${{ inputs.flutter-version }}
-      runner-labels: ${{ inputs.runner-labels }}
-      full-version: ${{ needs.quality.outputs.full-version }}
-
-  web:
-    name: Build / Flutter / Web
-    needs: quality
-    if: inputs.build-web
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-web.yml@v1
-    with:
-      working-directory: ${{ inputs.working-directory }}
-      flutter-version: ${{ inputs.flutter-version }}
-      runner-labels: ${{ inputs.runner-labels }}
-      full-version: ${{ needs.quality.outputs.full-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ${{ fromJSON(inputs.platforms-json) }}
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v1
+        if: matrix.platform == 'android'
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          full-version: ${{ needs.quality.outputs.full-version }}
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v1
+        if: matrix.platform == 'ios'
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          full-version: ${{ needs.quality.outputs.full-version }}
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/build-web@v1
+        if: matrix.platform == 'web'
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          full-version: ${{ needs.quality.outputs.full-version }}

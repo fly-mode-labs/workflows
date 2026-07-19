@@ -1,0 +1,21 @@
+name: Build Flutter iOS
+description: Builds and uploads an unsigned XCArchive.
+
+inputs:
+  working-directory: {required: true, description: Flutter application directory}
+  full-version: {required: true, description: Full pubspec version}
+
+runs:
+  using: composite
+  steps:
+    - name: Build unsigned iOS archive
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: flutter build ipa --release --no-codesign
+    - name: Upload iOS archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-${{ inputs.full-version }}-${{ github.sha }}
+        path: ${{ inputs.working-directory }}/build/ios/archive/*.xcarchive
+        retention-days: 14
+        if-no-files-found: error

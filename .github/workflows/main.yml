@@ -42,6 +42,7 @@ jobs:
       android: ${{ steps.config.outputs.android }}
       ios: ${{ steps.config.outputs.ios }}
       web: ${{ steps.config.outputs.web }}
+      platforms-json: ${{ steps.config.outputs.platforms-json }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate technology and stage
@@ -96,6 +97,8 @@ jobs:
             done
           fi
 
+          platforms_json='['
+          platform_separator=''
           for platform in android ios web; do
             enabled=false
             if [[ "${normalized_platforms}" == "auto" && -d "${app_directory}/${platform}" ]]; then
@@ -108,7 +111,17 @@ jobs:
               exit 1
             fi
             echo "${platform}=${enabled}" >> "${GITHUB_OUTPUT}"
+            if [[ "${enabled}" == "true" ]]; then
+              platforms_json="${platforms_json}${platform_separator}\"${platform}\""
+              platform_separator=','
+            fi
           done
+          platforms_json="${platforms_json}]"
+          if [[ "${platforms_json}" == "[]" ]]; then
+            echo "No build platforms were selected."
+            exit 1
+          fi
+          echo "platforms-json=${platforms_json}" >> "${GITHUB_OUTPUT}"
 
   flutter-build:
     name: Flutter / Build
@@ -122,9 +135,7 @@ jobs:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
       runner-labels: ${{ inputs.runner-labels }}
-      build-android: ${{ needs.validate.outputs.android == 'true' }}
-      build-ios: ${{ needs.validate.outputs.ios == 'true' }}
-      build-web: ${{ needs.validate.outputs.web == 'true' }}
+      platforms-json: ${{ needs.validate.outputs.platforms-json }}
     secrets: inherit
 
   flutter-beta-release:

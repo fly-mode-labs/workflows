@@ -91,16 +91,16 @@ llega un commit nuevo a la misma PR.
 │   ├── main.yml
 │   ├── flutter-build.yml
 │   ├── build-job-flutter-quality.yml
-│   ├── build-job-flutter-android.yml
-│   ├── build-job-flutter-ios.yml
-│   ├── build-job-flutter-web.yml
 │   ├── flutter-release.yml
 │   ├── release-integration-app-store.yml
 │   ├── release-integration-google-play.yml
 │   └── pipeline-release.yml
 ├── actions/flutter/
 │   ├── setup/action.yml
-│   └── read-version/action.yml
+│   ├── read-version/action.yml
+│   ├── build-android/action.yml
+│   ├── build-ios/action.yml
+│   └── build-web/action.yml
 └── CODEOWNERS
 templates/flutter/        # main.yml mínimo que vive en cada app
 docs/                     # Contratos por tecnología
@@ -110,17 +110,17 @@ docs/                     # Contratos por tecnología
 directamente en `.github/workflows`; las operaciones repetidas a nivel de steps
 se organizan como composite actions bajo `.github/actions`.
 
-- `flutter-build.yml`: coordina los jobs `build-job-*` para Quality, Android,
-  iOS y Web.
+- `flutter-build.yml`: crea una matriz únicamente con las plataformas
+  seleccionadas y coordina sus composite actions.
 - `flutter-release.yml`: coordina los adaptadores `release-integration-*` para
   App Store y Google Play.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.
 - `.github/actions/flutter`: preparación del SDK y lectura normalizada de la
   versión de `pubspec.yaml` sin duplicar steps.
 
-Las plataformas también se autodetectan por sus directorios. Las tres apps
-actuales ejecutarán Android e iOS; el job Web existe pero permanecerá omitido
-hasta que una app contenga el directorio `web/`.
+Las plataformas se autodetectan o se fijan mediante `platforms`. La matriz solo
+crea jobs para las seleccionadas: si Artistic usa `android,ios`, Web no aparece
+en la gráfica ni consume recursos.
 
 Las apps llaman únicamente a `.github/workflows/main.yml`. El input
 `technology` selecciona la implementación (`flutter` actualmente); agregar otra

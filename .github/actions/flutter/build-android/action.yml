@@ -1,0 +1,25 @@
+name: Build Flutter Android
+description: Builds and uploads APK and Android App Bundle artifacts.
+
+inputs:
+  working-directory: {required: true, description: Flutter application directory}
+  full-version: {required: true, description: Full pubspec version}
+
+runs:
+  using: composite
+  steps:
+    - name: Build APK and Android App Bundle
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        flutter build apk --release
+        flutter build appbundle --release
+    - name: Upload Android artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-${{ inputs.full-version }}-${{ github.sha }}
+        path: |
+          ${{ inputs.working-directory }}/build/app/outputs/flutter-apk/*.apk
+          ${{ inputs.working-directory }}/build/app/outputs/bundle/**/*.aab
+        retention-days: 14
+        if-no-files-found: error
