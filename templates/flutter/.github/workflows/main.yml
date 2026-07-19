@@ -1,0 +1,23 @@
+name: Mobile release
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, converted_to_draft, ready_for_review, closed]
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Stage to execute manually
+        required: true
+        type: choice
+        options: [draft, beta, production]
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline:
+    uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v1.0.0
+    with:
+      technology: flutter
+    secrets: inherit

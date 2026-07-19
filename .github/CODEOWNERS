@@ -1,0 +1,5 @@
+# CI/CD changes require review from the repository owner.
+/.github/ @Juanpabedoyav
+/templates/ @Juanpabedoyav
+/VERSION @Juanpabedoyav
+/CHANGELOG.md @Juanpabedoyav

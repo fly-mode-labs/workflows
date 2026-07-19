@@ -1,0 +1,44 @@
+name: Build job / Flutter quality
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        required: true
+        type: string
+      flutter-version:
+        type: string
+        default: stable
+      runner-labels:
+        type: string
+        default: '["self-hosted", "macOS", "ARM64"]'
+    outputs:
+      full-version:
+        description: Version read from pubspec.yaml
+        value: ${{ jobs.quality.outputs.full-version }}
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Analyze, test and version
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 30
+    outputs:
+      full-version: ${{ steps.version.outputs.full-version }}
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1.0.0
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1.0.0
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
+      - run: flutter analyze
+      - run: flutter test

@@ -31,9 +31,9 @@ Las lanes reciben los secretos del environment de GitHub como variables de
 entorno. Se recomiendan credenciales mediante App Store Connect API Key y Match,
 nunca certificados guardados en este repositorio.
 
-`ios beta` debe incrementar/resolver el build number, firmar y subir a
-TestFlight. `ios release` debe localizar el build beta aprobado y enviarlo o
-promoverlo a App Store según la política del equipo.
+`ios beta` debe usar `APP_VERSION` y `BUILD_NUMBER`, firmar y subir a TestFlight.
+`ios release` debe localizar ese mismo build beta y enviarlo o promoverlo a App
+Store según la política del equipo.
 
 ## Android (Gradle Play Publisher)
 

@@ -1,0 +1,139 @@
+name: Central pipeline
+
+on:
+  workflow_call:
+    inputs:
+      technology:
+        description: Application technology handled by the pipeline
+        required: true
+        type: string
+      working-directory:
+        description: Application path or auto to locate pubspec.yaml
+        type: string
+        default: auto
+      flutter-version:
+        description: Flutter version or channel
+        type: string
+        default: stable
+      runner-labels:
+        description: JSON array of self-hosted runner labels
+        type: string
+        default: '["self-hosted", "macOS", "ARM64"]'
+      stage:
+        description: auto, draft, beta or production
+        type: string
+        default: auto
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate pipeline configuration
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 5
+    outputs:
+      stage: ${{ steps.config.outputs.stage }}
+      working-directory: ${{ steps.config.outputs.working-directory }}
+      android: ${{ steps.config.outputs.android }}
+      ios: ${{ steps.config.outputs.ios }}
+      web: ${{ steps.config.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate technology and stage
+        id: config
+        shell: bash
+        env:
+          TECHNOLOGY: ${{ inputs.technology }}
+          CONFIGURED_STAGE: ${{ inputs.stage }}
+          EVENT_STAGE: ${{ github.event.inputs.stage }}
+          CONFIGURED_DIRECTORY: ${{ inputs.working-directory }}
+        run: |
+          if [[ "${TECHNOLOGY}" != "flutter" ]]; then
+            echo "Unsupported technology: ${TECHNOLOGY}"
+            exit 1
+          fi
+
+          effective_stage="${CONFIGURED_STAGE}"
+          if [[ "${effective_stage}" == "auto" && -n "${EVENT_STAGE}" ]]; then
+            effective_stage="${EVENT_STAGE}"
+          fi
+          case "${effective_stage}" in
+            auto|draft|beta|production) ;;
+            *) echo "Unsupported stage: ${effective_stage}"; exit 1 ;;
+          esac
+          echo "stage=${effective_stage}" >> "${GITHUB_OUTPUT}"
+
+          app_directory="${CONFIGURED_DIRECTORY}"
+          if [[ "${app_directory}" == "auto" ]]; then
+            pubspecs="$(find . -maxdepth 2 -type f -name pubspec.yaml | sort)"
+            pubspec_count="$(printf '%s\n' "${pubspecs}" | sed '/^$/d' | wc -l | tr -d ' ')"
+            if [[ "${pubspec_count}" -ne 1 ]]; then
+              echo "Expected one pubspec.yaml, found ${pubspec_count}. Set working-directory explicitly."
+              exit 1
+            fi
+            app_directory="$(dirname "${pubspecs}")"
+            app_directory="${app_directory#./}"
+          fi
+          if [[ ! -f "${app_directory}/pubspec.yaml" ]]; then
+            echo "pubspec.yaml not found in ${app_directory}"
+            exit 1
+          fi
+          echo "working-directory=${app_directory}" >> "${GITHUB_OUTPUT}"
+          for platform in android ios web; do
+            if [[ -d "${app_directory}/${platform}" ]]; then
+              echo "${platform}=true" >> "${GITHUB_OUTPUT}"
+            else
+              echo "${platform}=false" >> "${GITHUB_OUTPUT}"
+            fi
+          done
+
+  flutter-build:
+    name: Flutter / Build
+    needs: validate
+    if: >-
+      (needs.validate.outputs.stage == 'draft') ||
+      (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == true && github.event.action != 'closed')
+    uses: ./.github/workflows/flutter-build.yml
+    with:
+      working-directory: ${{ needs.validate.outputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+      build-android: ${{ needs.validate.outputs.android == 'true' }}
+      build-ios: ${{ needs.validate.outputs.ios == 'true' }}
+      build-web: ${{ needs.validate.outputs.web == 'true' }}
+    secrets: inherit
+
+  flutter-beta-release:
+    name: Flutter / Beta release
+    needs: validate
+    if: >-
+      (needs.validate.outputs.stage == 'beta') ||
+      (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
+      github.event.action == 'ready_for_review')
+    uses: ./.github/workflows/flutter-release.yml
+    with:
+      stage: beta
+      working-directory: ${{ needs.validate.outputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+      release-android: ${{ needs.validate.outputs.android == 'true' }}
+      release-ios: ${{ needs.validate.outputs.ios == 'true' }}
+    secrets: inherit
+
+  flutter-production-release:
+    name: Flutter / Production release
+    needs: validate
+    if: >-
+      (needs.validate.outputs.stage == 'production') ||
+      (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
+      github.event.action == 'closed' && github.event.pull_request.merged == true)
+    uses: ./.github/workflows/flutter-release.yml
+    with:
+      stage: production
+      working-directory: ${{ needs.validate.outputs.working-directory }}
+      runner-labels: ${{ inputs.runner-labels }}
+      release-android: ${{ needs.validate.outputs.android == 'true' }}
+      release-ios: ${{ needs.validate.outputs.ios == 'true' }}
+    secrets: inherit

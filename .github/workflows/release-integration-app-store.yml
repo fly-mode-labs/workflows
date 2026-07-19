@@ -1,0 +1,52 @@
+name: Release integration / App Store
+
+on:
+  workflow_call:
+    inputs:
+      stage: {required: true, type: string}
+      working-directory: {required: true, type: string}
+      flutter-version: {type: string, default: stable}
+      runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
+      beta-command: {type: string, default: bundle exec fastlane ios beta}
+      production-command: {type: string, default: bundle exec fastlane ios release}
+
+permissions:
+  contents: read
+
+jobs:
+  app-store:
+    name: ${{ inputs.stage == 'beta' && 'TestFlight' || 'App Store production' }}
+    environment: ${{ inputs.stage }}
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1.0.0
+        if: inputs.stage == 'beta'
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1.0.0
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
+      - run: bundle install
+      - name: Upload beta to TestFlight
+        if: inputs.stage == 'beta'
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
+          FULL_VERSION: ${{ steps.version.outputs.full-version }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: ${{ inputs.beta-command }}
+      - name: Promote to App Store
+        if: inputs.stage == 'production'
+        env:
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
+          FULL_VERSION: ${{ steps.version.outputs.full-version }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: ${{ inputs.production-command }}

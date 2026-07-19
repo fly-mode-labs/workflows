@@ -133,3 +133,4 @@ Al incorporar otra tecnología, se crea un directorio propio bajo `templates/`
 y documentación separada; los contratos compartidos permanecen en
 `.github/workflows/`.
 # workflows
+# workflows

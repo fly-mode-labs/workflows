@@ -1,0 +1,72 @@
+name: Build / Flutter orchestrator
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        required: true
+        type: string
+      flutter-version:
+        type: string
+        default: stable
+      runner-labels:
+        type: string
+        default: '["self-hosted", "macOS", "ARM64"]'
+      build-android:
+        type: boolean
+        default: false
+      build-ios:
+        type: boolean
+        default: false
+      build-web:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-build-${{ github.repository }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Build / Flutter / Quality
+    uses: ./.github/workflows/build-job-flutter-quality.yml
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+
+  android:
+    name: Build / Flutter / Android
+    needs: quality
+    if: inputs.build-android
+    uses: ./.github/workflows/build-job-flutter-android.yml
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+      full-version: ${{ needs.quality.outputs.full-version }}
+
+  ios:
+    name: Build / Flutter / iOS
+    needs: quality
+    if: inputs.build-ios
+    uses: ./.github/workflows/build-job-flutter-ios.yml
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+      full-version: ${{ needs.quality.outputs.full-version }}
+
+  web:
+    name: Build / Flutter / Web
+    needs: quality
+    if: inputs.build-web
+    uses: ./.github/workflows/build-job-flutter-web.yml
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+      full-version: ${{ needs.quality.outputs.full-version }}

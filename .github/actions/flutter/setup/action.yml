@@ -1,0 +1,24 @@
+name: Setup Flutter application
+description: Installs Flutter dependencies for an application job.
+
+inputs:
+  flutter-version:
+    description: Flutter SDK version or stable channel
+    required: false
+    default: stable
+  working-directory:
+    description: Flutter application directory
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ inputs.flutter-version }}
+        channel: ${{ inputs.flutter-version == 'stable' && 'stable' || '' }}
+        cache: true
+    - name: Resolve Flutter dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: flutter pub get

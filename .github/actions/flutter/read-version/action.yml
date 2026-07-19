@@ -1,0 +1,35 @@
+name: Read Flutter version
+description: Validates and exposes the version declared in pubspec.yaml.
+
+inputs:
+  working-directory:
+    description: Flutter application directory
+    required: true
+
+outputs:
+  app-version:
+    description: Semantic application version
+    value: ${{ steps.version.outputs.app-version }}
+  build-number:
+    description: Numeric store build number
+    value: ${{ steps.version.outputs.build-number }}
+  full-version:
+    description: Complete Flutter version
+    value: ${{ steps.version.outputs.full-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate pubspec version
+      id: version
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        full_version="$(sed -nE 's/^version:[[:space:]]*([^[:space:]#]+).*/\1/p' pubspec.yaml | head -n 1)"
+        if [[ ! "${full_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?\+[0-9]+$ ]]; then
+          echo "pubspec.yaml must contain version: MAJOR.MINOR.PATCH+BUILD_NUMBER"
+          exit 1
+        fi
+        echo "full-version=${full_version}" >> "${GITHUB_OUTPUT}"
+        echo "app-version=${full_version%%+*}" >> "${GITHUB_OUTPUT}"
+        echo "build-number=${full_version##*+}" >> "${GITHUB_OUTPUT}"

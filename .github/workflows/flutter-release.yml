@@ -1,0 +1,53 @@
+name: Release / Flutter orchestrator
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        required: true
+        type: string
+      working-directory:
+        required: true
+        type: string
+      flutter-version:
+        type: string
+        default: stable
+      runner-labels:
+        type: string
+        default: '["self-hosted", "macOS", "ARM64"]'
+      release-android:
+        type: boolean
+        default: false
+      release-ios:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-release-${{ inputs.stage }}-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  app-store:
+    name: Release / Integration / App Store
+    if: inputs.release-ios
+    uses: ./.github/workflows/release-integration-app-store.yml
+    with:
+      stage: ${{ inputs.stage }}
+      working-directory: ${{ inputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+    secrets: inherit
+
+  google-play:
+    name: Release / Integration / Google Play
+    if: inputs.release-android
+    uses: ./.github/workflows/release-integration-google-play.yml
+    with:
+      stage: ${{ inputs.stage }}
+      working-directory: ${{ inputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+    secrets: inherit
