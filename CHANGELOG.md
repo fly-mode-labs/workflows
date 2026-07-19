@@ -3,6 +3,15 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-07-19
+
+### Fixed
+
+- Referencias anidadas usan rutas completas versionadas para funcionar cuando
+  el caller pertenece a otro repositorio privado.
+- Selección explícita de plataformas mediante `platforms`, con autodetección
+  opcional y validación de directorios.
+
 ## [1.0.0] - 2026-07-19
 
 ### Added

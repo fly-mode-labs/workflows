@@ -24,12 +24,12 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v4
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1.0.0
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1.0.1
         if: inputs.stage == 'beta'
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1.0.0
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1.0.1
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}

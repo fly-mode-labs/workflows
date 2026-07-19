@@ -7,6 +7,10 @@ on:
         description: Application technology handled by the pipeline
         required: true
         type: string
+      platforms:
+        description: Comma-separated platforms or auto
+        type: string
+        default: auto
       working-directory:
         description: Application path or auto to locate pubspec.yaml
         type: string
@@ -48,6 +52,7 @@ jobs:
           CONFIGURED_STAGE: ${{ inputs.stage }}
           EVENT_STAGE: ${{ github.event.inputs.stage }}
           CONFIGURED_DIRECTORY: ${{ inputs.working-directory }}
+          CONFIGURED_PLATFORMS: ${{ inputs.platforms }}
         run: |
           if [[ "${TECHNOLOGY}" != "flutter" ]]; then
             echo "Unsupported technology: ${TECHNOLOGY}"
@@ -80,12 +85,29 @@ jobs:
             exit 1
           fi
           echo "working-directory=${app_directory}" >> "${GITHUB_OUTPUT}"
+          normalized_platforms="${CONFIGURED_PLATFORMS// /}"
+          if [[ "${normalized_platforms}" != "auto" ]]; then
+            IFS=',' read -r -a requested_platforms <<< "${normalized_platforms}"
+            for requested_platform in "${requested_platforms[@]}"; do
+              case "${requested_platform}" in
+                android|ios|web) ;;
+                *) echo "Unsupported platform: ${requested_platform}"; exit 1 ;;
+              esac
+            done
+          fi
+
           for platform in android ios web; do
-            if [[ -d "${app_directory}/${platform}" ]]; then
-              echo "${platform}=true" >> "${GITHUB_OUTPUT}"
-            else
-              echo "${platform}=false" >> "${GITHUB_OUTPUT}"
+            enabled=false
+            if [[ "${normalized_platforms}" == "auto" && -d "${app_directory}/${platform}" ]]; then
+              enabled=true
+            elif [[ ",${normalized_platforms}," == *",${platform},"* ]]; then
+              enabled=true
             fi
+            if [[ "${enabled}" == "true" && ! -d "${app_directory}/${platform}" ]]; then
+              echo "Platform ${platform} was requested but ${app_directory}/${platform} does not exist."
+              exit 1
+            fi
+            echo "${platform}=${enabled}" >> "${GITHUB_OUTPUT}"
           done
 
   flutter-build:
@@ -95,7 +117,7 @@ jobs:
       (needs.validate.outputs.stage == 'draft') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.pull_request.draft == true && github.event.action != 'closed')
-    uses: ./.github/workflows/flutter-build.yml
+    uses: Juanpabedoyav/workflows/.github/workflows/flutter-build.yml@v1.0.1
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
@@ -112,7 +134,7 @@ jobs:
       (needs.validate.outputs.stage == 'beta') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.action == 'ready_for_review')
-    uses: ./.github/workflows/flutter-release.yml
+    uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v1.0.1
     with:
       stage: beta
       working-directory: ${{ needs.validate.outputs.working-directory }}
@@ -129,7 +151,7 @@ jobs:
       (needs.validate.outputs.stage == 'production') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.action == 'closed' && github.event.pull_request.merged == true)
-    uses: ./.github/workflows/flutter-release.yml
+    uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v1.0.1
     with:
       stage: production
       working-directory: ${{ needs.validate.outputs.working-directory }}

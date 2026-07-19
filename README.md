@@ -129,8 +129,20 @@ una profundidad máxima de dos directorios. `working-directory` solo se indica
 cuando el repositorio contiene más de una app Flutter. El stage manual se lee
 directamente del evento, por lo que tampoco se pasa desde el caller.
 
+Las plataformas pueden fijarse desde la app:
+
+```yaml
+with:
+  technology: flutter
+  platforms: android,ios
+```
+
+Si se omite `platforms`, el valor `auto` habilita Android, iOS o Web según los
+directorios presentes en el proyecto.
+
 Al incorporar otra tecnología, se crea un directorio propio bajo `templates/`
 y documentación separada; los contratos compartidos permanecen en
 `.github/workflows/`.
+# workflows
 # workflows
 # workflows

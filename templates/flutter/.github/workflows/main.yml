@@ -17,7 +17,8 @@ permissions:
 
 jobs:
   pipeline:
-    uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v1.0.0
+    uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v1.0.1
     with:
       technology: flutter
+      platforms: android,ios
     secrets: inherit
