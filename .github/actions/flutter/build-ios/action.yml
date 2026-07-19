@@ -1,5 +1,5 @@
 name: Build Flutter iOS
-description: Builds and uploads an unsigned XCArchive.
+description: Builds and uploads a signed XCArchive.
 
 inputs:
   working-directory: {required: true, description: Flutter application directory}
@@ -8,10 +8,10 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Compile unsigned iOS archive
+    - name: Compile signed iOS archive
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: flutter build ipa --release --no-codesign
+      run: flutter build ipa --release
     - name: Upload iOS archive
       uses: actions/upload-artifact@v4
       with:

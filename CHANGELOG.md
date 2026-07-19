@@ -3,6 +3,16 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Los checks de Flutter se ejecutan desde el directorio de la aplicación y el
+  análisis queda limitado a `lib`, `test` e `integration_test`, evitando
+  analizar dependencias descargadas dentro de `build/ios/SourcePackages`.
+- El build draft de iOS conserva la firma configurada por la aplicación y ya no
+  fuerza `--no-codesign`.
+
 ## [1.1.0] - 2026-07-19
 
 ### Added

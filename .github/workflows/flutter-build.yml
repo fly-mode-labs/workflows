@@ -53,8 +53,16 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Run Flutter static analysis and tests
         if: matrix.task.id == 'checks'
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
         run: |
-          flutter analyze
+          analysis_targets=(lib)
+          for source_directory in test integration_test; do
+            if [[ -d "${source_directory}" ]]; then
+              analysis_targets+=("${source_directory}")
+            fi
+          done
+          flutter analyze "${analysis_targets[@]}"
           flutter test
       - name: Build Android artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v1
