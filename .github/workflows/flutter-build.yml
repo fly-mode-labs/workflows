@@ -25,16 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  static-analysis:
-    name: Static analysis
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-analysis.yml@v1
-    with:
-      working-directory: ${{ inputs.working-directory }}
-      flutter-version: ${{ inputs.flutter-version }}
-      runner-labels: ${{ inputs.runner-labels }}
-
-  tests:
-    name: Tests
+  checks:
+    name: Static analysis and tests
     uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-tests.yml@v1
     with:
       working-directory: ${{ inputs.working-directory }}
@@ -43,7 +35,6 @@ jobs:
 
   platform:
     name: Build ${{ matrix.platform.name }}
-    needs: [static-analysis, tests]
     strategy:
       fail-fast: false
       matrix:
@@ -58,21 +49,26 @@ jobs:
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+      - name: Read and validate application version
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
       - name: Build Android artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v1
         if: matrix.platform.id == 'android'
         with:
           working-directory: ${{ inputs.working-directory }}
-          full-version: ${{ needs.static-analysis.outputs.full-version }}
+          full-version: ${{ steps.version.outputs.full-version }}
       - name: Build iOS artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v1
         if: matrix.platform.id == 'ios'
         with:
           working-directory: ${{ inputs.working-directory }}
-          full-version: ${{ needs.static-analysis.outputs.full-version }}
+          full-version: ${{ steps.version.outputs.full-version }}
       - name: Build Web artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-web@v1
         if: matrix.platform.id == 'web'
         with:
           working-directory: ${{ inputs.working-directory }}
-          full-version: ${{ needs.static-analysis.outputs.full-version }}
+          full-version: ${{ steps.version.outputs.full-version }}

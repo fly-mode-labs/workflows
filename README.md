@@ -90,7 +90,6 @@ llega un commit nuevo a la misma PR.
 ├── workflows/
 │   ├── main.yml
 │   ├── flutter-build.yml
-│   ├── build-job-flutter-analysis.yml
 │   ├── build-job-flutter-tests.yml
 │   ├── flutter-release.yml
 │   ├── release-integration-app-store.yml
@@ -111,8 +110,8 @@ docs/                     # Contratos por tecnología
 directamente en `.github/workflows`; las operaciones repetidas a nivel de steps
 se organizan como composite actions bajo `.github/actions`.
 
-- `flutter-build.yml`: crea una matriz únicamente con las plataformas
-  seleccionadas y coordina sus composite actions.
+- `flutter-build.yml`: ejecuta análisis y tests en un único job mientras crea,
+  en paralelo, una matriz únicamente con las plataformas seleccionadas.
 - `flutter-release.yml`: coordina los adaptadores `release-integration-*` para
   App Store y Google Play.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.

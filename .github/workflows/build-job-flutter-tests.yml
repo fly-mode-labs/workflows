@@ -1,4 +1,4 @@
-name: Build job / Flutter tests
+name: Build job / Flutter checks
 
 on:
   workflow_call:
@@ -17,10 +17,10 @@ permissions:
   contents: read
 
 jobs:
-  tests:
-    name: Tests
+  checks:
+    name: Static analysis and tests
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
-    timeout-minutes: 25
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -32,5 +32,7 @@ jobs:
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+      - name: Run Flutter static analysis
+        run: flutter analyze
       - name: Run Flutter tests
         run: flutter test
