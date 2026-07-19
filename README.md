@@ -29,9 +29,12 @@ esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
    `@main`.
 3. Crear en GitHub el environment `beta` y el environment `production`, con sus
    secretos y protecciones.
-4. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
+4. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con
+   las versiones usadas por la app; no se declaran en el caller y se aplican
+   valores por defecto si se omiten.
+5. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
    Gradle Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
-5. Registrar el Mac como runner con las labels `self-hosted`, `macOS` y `ARM64`.
+6. Registrar el Mac como runner con las labels `self-hosted`, `macOS` y `ARM64`.
 
 Los callers concretos para `ride-your-soul`, `artistic` y `estudio-sybellafit`
 están en [docs/apps-francisco.md](docs/apps-francisco.md).
@@ -96,6 +99,7 @@ llega un commit nuevo a la misma PR.
 │   └── pipeline-release.yml
 ├── actions/flutter/
 │   ├── setup/action.yml
+│   ├── setup-xcode/action.yml
 │   ├── read-version/action.yml
 │   ├── build-android/action.yml
 │   ├── build-ios/action.yml

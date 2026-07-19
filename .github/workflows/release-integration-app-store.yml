@@ -6,6 +6,7 @@ on:
       stage: {required: true, type: string}
       working-directory: {required: true, type: string}
       flutter-version: {type: string, default: stable}
+      xcode-version: {type: string, default: default}
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
       beta-command: {type: string, default: bundle exec fastlane ios beta}
       production-command: {type: string, default: bundle exec fastlane ios release}
@@ -24,6 +25,10 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v4
+      - name: Select Xcode version
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v1
+        with:
+          xcode-version: ${{ inputs.xcode-version }}
       - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
         if: inputs.stage == 'beta'
         with:

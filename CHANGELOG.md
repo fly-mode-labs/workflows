@@ -5,6 +5,12 @@ usa [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Configuración de `FLUTTER_VERSION` y `XCODE_VERSION` mediante Repository
+  variables del repositorio consumidor, y selección aislada de Xcode mediante
+  `DEVELOPER_DIR`.
+
 ### Fixed
 
 - Los checks de Flutter se ejecutan desde el directorio de la aplicación y el
@@ -12,6 +18,7 @@ usa [Semantic Versioning](https://semver.org/).
   analizar dependencias descargadas dentro de `build/ios/SourcePackages`.
 - El build draft de iOS conserva la firma configurada por la aplicación y ya no
   fuerza `--no-codesign`.
+- La versión de Flutter también se propaga al flujo de producción.
 
 ## [1.1.0] - 2026-07-19
 

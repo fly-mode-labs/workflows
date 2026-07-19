@@ -19,10 +19,6 @@ on:
         description: Application path or auto to locate pubspec.yaml
         type: string
         default: auto
-      flutter-version:
-        description: Flutter version or channel
-        type: string
-        default: stable
       runner-labels:
         description: JSON array of self-hosted runner labels
         type: string
@@ -47,6 +43,8 @@ jobs:
       ios: ${{ steps.config.outputs.ios }}
       web: ${{ steps.config.outputs.web }}
       platforms-json: ${{ steps.config.outputs.platforms-json }}
+      flutter-version: ${{ steps.config.outputs.flutter-version }}
+      xcode-version: ${{ steps.config.outputs.xcode-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate technology and stage
@@ -59,6 +57,8 @@ jobs:
           CONFIGURED_DIRECTORY: ${{ inputs.working-directory }}
           CONFIGURED_PLATFORMS: ${{ inputs.platforms }}
           ANDROID_BUILD_FORMAT: ${{ inputs.android-build-format }}
+          REPOSITORY_FLUTTER_VERSION: ${{ vars.FLUTTER_VERSION }}
+          REPOSITORY_XCODE_VERSION: ${{ vars.XCODE_VERSION }}
         run: |
           if [[ "${TECHNOLOGY}" != "flutter" ]]; then
             echo "Unsupported technology: ${TECHNOLOGY}"
@@ -74,6 +74,11 @@ jobs:
             *) echo "Unsupported stage: ${effective_stage}"; exit 1 ;;
           esac
           echo "stage=${effective_stage}" >> "${GITHUB_OUTPUT}"
+
+          effective_flutter_version="${REPOSITORY_FLUTTER_VERSION:-stable}"
+          effective_xcode_version="${REPOSITORY_XCODE_VERSION:-default}"
+          echo "flutter-version=${effective_flutter_version}" >> "${GITHUB_OUTPUT}"
+          echo "xcode-version=${effective_xcode_version}" >> "${GITHUB_OUTPUT}"
 
           app_directory="${CONFIGURED_DIRECTORY}"
           if [[ "${app_directory}" == "auto" ]]; then
@@ -149,7 +154,8 @@ jobs:
     uses: Juanpabedoyav/workflows/.github/workflows/flutter-build.yml@v1
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
-      flutter-version: ${{ inputs.flutter-version }}
+      flutter-version: ${{ needs.validate.outputs.flutter-version }}
+      xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner-labels: ${{ inputs.runner-labels }}
       platforms-json: ${{ needs.validate.outputs.platforms-json }}
       android-build-format: ${{ inputs.android-build-format }}
@@ -166,7 +172,8 @@ jobs:
     with:
       stage: beta
       working-directory: ${{ needs.validate.outputs.working-directory }}
-      flutter-version: ${{ inputs.flutter-version }}
+      flutter-version: ${{ needs.validate.outputs.flutter-version }}
+      xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
@@ -183,6 +190,8 @@ jobs:
     with:
       stage: production
       working-directory: ${{ needs.validate.outputs.working-directory }}
+      flutter-version: ${{ needs.validate.outputs.flutter-version }}
+      xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}

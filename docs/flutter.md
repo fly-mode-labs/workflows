@@ -2,15 +2,41 @@
 
 ## Runner
 
-El runner debe tener Flutter, Xcode, CocoaPods, Ruby/Bundler, Java y Android SDK.
-Los workflows instalan la versión solicitada de Flutter, pero no administran
-Xcode ni las credenciales del host. Labels predeterminadas:
+El runner debe tener Xcode, CocoaPods, Ruby/Bundler, Java y Android SDK. Los
+workflows instalan la versión solicitada de Flutter y seleccionan una versión
+de Xcode que ya esté instalada en `/Applications`; no descargan Xcode ni
+administran las credenciales del host. Labels predeterminadas:
 
 ```text
 self-hosted, macOS, ARM64
 ```
 
 Se pueden cambiar mediante el input JSON `runner-labels` del caller.
+
+## Versiones de Flutter y Xcode
+
+Las versiones se configuran en **Settings → Secrets and variables → Actions →
+Variables** de cada repositorio consumidor:
+
+```text
+FLUTTER_VERSION=3.32.8
+XCODE_VERSION=16.4
+```
+
+Son variables y no secrets porque las versiones no son información sensible.
+El pipeline reutilizable lee las variables del repositorio que lo llama; no se
+declaran `flutter-version` ni `xcode-version` en el YAML del caller.
+
+Si una variable no existe, los defaults son `stable` para Flutter y `default`
+para Xcode. `default` conserva el Xcode activo del runner; `XCODE_VERSION` debe
+coincidir con la primera línea de `xcodebuild -version` y estar instalada bajo
+`/Applications/Xcode*.app`.
+La selección usa `DEVELOPER_DIR` únicamente durante el job, por lo que no cambia
+el Xcode global del Mac y no requiere `sudo`.
+
+No se recomienda guardar estas versiones como secrets: se ocultan en los logs,
+no aportan seguridad y complican el diagnóstico. Los secrets se reservan para
+firma, App Store Connect, Match y Google Play.
 
 En repositorios pertenecientes a una cuenta personal, un runner de repositorio
 solo procesa jobs de ese repositorio. El reusable workflow toma los runners del

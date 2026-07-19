@@ -12,6 +12,9 @@ on:
       flutter-version:
         type: string
         default: stable
+      xcode-version:
+        type: string
+        default: default
       runner-labels:
         type: string
         default: '["self-hosted", "macOS", "ARM64"]'
@@ -38,6 +41,7 @@ jobs:
       stage: ${{ inputs.stage }}
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
+      xcode-version: ${{ inputs.xcode-version }}
       runner-labels: ${{ inputs.runner-labels }}
     secrets: inherit
 

@@ -1,0 +1,48 @@
+name: Setup Xcode
+description: Selects an installed Xcode version for the current job.
+
+inputs:
+  xcode-version:
+    description: Version reported by xcodebuild, or default for the active Xcode
+    required: false
+    default: default
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve installed Xcode
+      shell: bash
+      env:
+        REQUESTED_XCODE_VERSION: ${{ inputs.xcode-version }}
+      run: |
+        if [[ "${REQUESTED_XCODE_VERSION}" == "default" ]]; then
+          developer_dir="$(xcode-select --print-path)"
+        else
+          developer_dir=''
+          while IFS= read -r xcode_app; do
+            candidate_dir="${xcode_app}/Contents/Developer"
+            installed_version="$(DEVELOPER_DIR="${candidate_dir}" xcodebuild -version 2>/dev/null | sed -nE 's/^Xcode[[:space:]]+(.+)$/\1/p' | head -n 1)"
+            if [[ "${installed_version}" == "${REQUESTED_XCODE_VERSION}" ]]; then
+              developer_dir="${candidate_dir}"
+              break
+            fi
+          done < <(find /Applications -maxdepth 1 -type d -name 'Xcode*.app' -print | sort)
+
+          if [[ -z "${developer_dir}" ]]; then
+            echo "Xcode ${REQUESTED_XCODE_VERSION} is not installed in /Applications."
+            echo "Installed versions:"
+            while IFS= read -r xcode_app; do
+              candidate_dir="${xcode_app}/Contents/Developer"
+              DEVELOPER_DIR="${candidate_dir}" xcodebuild -version 2>/dev/null | head -n 1 || true
+            done < <(find /Applications -maxdepth 1 -type d -name 'Xcode*.app' -print | sort)
+            exit 1
+          fi
+        fi
+
+        if [[ ! -d "${developer_dir}" ]]; then
+          echo "Invalid Xcode developer directory: ${developer_dir}"
+          exit 1
+        fi
+
+        echo "DEVELOPER_DIR=${developer_dir}" >> "${GITHUB_ENV}"
+        DEVELOPER_DIR="${developer_dir}" xcodebuild -version
