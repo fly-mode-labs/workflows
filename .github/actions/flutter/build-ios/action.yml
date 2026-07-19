@@ -8,7 +8,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Build unsigned iOS archive
+    - name: Compile unsigned iOS archive
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: flutter build ipa --release --no-codesign

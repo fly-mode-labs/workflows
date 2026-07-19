@@ -112,7 +112,12 @@ jobs:
             fi
             echo "${platform}=${enabled}" >> "${GITHUB_OUTPUT}"
             if [[ "${enabled}" == "true" ]]; then
-              platforms_json="${platforms_json}${platform_separator}\"${platform}\""
+              case "${platform}" in
+                android) platform_name='Android' ;;
+                ios) platform_name='iOS' ;;
+                web) platform_name='Web' ;;
+              esac
+              platforms_json="${platforms_json}${platform_separator}{\"id\":\"${platform}\",\"name\":\"${platform_name}\"}"
               platform_separator=','
             fi
           done

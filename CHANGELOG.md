@@ -3,6 +3,18 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [1.0.3] - 2026-07-19
+
+### Fixed
+
+- Setup del canal stable ya no envía `flutter-version: stable`, evitando el
+  error de resolución de `subosito/flutter-action`.
+
+### Changed
+
+- Static analysis y tests son jobs independientes.
+- Jobs y steps usan nombres explícitos para Android, iOS, Web y preparación.
+
 ## [1.0.2] - 2026-07-19
 
 ### Changed

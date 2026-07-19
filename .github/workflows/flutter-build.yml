@@ -25,17 +25,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quality:
-    name: Build / Flutter / Quality
-    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-quality.yml@v1
+  static-analysis:
+    name: Static analysis
+    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-analysis.yml@v1
+    with:
+      working-directory: ${{ inputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      runner-labels: ${{ inputs.runner-labels }}
+
+  tests:
+    name: Tests
+    uses: Juanpabedoyav/workflows/.github/workflows/build-job-flutter-tests.yml@v1
     with:
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
       runner-labels: ${{ inputs.runner-labels }}
 
   platform:
-    name: Build / Flutter / ${{ matrix.platform }}
-    needs: quality
+    name: Build ${{ matrix.platform.name }}
+    needs: [static-analysis, tests]
     strategy:
       fail-fast: false
       matrix:
@@ -43,23 +51,28 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
+      - name: Checkout application
+        uses: actions/checkout@v4
+      - name: Setup Flutter SDK and dependencies
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v1
-        if: matrix.platform == 'android'
+      - name: Build Android artifacts
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v1
+        if: matrix.platform.id == 'android'
         with:
           working-directory: ${{ inputs.working-directory }}
-          full-version: ${{ needs.quality.outputs.full-version }}
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v1
-        if: matrix.platform == 'ios'
+          full-version: ${{ needs.static-analysis.outputs.full-version }}
+      - name: Build iOS artifacts
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v1
+        if: matrix.platform.id == 'ios'
         with:
           working-directory: ${{ inputs.working-directory }}
-          full-version: ${{ needs.quality.outputs.full-version }}
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/build-web@v1
-        if: matrix.platform == 'web'
+          full-version: ${{ needs.static-analysis.outputs.full-version }}
+      - name: Build Web artifacts
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-web@v1
+        if: matrix.platform.id == 'web'
         with:
           working-directory: ${{ inputs.working-directory }}
-          full-version: ${{ needs.quality.outputs.full-version }}
+          full-version: ${{ needs.static-analysis.outputs.full-version }}

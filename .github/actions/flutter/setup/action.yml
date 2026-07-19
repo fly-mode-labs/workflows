@@ -13,10 +13,17 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: subosito/flutter-action@v2
+    - name: Install stable Flutter SDK
+      if: inputs.flutter-version == 'stable'
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        cache: true
+    - name: Install pinned Flutter SDK
+      if: inputs.flutter-version != 'stable'
+      uses: subosito/flutter-action@v2
       with:
         flutter-version: ${{ inputs.flutter-version }}
-        channel: ${{ inputs.flutter-version == 'stable' && 'stable' || '' }}
         cache: true
     - name: Resolve Flutter dependencies
       shell: bash

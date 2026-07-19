@@ -1,4 +1,4 @@
-name: Build job / Flutter quality
+name: Build job / Flutter static analysis
 
 on:
   workflow_call:
@@ -15,30 +15,33 @@ on:
     outputs:
       full-version:
         description: Version read from pubspec.yaml
-        value: ${{ jobs.quality.outputs.full-version }}
+        value: ${{ jobs.analysis.outputs.full-version }}
 
 permissions:
   contents: read
 
 jobs:
-  quality:
-    name: Analyze, test and version
+  analysis:
+    name: Static analysis
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
-    timeout-minutes: 30
+    timeout-minutes: 20
     outputs:
       full-version: ${{ steps.version.outputs.full-version }}
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
+      - name: Checkout application
+        uses: actions/checkout@v4
+      - name: Setup Flutter SDK and dependencies
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1
+      - name: Read and validate application version
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
-      - run: flutter analyze
-      - run: flutter test
+      - name: Run Flutter static analysis
+        run: flutter analyze

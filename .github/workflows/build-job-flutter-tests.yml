@@ -1,0 +1,36 @@
+name: Build job / Flutter tests
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        required: true
+        type: string
+      flutter-version:
+        type: string
+        default: stable
+      runner-labels:
+        type: string
+        default: '["self-hosted", "macOS", "ARM64"]'
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - name: Checkout application
+        uses: actions/checkout@v4
+      - name: Setup Flutter SDK and dependencies
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+      - name: Run Flutter tests
+        run: flutter test
