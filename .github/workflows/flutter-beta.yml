@@ -1,0 +1,95 @@
+name: Flutter / Beta distribution
+
+on:
+  workflow_call:
+    inputs:
+      flutter-version:
+        type: string
+        default: stable
+      working-directory:
+        type: string
+        default: .
+      runner-labels:
+        type: string
+        default: '["self-hosted", "macOS", "ARM64"]'
+      ios-command:
+        type: string
+        default: bundle exec fastlane ios beta
+      android-command:
+        type: string
+        default: ./gradlew publishBundle --track internal
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-beta-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  ios-testflight:
+    name: iOS / TestFlight
+    environment: beta
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version from pubspec.yaml
+        id: app-version
+        shell: bash
+        run: |
+          full_version="$(sed -nE 's/^version:[[:space:]]*([^[:space:]#]+).*/\1/p' pubspec.yaml | head -n 1)"
+          if [[ ! "${full_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?\+[0-9]+$ ]]; then
+            echo "pubspec.yaml must contain version: MAJOR.MINOR.PATCH+BUILD_NUMBER"
+            exit 1
+          fi
+          echo "APP_VERSION=${full_version%%+*}" >> "${GITHUB_ENV}"
+          echo "BUILD_NUMBER=${full_version##*+}" >> "${GITHUB_ENV}"
+          echo "FULL_VERSION=${full_version}" >> "${GITHUB_ENV}"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          channel: ${{ inputs.flutter-version == 'stable' && 'stable' || '' }}
+          cache: true
+      - run: flutter pub get
+      - run: bundle install
+      - name: Build and upload to TestFlight
+        env:
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: ${{ inputs.ios-command }}
+
+  android-beta:
+    name: Android / Beta track
+    environment: beta
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version from pubspec.yaml
+        id: app-version
+        shell: bash
+        run: |
+          full_version="$(sed -nE 's/^version:[[:space:]]*([^[:space:]#]+).*/\1/p' pubspec.yaml | head -n 1)"
+          if [[ ! "${full_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?\+[0-9]+$ ]]; then
+            echo "pubspec.yaml must contain version: MAJOR.MINOR.PATCH+BUILD_NUMBER"
+            exit 1
+          fi
+          echo "APP_VERSION=${full_version%%+*}" >> "${GITHUB_ENV}"
+          echo "BUILD_NUMBER=${full_version##*+}" >> "${GITHUB_ENV}"
+          echo "FULL_VERSION=${full_version}" >> "${GITHUB_ENV}"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          channel: ${{ inputs.flutter-version == 'stable' && 'stable' || '' }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter build appbundle --release
+      - name: Upload to Google Play beta track
+        working-directory: ${{ inputs.working-directory }}/android
+        run: ${{ inputs.android-command }}

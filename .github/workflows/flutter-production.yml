@@ -1,0 +1,77 @@
+name: Flutter / Production promotion
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        type: string
+        default: .
+      runner-labels:
+        type: string
+        default: '["self-hosted", "macOS", "ARM64"]'
+      ios-command:
+        type: string
+        default: bundle exec fastlane ios release
+      android-command:
+        type: string
+        default: ./gradlew promoteArtifact --from-track internal --promote-track production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-production-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  ios-production:
+    name: iOS / Promote beta
+    environment: production
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version from pubspec.yaml
+        shell: bash
+        run: |
+          full_version="$(sed -nE 's/^version:[[:space:]]*([^[:space:]#]+).*/\1/p' pubspec.yaml | head -n 1)"
+          if [[ ! "${full_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?\+[0-9]+$ ]]; then
+            echo "pubspec.yaml must contain version: MAJOR.MINOR.PATCH+BUILD_NUMBER"
+            exit 1
+          fi
+          echo "APP_VERSION=${full_version%%+*}" >> "${GITHUB_ENV}"
+          echo "BUILD_NUMBER=${full_version##*+}" >> "${GITHUB_ENV}"
+          echo "FULL_VERSION=${full_version}" >> "${GITHUB_ENV}"
+      - run: bundle install
+      - name: Promote TestFlight build
+        env:
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: ${{ inputs.ios-command }}
+
+  android-production:
+    name: Android / Promote beta
+    environment: production
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}/android
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read version from pubspec.yaml
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          full_version="$(sed -nE 's/^version:[[:space:]]*([^[:space:]#]+).*/\1/p' pubspec.yaml | head -n 1)"
+          if [[ ! "${full_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?\+[0-9]+$ ]]; then
+            echo "pubspec.yaml must contain version: MAJOR.MINOR.PATCH+BUILD_NUMBER"
+            exit 1
+          fi
+          echo "APP_VERSION=${full_version%%+*}" >> "${GITHUB_ENV}"
+          echo "BUILD_NUMBER=${full_version##*+}" >> "${GITHUB_ENV}"
+          echo "FULL_VERSION=${full_version}" >> "${GITHUB_ENV}"
+      - name: Promote Google Play artifact
+        run: ${{ inputs.android-command }}
