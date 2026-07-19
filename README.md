@@ -136,7 +136,11 @@ Las plataformas pueden fijarse desde la app:
 with:
   technology: flutter
   platforms: android,ios
+  android-build-format: appbundle
 ```
+
+`android-build-format` controla los artefactos Android de los builds draft y
+acepta `apk`, `appbundle` o `both` (valor predeterminado).
 
 Si se omite `platforms`, el valor `auto` habilita Android, iOS o Web según los
 directorios presentes en el proyecto.

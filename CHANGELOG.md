@@ -3,6 +3,13 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-07-19
+
+### Added
+
+- Input `android-build-format` para generar `apk`, `appbundle` o ambos durante
+  los builds draft de Android.
+
 ## [1.0.5] - 2026-07-19
 
 ### Changed

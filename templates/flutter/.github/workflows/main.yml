@@ -21,4 +21,5 @@ jobs:
     with:
       technology: flutter
       platforms: android,ios
+      android-build-format: appbundle
     secrets: inherit

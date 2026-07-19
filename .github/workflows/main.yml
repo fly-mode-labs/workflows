@@ -11,6 +11,10 @@ on:
         description: Comma-separated platforms or auto
         type: string
         default: auto
+      android-build-format:
+        description: Android draft artifact format; apk, appbundle or both
+        type: string
+        default: both
       working-directory:
         description: Application path or auto to locate pubspec.yaml
         type: string
@@ -54,6 +58,7 @@ jobs:
           EVENT_STAGE: ${{ github.event.inputs.stage }}
           CONFIGURED_DIRECTORY: ${{ inputs.working-directory }}
           CONFIGURED_PLATFORMS: ${{ inputs.platforms }}
+          ANDROID_BUILD_FORMAT: ${{ inputs.android-build-format }}
         run: |
           if [[ "${TECHNOLOGY}" != "flutter" ]]; then
             echo "Unsupported technology: ${TECHNOLOGY}"
@@ -86,6 +91,10 @@ jobs:
             exit 1
           fi
           echo "working-directory=${app_directory}" >> "${GITHUB_OUTPUT}"
+          case "${ANDROID_BUILD_FORMAT}" in
+            apk|appbundle|both) ;;
+            *) echo "Unsupported Android build format: ${ANDROID_BUILD_FORMAT}"; exit 1 ;;
+          esac
           normalized_platforms="${CONFIGURED_PLATFORMS// /}"
           if [[ "${normalized_platforms}" != "auto" ]]; then
             IFS=',' read -r -a requested_platforms <<< "${normalized_platforms}"
@@ -143,6 +152,7 @@ jobs:
       flutter-version: ${{ inputs.flutter-version }}
       runner-labels: ${{ inputs.runner-labels }}
       platforms-json: ${{ needs.validate.outputs.platforms-json }}
+      android-build-format: ${{ inputs.android-build-format }}
     secrets: inherit
 
   flutter-beta-release:
