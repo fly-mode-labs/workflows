@@ -63,6 +63,23 @@ Store según la política del equipo.
 
 ## Android (Gradle Play Publisher)
 
+La firma Android se configura con cuatro Repository Secrets en cada aplicación:
+
+```text
+ANDROID_KEYSTORE_BASE64
+KEYALIAS
+STOREPASSWORD
+KEYPASSWORD
+```
+
+`ANDROID_KEYSTORE_BASE64` contiene el keystore completo codificado en base64,
+no una ruta. Antes de compilar, el pipeline lo decodifica en
+`RUNNER_TEMP`, valida el store password y el alias, y crea temporalmente
+`android/key.properties` con la ruta real. Ambos archivos se eliminan siempre
+al terminar el job. La aplicación debe ignorar `android/key.properties`,
+`*.jks` y `*.keystore`; no debe guardar placeholders de secrets en esos
+archivos.
+
 La fase beta construye el app bundle y ejecuta por defecto:
 
 ```bash

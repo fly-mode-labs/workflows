@@ -13,6 +13,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- La firma Android ahora consume explícitamente
+  `ANDROID_KEYSTORE_BASE64`, `KEYALIAS`, `STOREPASSWORD` y `KEYPASSWORD`,
+  decodifica y valida el keystore antes del build y elimina los archivos
+  temporales al finalizar.
 - Los checks de Flutter se ejecutan desde el directorio de la aplicación y el
   análisis queda limitado a `lib`, `test` e `integration_test`, evitando
   analizar dependencias descargadas dentro de `build/ios/SourcePackages`.
