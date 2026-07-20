@@ -36,8 +36,10 @@ esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
 4. Crear en GitHub el environment `beta` y el environment `production`, con sus
    secretos y protecciones.
 5. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con
-   las versiones usadas por la app; no se declaran en el caller y se aplican
-   valores por defecto si se omiten.
+   las versiones usadas por la app. Para aplicaciones Android, crear también
+   `APP_IDENTIFIER` con su application ID, por ejemplo
+   `com.example.app`. No se declaran en el caller; únicamente las variables de
+   versión tienen valores por defecto.
 6. Configurar Fastlane Match en cada app y añadir los Repository Secrets
    `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION` para firmar los builds iOS.
    En la primera ejecución, el token necesita acceso de escritura si el
@@ -196,10 +198,10 @@ with:
 
 `android-build-format` controla los artefactos Android de los builds draft y
 beta, y acepta `apk`, `appbundle` o `both` (valor predeterminado).
-El application ID se extrae del metadata generado por Android Gradle Plugin y
-viaja dentro del mismo artefacto, por lo que no se duplica en el caller. El
-track de pruebas se puede cambiar con `android-track`; su valor predeterminado
-es `internal` y también puede omitirse del template.
+El application ID se configura una sola vez mediante la Repository Variable
+`APP_IDENTIFIER`, por lo que no se duplica en el caller. El track de
+pruebas se puede cambiar con `android-track`; su valor predeterminado es
+`internal` y también puede omitirse del template.
 
 Si se omite `platforms`, el valor `auto` habilita Android, iOS o Web según los
 directorios presentes en el proyecto.

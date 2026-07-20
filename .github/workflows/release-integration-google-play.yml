@@ -37,4 +37,5 @@ jobs:
           artifact-run-id: ${{ inputs.artifact-run-id }}
           working-directory: ${{ inputs.working-directory }}
           track: ${{ inputs.track }}
+          identifier: ${{ vars.APP_IDENTIFIER }}
           service-account-json: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}

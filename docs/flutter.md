@@ -273,6 +273,16 @@ STOREPASSWORD
 KEYPASSWORD
 ```
 
+El application ID usado para publicar en Google Play se configura como
+Repository Variable en la misma sección de Actions:
+
+```text
+APP_IDENTIFIER=com.example.app
+```
+
+Debe coincidir exactamente con el `applicationId` del AAB firmado. No es un
+secret y no se declara como input en el workflow caller.
+
 `ANDROID_KEYSTORE_BASE64` contiene el keystore completo codificado en base64,
 no una ruta. Antes de compilar, el pipeline lo decodifica en
 `RUNNER_TEMP`, valida el store password y el alias, y crea temporalmente
@@ -302,17 +312,10 @@ with:
 `android-track` usa `internal` por defecto, así que también puede omitirse. Se
 puede cambiar a `beta` o a un track personalizado existente en Play Console.
 
-Android Gradle Plugin genera `output-metadata.json` con el `applicationId`
-efectivo de la variante compilada. El build valida que exista un único valor,
-lo guarda como `android-package-name.txt` y lo incluye junto al AAB mediante
-[`actions/upload-artifact`](https://github.com/actions/upload-artifact#usage).
-De esta forma se respetan variables, sufijos y variantes resueltos durante el
-build sin repetir el package name en el caller ni interpretar `build.gradle`.
-
 La acción recibe exactamente los inputs documentados por su autor:
 `serviceAccountJsonPlainText`, `packageName`, `releaseFiles`, `tracks` y
-`status`. `packageName` recibe el valor transportado en la metadata y
-`releaseFiles` usa el glob soportado oficialmente para seleccionar el único
+`status`. `packageName` recibe `APP_IDENTIFIER` y `releaseFiles` usa el
+glob soportado oficialmente para seleccionar el único
 `.aab` dentro del artefacto descargado. La distribución beta no hace checkout,
 no instala Flutter y no ejecuta Gradle, Android SDK ni NDK. Tampoco recompila ni
 vuelve a firmar el AAB.

@@ -6,11 +6,24 @@ inputs:
   artifact-run-id: {required: false, default: '', description: Workflow run containing the App Bundle}
   working-directory: {required: true, description: Flutter application directory used only for production promotion}
   track: {required: false, default: internal, description: Google Play testing track receiving the beta release}
+  identifier: {required: false, default: '', description: Application identifier used for Google Play beta uploads}
   service-account-json: {required: true, description: Google Play service account JSON}
 
 runs:
   using: composite
   steps:
+    - name: Validate application identifier
+      if: inputs.stage == 'beta'
+      shell: bash
+      env:
+        APP_IDENTIFIER: ${{ inputs.identifier }}
+      run: |
+        set -euo pipefail
+
+        if [[ ! "${APP_IDENTIFIER}" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
+          echo "Set the APP_IDENTIFIER Repository Variable to a valid application identifier." >&2
+          exit 1
+        fi
     - name: Download signed Android artifact
       if: inputs.stage == 'beta'
       id: artifact
@@ -21,39 +34,12 @@ runs:
         merge-multiple: true
         github-token: ${{ github.token }}
         run-id: ${{ inputs.artifact-run-id }}
-    - name: Read Android application ID
-      if: inputs.stage == 'beta'
-      id: metadata
-      shell: bash
-      working-directory: ${{ steps.artifact.outputs.download-path }}
-      run: |
-        set -euo pipefail
-
-        package_name_file=''
-        package_name_file_count=0
-        while IFS= read -r candidate; do
-          package_name_file="${candidate}"
-          package_name_file_count=$((package_name_file_count + 1))
-        done < <(find . -type f -name android-package-name.txt -print)
-
-        if [[ "${package_name_file_count}" -ne 1 ]]; then
-          echo "Expected one Android package name file, found ${package_name_file_count}." >&2
-          exit 1
-        fi
-
-        package_name="$(tr -d '\r\n' < "${package_name_file}")"
-        if [[ -z "${package_name}" || "${package_name}" == *[[:space:]]* ]]; then
-          echo "The Android package name metadata is empty or invalid." >&2
-          exit 1
-        fi
-
-        echo "package-name=${package_name}" >> "${GITHUB_OUTPUT}"
     - name: Upload beta to Google Play
       if: inputs.stage == 'beta'
       uses: r0adkll/upload-google-play@v1.1.5
       with:
         serviceAccountJsonPlainText: ${{ inputs.service-account-json }}
-        packageName: ${{ steps.metadata.outputs.package-name }}
+        packageName: ${{ inputs.identifier }}
         releaseFiles: ${{ steps.artifact.outputs.download-path }}/**/*.aab
         tracks: ${{ inputs.track }}
         status: completed
