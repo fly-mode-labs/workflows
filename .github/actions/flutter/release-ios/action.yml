@@ -1,0 +1,70 @@
+name: Release Flutter iOS
+description: Distributes a built IPA to TestFlight or promotes it to App Store production.
+
+inputs:
+  stage: {required: true, description: beta or production}
+  artifact-run-id: {required: false, default: '', description: Draft workflow run containing the IPA}
+  working-directory: {required: true, description: Flutter application directory}
+  app-version: {required: true, description: Semantic application version}
+  build-number: {required: true, description: Store build number}
+  full-version: {required: true, description: Complete Flutter version}
+  beta-command: {required: false, default: bundle exec fastlane ios beta, description: Command that uploads the IPA to TestFlight}
+  production-command: {required: false, default: bundle exec fastlane ios release, description: Command that promotes the beta to production}
+
+runs:
+  using: composite
+  steps:
+    - name: Download signed iOS artifact
+      if: inputs.stage == 'beta'
+      uses: actions/download-artifact@v4
+      with:
+        name: ios-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
+        path: ${{ runner.temp }}/ios-${{ github.run_id }}
+        github-token: ${{ github.token }}
+        run-id: ${{ inputs.artifact-run-id }}
+    - name: Locate downloaded IPA
+      if: inputs.stage == 'beta'
+      id: artifact
+      shell: bash
+      working-directory: ${{ runner.temp }}/ios-${{ github.run_id }}
+      run: |
+        set -euo pipefail
+
+        ipa_path=''
+        ipa_count=0
+        while IFS= read -r candidate; do
+          ipa_path="${candidate}"
+          ipa_count=$((ipa_count + 1))
+        done < <(find . -type f -name '*.ipa' -print)
+
+        if [[ "${ipa_count}" -ne 1 ]]; then
+          echo "Expected exactly one IPA in the draft artifact, found ${ipa_count}." >&2
+          exit 1
+        fi
+
+        echo "ipa-path=${PWD}/${ipa_path#./}" >> "${GITHUB_OUTPUT}"
+    - name: Install iOS release dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: bundle install
+    - name: Upload beta to TestFlight
+      if: inputs.stage == 'beta'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        APP_VERSION: ${{ inputs.app-version }}
+        BUILD_NUMBER: ${{ inputs.build-number }}
+        FULL_VERSION: ${{ inputs.full-version }}
+        IPA_PATH: ${{ steps.artifact.outputs.ipa-path }}
+        FASTLANE_SKIP_UPDATE_CHECK: '1'
+      run: ${{ inputs.beta-command }}
+    - name: Promote to App Store
+      if: inputs.stage == 'production'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        APP_VERSION: ${{ inputs.app-version }}
+        BUILD_NUMBER: ${{ inputs.build-number }}
+        FULL_VERSION: ${{ inputs.full-version }}
+        FASTLANE_SKIP_UPDATE_CHECK: '1'
+      run: ${{ inputs.production-command }}

@@ -127,6 +127,8 @@ jobs:
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
+          match-password: ${{ secrets.MATCH_PASSWORD }}
+          match-git-basic-authorization: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
 
   web:
     name: Flutter build / Web

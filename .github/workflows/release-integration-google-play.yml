@@ -21,9 +21,6 @@ jobs:
     environment: ${{ inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v4
       - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
@@ -35,52 +32,14 @@ jobs:
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
-      - name: Download signed Android artifact
-        if: inputs.stage == 'beta'
-        uses: actions/download-artifact@v4
+      - name: Release Android application
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/release-android@v2
         with:
-          name: android-${{ steps.version.outputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/android-${{ github.run_id }}
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.artifact-run-id }}
-      - name: Locate downloaded App Bundle
-        if: inputs.stage == 'beta'
-        id: artifact
-        shell: bash
-        working-directory: ${{ runner.temp }}/android-${{ github.run_id }}
-        run: |
-          set -euo pipefail
-
-          aab_path=''
-          aab_count=0
-          while IFS= read -r candidate; do
-            aab_path="${candidate}"
-            aab_count=$((aab_count + 1))
-          done < <(find . -type f -name '*.aab' -print)
-
-          if [[ "${aab_count}" -ne 1 ]]; then
-            echo "Expected exactly one AAB in the draft artifact, found ${aab_count}." >&2
-            exit 1
-          fi
-
-          absolute_aab_path="${PWD}/${aab_path#./}"
-          echo "aab-path=${absolute_aab_path}" >> "${GITHUB_OUTPUT}"
-          echo "aab-directory=$(dirname "${absolute_aab_path}")" >> "${GITHUB_OUTPUT}"
-      - name: Upload beta to Google Play
-        if: inputs.stage == 'beta'
-        working-directory: ${{ inputs.working-directory }}/android
-        env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
-          FULL_VERSION: ${{ steps.version.outputs.full-version }}
-          AAB_PATH: ${{ steps.artifact.outputs.aab-path }}
-          AAB_ARTIFACT_DIRECTORY: ${{ steps.artifact.outputs.aab-directory }}
-        run: ${{ inputs.beta-command }} --artifact-dir "${AAB_ARTIFACT_DIRECTORY}"
-      - name: Promote to Google Play production
-        if: inputs.stage == 'production'
-        working-directory: ${{ inputs.working-directory }}/android
-        env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
-          FULL_VERSION: ${{ steps.version.outputs.full-version }}
-        run: ${{ inputs.production-command }}
+          stage: ${{ inputs.stage }}
+          artifact-run-id: ${{ inputs.artifact-run-id }}
+          working-directory: ${{ inputs.working-directory }}
+          app-version: ${{ steps.version.outputs.app-version }}
+          build-number: ${{ steps.version.outputs.build-number }}
+          full-version: ${{ steps.version.outputs.full-version }}
+          beta-command: ${{ inputs.beta-command }}
+          production-command: ${{ inputs.production-command }}

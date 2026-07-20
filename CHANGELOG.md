@@ -3,6 +3,24 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] - 2026-07-19
+
+### Added
+
+- Firma iOS opcional con Fastlane Match en modo `readonly`, usando `setup_ci`
+  para instalar certificados y perfiles en un Keychain temporal tanto en
+  runners self-hosted como GitHub-hosted.
+- Limpieza del Keychain temporal y de los perfiles de aprovisionamiento
+  agregados durante el job.
+
+### Changed
+
+- Una configuración parcial de Match falla antes del build; cuando ambos
+  secrets de Match están ausentes se conserva la firma instalada en el runner.
+- La distribución de iOS y Android vive en composite actions independientes,
+  `release-ios` y `release-android`; los workflows de App Store y Google Play
+  quedan limitados a orquestar cada job de CD.
+
 ## [2.1.0] - 2026-07-19
 
 ### Changed

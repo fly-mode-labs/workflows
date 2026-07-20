@@ -22,9 +22,6 @@ jobs:
     environment: ${{ inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: ${{ inputs.working-directory }}
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode version
@@ -35,50 +32,14 @@ jobs:
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
-      - name: Download signed iOS artifact
-        if: inputs.stage == 'beta'
-        uses: actions/download-artifact@v4
+      - name: Release iOS application
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/release-ios@v2
         with:
-          name: ios-${{ steps.version.outputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: ${{ runner.temp }}/ios-${{ github.run_id }}
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.artifact-run-id }}
-      - name: Locate downloaded IPA
-        if: inputs.stage == 'beta'
-        id: artifact
-        shell: bash
-        working-directory: ${{ runner.temp }}/ios-${{ github.run_id }}
-        run: |
-          set -euo pipefail
-
-          ipa_path=''
-          ipa_count=0
-          while IFS= read -r candidate; do
-            ipa_path="${candidate}"
-            ipa_count=$((ipa_count + 1))
-          done < <(find . -type f -name '*.ipa' -print)
-
-          if [[ "${ipa_count}" -ne 1 ]]; then
-            echo "Expected exactly one IPA in the draft artifact, found ${ipa_count}." >&2
-            exit 1
-          fi
-
-          echo "ipa-path=${PWD}/${ipa_path#./}" >> "${GITHUB_OUTPUT}"
-      - run: bundle install
-      - name: Upload beta to TestFlight
-        if: inputs.stage == 'beta'
-        env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
-          FULL_VERSION: ${{ steps.version.outputs.full-version }}
-          IPA_PATH: ${{ steps.artifact.outputs.ipa-path }}
-          FASTLANE_SKIP_UPDATE_CHECK: '1'
-        run: ${{ inputs.beta-command }}
-      - name: Promote to App Store
-        if: inputs.stage == 'production'
-        env:
-          APP_VERSION: ${{ steps.version.outputs.app-version }}
-          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
-          FULL_VERSION: ${{ steps.version.outputs.full-version }}
-          FASTLANE_SKIP_UPDATE_CHECK: '1'
-        run: ${{ inputs.production-command }}
+          stage: ${{ inputs.stage }}
+          artifact-run-id: ${{ inputs.artifact-run-id }}
+          working-directory: ${{ inputs.working-directory }}
+          app-version: ${{ steps.version.outputs.app-version }}
+          build-number: ${{ steps.version.outputs.build-number }}
+          full-version: ${{ steps.version.outputs.full-version }}
+          beta-command: ${{ inputs.beta-command }}
+          production-command: ${{ inputs.production-command }}

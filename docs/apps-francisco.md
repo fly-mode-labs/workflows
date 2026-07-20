@@ -61,8 +61,9 @@ sin duplicarla en las apps.
 
 ## Requisitos pendientes de distribución
 
-Las apps todavía necesitan Fastlane para iOS, Gradle Play Publisher para
-Android y credenciales en los environments `beta`/`production`. Si se elige
-`self-hosted`, también necesitan un runner registrado por repositorio. Hasta
-completar la configuración de distribución se debe probar únicamente el stage
-draft.
+Las apps todavía necesitan Fastlane para iOS, un `fastlane/Matchfile`, los
+Repository Secrets `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION`, Gradle
+Play Publisher para Android y credenciales en los environments
+`beta`/`production`. Si se elige `self-hosted`, también necesitan un runner
+registrado por repositorio. Hasta completar la configuración de distribución
+se debe probar únicamente el stage draft.

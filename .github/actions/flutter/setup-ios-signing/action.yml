@@ -1,0 +1,180 @@
+name: Setup iOS signing
+description: Installs App Store certificates and provisioning profiles with Fastlane Match.
+
+inputs:
+  working-directory:
+    required: true
+    description: Flutter application directory containing Gemfile and fastlane/Matchfile
+  match-password:
+    required: false
+    description: Password used to decrypt the Match repository
+  match-git-basic-authorization:
+    required: false
+    description: Base64-encoded Git basic authorization for the Match repository
+  match-type:
+    required: false
+    default: appstore
+    description: Match profile type
+
+outputs:
+  configured:
+    description: Whether Match installed signing assets
+    value: ${{ steps.config.outputs.configured }}
+  keychain-name:
+    description: Temporary keychain created by setup_ci
+    value: ${{ steps.config.outputs.keychain-name }}
+  original-default-keychain:
+    description: Default keychain to restore after the build
+    value: ${{ steps.config.outputs.original-default-keychain }}
+  profiles-before-list:
+    description: Internal snapshot of provisioning profiles present before Match
+    value: ${{ steps.config.outputs.profiles-before-list }}
+  profiles-cleanup-list:
+    description: Internal list of provisioning profiles added by Match
+    value: ${{ steps.config.outputs.profiles-cleanup-list }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate Match configuration
+      id: config
+      shell: bash
+      env:
+        APP_DIRECTORY: ${{ inputs.working-directory }}
+        MATCH_PASSWORD_VALUE: ${{ inputs.match-password }}
+        MATCH_GIT_AUTHORIZATION_VALUE: ${{ inputs.match-git-basic-authorization }}
+        MATCH_TYPE_VALUE: ${{ inputs.match-type }}
+      run: |
+        set -euo pipefail
+
+        configured_values=0
+        [[ -n "${MATCH_PASSWORD_VALUE}" ]] && configured_values=$((configured_values + 1))
+        [[ -n "${MATCH_GIT_AUTHORIZATION_VALUE}" ]] && configured_values=$((configured_values + 1))
+
+        if [[ "${configured_values}" -eq 0 ]]; then
+          echo "configured=false" >> "${GITHUB_OUTPUT}"
+          echo "Match is not configured; using signing assets already installed on the runner."
+          exit 0
+        fi
+
+        if [[ "${configured_values}" -ne 2 ]]; then
+          echo "iOS Match signing is partially configured. Set both MATCH_PASSWORD and MATCH_GIT_BASIC_AUTHORIZATION." >&2
+          exit 1
+        fi
+
+        case "${MATCH_TYPE_VALUE}" in
+          appstore|adhoc|development|enterprise) ;;
+          *) echo "Unsupported Match type: ${MATCH_TYPE_VALUE}" >&2; exit 1 ;;
+        esac
+
+        if [[ ! -f "${APP_DIRECTORY}/Gemfile" ]]; then
+          echo "Match requires ${APP_DIRECTORY}/Gemfile with the fastlane gem." >&2
+          exit 1
+        fi
+        if [[ ! -f "${APP_DIRECTORY}/fastlane/Matchfile" ]]; then
+          echo "Match requires ${APP_DIRECTORY}/fastlane/Matchfile." >&2
+          exit 1
+        fi
+
+        keychain_name='fastlane_tmp_keychain'
+        original_default_keychain="$(security default-keychain -d user 2>/dev/null | sed 's/^[[:space:]]*"//; s/"[[:space:]]*$//')"
+
+        # Recover from a previously cancelled job that left setup_ci's keychain
+        # selected as the default on a persistent self-hosted runner.
+        case "${original_default_keychain##*/}" in
+          fastlane_tmp_keychain*)
+            security delete-keychain "${original_default_keychain}" >/dev/null 2>&1 || true
+            login_keychain="${HOME}/Library/Keychains/login.keychain-db"
+            if [[ -f "${login_keychain}" ]]; then
+              security default-keychain -d user -s "${login_keychain}"
+              original_default_keychain="${login_keychain}"
+            else
+              original_default_keychain=''
+            fi
+            ;;
+        esac
+
+        profiles_before_list="${RUNNER_TEMP}/ios-profiles-before-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.txt"
+        profiles_cleanup_list="${RUNNER_TEMP}/ios-profiles-cleanup-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.txt"
+        : > "${profiles_before_list}"
+        : > "${profiles_cleanup_list}"
+
+        for profile_directory in \
+          "${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+          "${HOME}/Library/MobileDevice/Provisioning Profiles"; do
+          if [[ -d "${profile_directory}" ]]; then
+            find "${profile_directory}" -type f -name '*.mobileprovision' -print >> "${profiles_before_list}"
+          fi
+        done
+        sort -u "${profiles_before_list}" -o "${profiles_before_list}"
+
+        echo "configured=true" >> "${GITHUB_OUTPUT}"
+        echo "keychain-name=${keychain_name}" >> "${GITHUB_OUTPUT}"
+        echo "original-default-keychain=${original_default_keychain}" >> "${GITHUB_OUTPUT}"
+        echo "profiles-before-list=${profiles_before_list}" >> "${GITHUB_OUTPUT}"
+        echo "profiles-cleanup-list=${profiles_cleanup_list}" >> "${GITHUB_OUTPUT}"
+
+    - name: Install Fastlane dependencies
+      if: steps.config.outputs.configured == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: bundle check || bundle install
+
+    - name: Install certificates and provisioning profiles with Match
+      if: steps.config.outputs.configured == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        FASTLANE_SKIP_UPDATE_CHECK: '1'
+        LANG: en_US.UTF-8
+        LC_ALL: en_US.UTF-8
+        MATCH_GIT_BASIC_AUTHORIZATION: ${{ inputs.match-git-basic-authorization }}
+        MATCH_KEYCHAIN_NAME: ${{ steps.config.outputs.keychain-name }}
+        MATCH_KEYCHAIN_PASSWORD: ''
+        MATCH_PASSWORD: ${{ inputs.match-password }}
+        MATCH_READONLY: 'true'
+        MATCH_TYPE: ${{ inputs.match-type }}
+      run: |
+        set -euo pipefail
+
+        keychain_name="${MATCH_KEYCHAIN_NAME}"
+        security delete-keychain "${MATCH_KEYCHAIN_NAME}" >/dev/null 2>&1 || true
+
+        # setup_ci must choose and create its keychain in its own process. The
+        # values are exported again afterwards because Match runs separately.
+        unset MATCH_KEYCHAIN_NAME MATCH_KEYCHAIN_PASSWORD MATCH_READONLY
+        bundle exec fastlane run setup_ci force:true timeout:3600
+
+        export MATCH_KEYCHAIN_NAME="${keychain_name}"
+        export MATCH_KEYCHAIN_PASSWORD=''
+        export MATCH_READONLY='true'
+        bundle exec fastlane match "${MATCH_TYPE}" --readonly
+
+        identity_output="$(security find-identity -v -p codesigning "${MATCH_KEYCHAIN_NAME}")"
+        printf '%s\n' "${identity_output}"
+        if ! grep -Eq '[1-9][0-9]* valid identities found' <<< "${identity_output}"; then
+          echo "Match did not install a valid iOS code-signing identity." >&2
+          exit 1
+        fi
+
+    - name: Record provisioning profiles installed by Match
+      if: always() && steps.config.outputs.configured == 'true'
+      shell: bash
+      env:
+        PROFILES_BEFORE_LIST: ${{ steps.config.outputs.profiles-before-list }}
+        PROFILES_CLEANUP_LIST: ${{ steps.config.outputs.profiles-cleanup-list }}
+      run: |
+        set -euo pipefail
+
+        profiles_after_list="${RUNNER_TEMP}/ios-profiles-after-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.txt"
+        : > "${profiles_after_list}"
+        for profile_directory in \
+          "${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+          "${HOME}/Library/MobileDevice/Provisioning Profiles"; do
+          if [[ -d "${profile_directory}" ]]; then
+            find "${profile_directory}" -type f -name '*.mobileprovision' -print >> "${profiles_after_list}"
+          fi
+        done
+        sort -u "${profiles_after_list}" -o "${profiles_after_list}"
+        comm -13 "${PROFILES_BEFORE_LIST}" "${profiles_after_list}" > "${PROFILES_CLEANUP_LIST}"
+        rm -f -- "${profiles_after_list}"

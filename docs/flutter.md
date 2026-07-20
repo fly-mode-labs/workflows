@@ -73,6 +73,68 @@ Las lanes reciben los secretos del environment de GitHub como variables de
 entorno. Se recomiendan credenciales mediante App Store Connect API Key y Match,
 nunca certificados guardados en este repositorio.
 
+### Firma del draft con Match
+
+El job iOS sincroniza certificados y perfiles con Fastlane Match antes de
+ejecutar `flutter build ipa --release`. Match funciona en modo `readonly`, usa
+el `fastlane/Matchfile` de la aplicación y crea mediante `setup_ci` un Keychain
+temporal. El Keychain se elimina siempre al terminar y también se retiran los
+perfiles que no estaban instalados antes del job. Esto funciona igual en
+`self-hosted` y `github-hosted`.
+
+Cada aplicación debe incluir `fastlane` en un `Gemfile` versionado junto con su
+`Gemfile.lock`:
+
+```ruby
+source "https://rubygems.org"
+
+gem "fastlane"
+```
+
+El repositorio privado de Match se configura localmente una sola vez:
+
+```bash
+bundle install
+bundle exec fastlane match init
+bundle exec fastlane match appstore
+```
+
+El `fastlane/Matchfile` queda dentro de la aplicación y puede cubrir el target
+principal y extensiones mediante varios bundle identifiers:
+
+```ruby
+git_url("https://github.com/TU_USUARIO/ios-signing.git")
+git_branch("main")
+storage_mode("git")
+app_identifier([
+  "com.tuempresa.tuapp",
+  "com.tuempresa.tuapp.NotificationService",
+])
+```
+
+La aplicación necesita estos **Repository Secrets**, porque la firma sucede en
+el stage draft antes de entrar a los environments `beta` o `production`:
+
+```text
+MATCH_PASSWORD
+MATCH_GIT_BASIC_AUTHORIZATION
+```
+
+`MATCH_PASSWORD` es la contraseña que cifra el repositorio de Match.
+`MATCH_GIT_BASIC_AUTHORIZATION` contiene la autorización Basic en base64 para
+un usuario o token con acceso de solo lectura al repositorio de firma. Se puede
+generar sin salto de línea con:
+
+```bash
+printf '%s' 'USUARIO:TOKEN_READ_ONLY' | base64
+```
+
+Si ambos secrets están ausentes, el pipeline conserva el comportamiento
+anterior y usa los certificados/perfiles ya instalados en el runner. Si solo
+uno está configurado, el job falla antes de compilar para evitar una firma
+parcial. No se deben guardar `.p12`, `.cer` o `.mobileprovision` dentro del
+repositorio de la aplicación ni del repositorio central de workflows.
+
 El draft ya produce el IPA firmado. `ios beta` recibe su ruta absoluta en
 `IPA_PATH` y debe limitarse a subir ese archivo, por ejemplo con
 `upload_to_testflight(ipa: ENV.fetch("IPA_PATH"))`; no debe ejecutar
@@ -124,9 +186,11 @@ otro esquema de tracks sin duplicar el pipeline.
 ## Secrets y environments
 
 El template usa `secrets: inherit`: los secretos permanecen en el repo de cada
-app y no pasan a este repositorio central. Configure al menos lo que consuman
-Fastlane y Gradle en los environments `beta` y `production`. Proteja
-`production` con reviewers si se requiere aprobación humana.
+app y no pasan a este repositorio central. Los secrets de Match son Repository
+Secrets porque se consumen durante draft. Configure las credenciales de subida
+que consuman Fastlane y Gradle dentro de los environments `beta` y
+`production`. Proteja `production` con reviewers si se requiere aprobación
+humana.
 
 ## Versionado
 

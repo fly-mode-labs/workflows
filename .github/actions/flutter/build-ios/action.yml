@@ -4,10 +4,21 @@ description: Builds and uploads a signed XCArchive and IPA.
 inputs:
   working-directory: {required: true, description: Flutter application directory}
   full-version: {required: true, description: Full pubspec version}
+  match-password: {required: false, description: Match repository encryption password}
+  match-git-basic-authorization: {required: false, description: Base64 Git authorization for Match}
+  match-type: {required: false, default: appstore, description: Match profile type}
 
 runs:
   using: composite
   steps:
+    - name: Setup iOS signing with Match
+      id: ios_signing
+      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-ios-signing@v2
+      with:
+        working-directory: ${{ inputs.working-directory }}
+        match-password: ${{ inputs.match-password }}
+        match-git-basic-authorization: ${{ inputs.match-git-basic-authorization }}
+        match-type: ${{ inputs.match-type }}
     - name: Compile signed iOS archive
       shell: bash
       working-directory: ${{ inputs.working-directory }}
@@ -22,3 +33,34 @@ runs:
         retention-days: 14
         if-no-files-found: error
         overwrite: true
+    - name: Remove temporary iOS signing assets
+      if: always() && steps.ios_signing.outputs.configured == 'true'
+      shell: bash
+      env:
+        KEYCHAIN_NAME: ${{ steps.ios_signing.outputs.keychain-name }}
+        ORIGINAL_DEFAULT_KEYCHAIN: ${{ steps.ios_signing.outputs.original-default-keychain }}
+        PROFILES_BEFORE_LIST: ${{ steps.ios_signing.outputs.profiles-before-list }}
+        PROFILES_CLEANUP_LIST: ${{ steps.ios_signing.outputs.profiles-cleanup-list }}
+      run: |
+        set +e
+
+        if [[ -n "${ORIGINAL_DEFAULT_KEYCHAIN}" && -f "${ORIGINAL_DEFAULT_KEYCHAIN}" ]]; then
+          security default-keychain -d user -s "${ORIGINAL_DEFAULT_KEYCHAIN}"
+        fi
+        security delete-keychain "${KEYCHAIN_NAME}" >/dev/null 2>&1
+
+        if [[ -f "${PROFILES_CLEANUP_LIST}" ]]; then
+          while IFS= read -r profile_path; do
+            case "${profile_path}" in
+              "${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision|\
+              "${HOME}/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision)
+                rm -f -- "${profile_path}"
+                ;;
+              *)
+                echo "Refusing to remove unexpected provisioning profile path: ${profile_path}" >&2
+                ;;
+            esac
+          done < "${PROFILES_CLEANUP_LIST}"
+        fi
+
+        rm -f -- "${PROFILES_BEFORE_LIST}" "${PROFILES_CLEANUP_LIST}"

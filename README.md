@@ -36,9 +36,11 @@ se puede relanzar beta manualmente.
 5. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con
    las versiones usadas por la app; no se declaran en el caller y se aplican
    valores por defecto si se omiten.
-6. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
+6. Configurar Fastlane Match en cada app y añadir los Repository Secrets
+   `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION` para firmar el draft iOS.
+7. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
    Gradle Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
-7. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
+8. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
    `self-hosted`, registrar el Mac con las labels `self-hosted`, `macOS` y
    `ARM64`; `github-hosted` usa `macos-latest` para iOS y `ubuntu-latest` para
    los demás jobs, sin requerir registro.
@@ -109,11 +111,14 @@ llega un commit nuevo a la misma PR.
 ├── actions/flutter/
 │   ├── setup/action.yml
 │   ├── setup-android-signing/action.yml
+│   ├── setup-ios-signing/action.yml
 │   ├── setup-xcode/action.yml
 │   ├── read-version/action.yml
 │   ├── build-android/action.yml
 │   ├── build-ios/action.yml
-│   └── build-web/action.yml
+│   ├── build-web/action.yml
+│   ├── release-android/action.yml
+│   └── release-ios/action.yml
 └── CODEOWNERS
 templates/flutter/        # main.yml mínimo que vive en cada app
 docs/                     # Contratos por tecnología
@@ -128,9 +133,12 @@ se organizan como composite actions bajo `.github/actions`.
   se puede reejecutar individualmente.
 - `flutter-release.yml`: exige los artefactos de un draft exitoso y coordina
   los adaptadores `release-integration-*` para App Store y Google Play.
+- `release-integration-*`: prepara cada job de distribución y delega la
+  publicación a las composite actions `release-ios` y `release-android`.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.
 - `.github/actions/flutter`: preparación del SDK y lectura normalizada de la
-  versión de `pubspec.yaml` sin duplicar steps.
+  versión de `pubspec.yaml`, además de las operaciones aisladas de build (CI) y
+  release (CD), sin duplicar steps.
 
 Las plataformas se autodetectan o se fijan mediante `platforms`. Cada plataforma
 tiene un job propio; las no seleccionadas quedan omitidas y no consumen runner.
