@@ -19,18 +19,30 @@ runs:
       with:
         channel: stable
         cache: true
+        cache-path: "${{ runner.temp }}/flutter/:channel:-:version:-:arch:-:hash:"
     - name: Install pinned Flutter SDK
       if: inputs.flutter-version != 'stable'
       uses: subosito/flutter-action@v2
       with:
         flutter-version: ${{ inputs.flutter-version }}
         cache: true
+        cache-path: "${{ runner.temp }}/flutter/:channel:-:version:-:arch:-:hash:"
     - name: Verify Flutter toolchain
       shell: bash
       env:
         EXPECTED_FLUTTER_VERSION: ${{ inputs.flutter-version }}
       run: |
         set -euo pipefail
+
+        if [[ -z "${FLUTTER_ROOT:-}" || ! -x "${FLUTTER_ROOT}/bin/flutter" ]]; then
+          echo "Flutter SDK was not installed correctly: FLUTTER_ROOT=${FLUTTER_ROOT:-<unset>}" >&2
+          exit 1
+        fi
+
+        if ! git -C "${FLUTTER_ROOT}" rev-parse --git-dir >/dev/null 2>&1; then
+          echo "Flutter SDK is incomplete: ${FLUTTER_ROOT} is not a Git repository." >&2
+          exit 1
+        fi
 
         version_output="$(flutter --version)"
         printf '%s\n' "${version_output}"
