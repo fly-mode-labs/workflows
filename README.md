@@ -10,13 +10,14 @@ Actions.
 | Estado de la PR | Acción |
 | --- | --- |
 | Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Compila Android e iOS sin publicar y conserva los artefactos. |
-| Open (`ready_for_review`) | Compila el commit actual y publica la beta de iOS en TestFlight y la de Android en el track configurado. No requiere un draft previo. |
+| Open (`opened`, `reopened`, `ready_for_review`) | Compila el commit actual y publica la beta de iOS en TestFlight y la de Android en el track configurado. No requiere un draft previo. |
 | Merge a `main` (`closed` + `merged`) | Promueve ambas betas a producción. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
 2.3.0+47`). Es independiente del tag mayor del pipeline (`@v2`).
 
-El cambio de draft a open debe hacerse con **Ready for review**. Nuevos commits
+Una PR creada directamente como open ejecuta beta sin haber pasado por draft;
+también lo hace al usar **Ready for review** sobre una PR draft. Nuevos commits
 en una PR que ya está abierta no vuelven a distribuir una beta automáticamente;
 esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
 `workflow_dispatch`. Una ejecución beta es autosuficiente: corre checks, compila
@@ -37,8 +38,10 @@ los binarios firmados del commit actual y solo entonces los distribuye.
    valores por defecto si se omiten.
 6. Configurar Fastlane Match en cada app y añadir los Repository Secrets
    `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION` para firmar los builds iOS.
-7. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
-   Gradle Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
+7. Añadir `APP_STORE_CONNECT_API_KEY_BASE64`,
+   `APP_STORE_CONNECT_ISSUER_ID` y `APP_STORE_CONNECT_KEY_ID`, y preparar en el
+   proyecto las lanes `ios beta` y `ios release`, además de las tareas de Gradle
+   Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
 8. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
    `self-hosted`, registrar el Mac con las labels `self-hosted`, `macOS` y
    `ARM64`; `github-hosted` usa `macos-latest` para iOS y `ubuntu-latest` para

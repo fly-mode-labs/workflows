@@ -8,12 +8,34 @@ inputs:
   app-version: {required: true, description: Semantic application version}
   build-number: {required: true, description: Store build number}
   full-version: {required: true, description: Complete Flutter version}
+  app-store-connect-api-key-base64: {required: true, description: Base64-encoded App Store Connect API private key}
+  app-store-connect-issuer-id: {required: true, description: App Store Connect API issuer ID}
+  app-store-connect-key-id: {required: true, description: App Store Connect API key ID}
   beta-command: {required: false, default: bundle exec fastlane ios beta, description: Command that uploads the IPA to TestFlight}
   production-command: {required: false, default: bundle exec fastlane ios release, description: Command that promotes the beta to production}
 
 runs:
   using: composite
   steps:
+    - name: Validate App Store Connect API credentials
+      shell: bash
+      env:
+        APP_STORE_CONNECT_API_KEY_BASE64: ${{ inputs.app-store-connect-api-key-base64 }}
+        APP_STORE_CONNECT_ISSUER_ID: ${{ inputs.app-store-connect-issuer-id }}
+        APP_STORE_CONNECT_KEY_ID: ${{ inputs.app-store-connect-key-id }}
+      run: |
+        set -euo pipefail
+
+        missing=()
+        [[ -n "${APP_STORE_CONNECT_API_KEY_BASE64}" ]] || missing+=(APP_STORE_CONNECT_API_KEY_BASE64)
+        [[ -n "${APP_STORE_CONNECT_ISSUER_ID}" ]] || missing+=(APP_STORE_CONNECT_ISSUER_ID)
+        [[ -n "${APP_STORE_CONNECT_KEY_ID}" ]] || missing+=(APP_STORE_CONNECT_KEY_ID)
+
+        if [[ "${#missing[@]}" -ne 0 ]]; then
+          printf 'Missing required App Store Connect secrets: %s\n' "${missing[*]}" >&2
+          exit 1
+        fi
+
     - name: Download signed iOS artifact
       if: inputs.stage == 'beta'
       uses: actions/download-artifact@v4
@@ -52,6 +74,9 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
+        APP_STORE_CONNECT_API_KEY_BASE64: ${{ inputs.app-store-connect-api-key-base64 }}
+        APP_STORE_CONNECT_ISSUER_ID: ${{ inputs.app-store-connect-issuer-id }}
+        APP_STORE_CONNECT_KEY_ID: ${{ inputs.app-store-connect-key-id }}
         APP_VERSION: ${{ inputs.app-version }}
         BUILD_NUMBER: ${{ inputs.build-number }}
         FULL_VERSION: ${{ inputs.full-version }}
@@ -63,6 +88,9 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
+        APP_STORE_CONNECT_API_KEY_BASE64: ${{ inputs.app-store-connect-api-key-base64 }}
+        APP_STORE_CONNECT_ISSUER_ID: ${{ inputs.app-store-connect-issuer-id }}
+        APP_STORE_CONNECT_KEY_ID: ${{ inputs.app-store-connect-key-id }}
         APP_VERSION: ${{ inputs.app-version }}
         BUILD_NUMBER: ${{ inputs.build-number }}
         FULL_VERSION: ${{ inputs.full-version }}

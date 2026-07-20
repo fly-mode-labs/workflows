@@ -41,5 +41,8 @@ jobs:
           app-version: ${{ steps.version.outputs.app-version }}
           build-number: ${{ steps.version.outputs.build-number }}
           full-version: ${{ steps.version.outputs.full-version }}
+          app-store-connect-api-key-base64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           beta-command: ${{ inputs.beta-command }}
           production-command: ${{ inputs.production-command }}

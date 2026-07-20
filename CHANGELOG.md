@@ -3,6 +3,16 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.3.1] - 2026-07-19
+
+### Fixed
+
+- Las PR creadas o reabiertas directamente como open ahora ejecutan beta sin
+  exigir una transición previa desde draft.
+- La distribución iOS ahora propaga y valida explícitamente
+  `APP_STORE_CONNECT_API_KEY_BASE64`, `APP_STORE_CONNECT_ISSUER_ID` y
+  `APP_STORE_CONNECT_KEY_ID` antes de invocar Fastlane.
+
 ## [2.3.0] - 2026-07-19
 
 ### Changed
