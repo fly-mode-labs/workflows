@@ -129,6 +129,9 @@ jobs:
           full-version: ${{ steps.version.outputs.full-version }}
           match-password: ${{ secrets.MATCH_PASSWORD }}
           match-git-basic-authorization: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          app-store-connect-api-key-base64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
 
   web:
     name: Flutter build / Web

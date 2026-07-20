@@ -40,7 +40,10 @@ esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
    valores por defecto si se omiten.
 6. Configurar Fastlane Match en cada app y añadir los Repository Secrets
    `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION` para firmar los builds iOS.
-7. Añadir `APP_STORE_CONNECT_API_KEY_BASE64`,
+   En la primera ejecución, el token necesita acceso de escritura si el
+   repositorio de Match todavía está vacío; después se puede reemplazar por uno
+   de solo lectura.
+7. Añadir como Repository Secrets `APP_STORE_CONNECT_API_KEY_BASE64`,
    `APP_STORE_CONNECT_ISSUER_ID` y `APP_STORE_CONNECT_KEY_ID`, y preparar en el
    proyecto las lanes `ios beta` y `ios release`, además de las tareas de Gradle
    Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).

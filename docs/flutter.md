@@ -116,7 +116,14 @@ source "https://rubygems.org"
 gem "fastlane"
 ```
 
-El repositorio privado de Match se configura localmente una sola vez:
+El primer build intenta descargar las credenciales en modo `readonly`. Si el
+repositorio privado de Match todavía no contiene una identidad, el pipeline
+ejecuta automáticamente la lane `ios sync_signing` con `readonly: false`, crea
+el certificado y los perfiles y los guarda cifrados. Para esa primera ejecución,
+`MATCH_GIT_BASIC_AUTHORIZATION` debe usar un token con acceso de escritura y las
+tres credenciales de App Store Connect deben ser Repository Secrets.
+
+También se puede configurar e inicializar previamente de forma local:
 
 ```bash
 bundle install
@@ -164,11 +171,13 @@ MATCH_GIT_BASIC_AUTHORIZATION
 
 `MATCH_PASSWORD` es la contraseña que cifra el repositorio de Match.
 `MATCH_GIT_BASIC_AUTHORIZATION` contiene la autorización Basic en base64 para
-un usuario o token con acceso de solo lectura al repositorio de firma. Se puede
+un usuario o token con acceso al repositorio de firma. La inicialización
+automática necesita escritura para crear el primer commit; después puede
+reemplazarse por un token de solo lectura para los builds habituales. Se puede
 generar sin salto de línea con:
 
 ```bash
-printf '%s' 'USUARIO:TOKEN_READ_ONLY' | base64
+printf '%s' 'USUARIO:TOKEN' | base64
 ```
 
 Si ambos secrets están ausentes, el pipeline conserva el comportamiento

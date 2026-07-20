@@ -5,6 +5,13 @@ usa [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- Inicialización automática de certificados y perfiles iOS cuando el
+  repositorio privado de Match todavía está vacío. Los builds primero intentan
+  sincronizar en modo `readonly` y solo permiten escritura cuando falta la
+  identidad.
+
 ### Fixed
 
 - Cuando un runner self-hosted no tiene espacio suficiente para Android, el

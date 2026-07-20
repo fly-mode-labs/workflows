@@ -7,6 +7,9 @@ inputs:
   match-password: {required: false, description: Match repository encryption password}
   match-git-basic-authorization: {required: false, description: Base64 Git authorization for Match}
   match-type: {required: false, default: appstore, description: Match profile type}
+  app-store-connect-api-key-base64: {required: false, description: Base64 App Store Connect API key for first-time Match initialization}
+  app-store-connect-issuer-id: {required: false, description: App Store Connect API issuer ID for first-time Match initialization}
+  app-store-connect-key-id: {required: false, description: App Store Connect API key ID for first-time Match initialization}
 
 runs:
   using: composite
@@ -19,6 +22,9 @@ runs:
         match-password: ${{ inputs.match-password }}
         match-git-basic-authorization: ${{ inputs.match-git-basic-authorization }}
         match-type: ${{ inputs.match-type }}
+        app-store-connect-api-key-base64: ${{ inputs.app-store-connect-api-key-base64 }}
+        app-store-connect-issuer-id: ${{ inputs.app-store-connect-issuer-id }}
+        app-store-connect-key-id: ${{ inputs.app-store-connect-key-id }}
     - name: Compile signed iOS archive
       shell: bash
       working-directory: ${{ inputs.working-directory }}

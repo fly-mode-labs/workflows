@@ -15,6 +15,15 @@ inputs:
     required: false
     default: appstore
     description: Match profile type
+  app-store-connect-api-key-base64:
+    required: false
+    description: Base64 App Store Connect API private key used only to initialize an empty Match repository
+  app-store-connect-issuer-id:
+    required: false
+    description: App Store Connect API issuer ID used only to initialize an empty Match repository
+  app-store-connect-key-id:
+    required: false
+    description: App Store Connect API key ID used only to initialize an empty Match repository
 
 outputs:
   configured:
@@ -128,6 +137,9 @@ runs:
         FASTLANE_SKIP_UPDATE_CHECK: '1'
         LANG: en_US.UTF-8
         LC_ALL: en_US.UTF-8
+        APP_STORE_CONNECT_API_KEY_BASE64: ${{ inputs.app-store-connect-api-key-base64 }}
+        APP_STORE_CONNECT_ISSUER_ID: ${{ inputs.app-store-connect-issuer-id }}
+        APP_STORE_CONNECT_KEY_ID: ${{ inputs.app-store-connect-key-id }}
         MATCH_GIT_BASIC_AUTHORIZATION: ${{ inputs.match-git-basic-authorization }}
         MATCH_KEYCHAIN_NAME: ${{ steps.config.outputs.keychain-name }}
         MATCH_KEYCHAIN_PASSWORD: ''
@@ -148,7 +160,41 @@ runs:
         export MATCH_KEYCHAIN_NAME="${keychain_name}"
         export MATCH_KEYCHAIN_PASSWORD=''
         export MATCH_READONLY='true'
-        bundle exec fastlane match "${MATCH_TYPE}" --readonly
+        set +e
+        match_output="$(bundle exec fastlane match "${MATCH_TYPE}" --readonly 2>&1)"
+        match_status=$?
+        set -e
+        printf '%s\n' "${match_output}"
+
+        if [[ "${match_status}" -ne 0 ]]; then
+          if ! grep -Fq \
+            'No code signing identity found and cannot create a new one because you enabled' \
+            <<< "${match_output}"; then
+            exit "${match_status}"
+          fi
+
+          missing=()
+          for variable_name in \
+            APP_STORE_CONNECT_API_KEY_BASE64 \
+            APP_STORE_CONNECT_ISSUER_ID \
+            APP_STORE_CONNECT_KEY_ID; do
+            if [[ -z "${!variable_name:-}" ]]; then
+              missing+=("${variable_name}")
+            fi
+          done
+          if [[ "${#missing[@]}" -gt 0 ]]; then
+            echo "Match is empty and cannot be initialized because these Repository Secrets are missing: ${missing[*]}" >&2
+            exit 1
+          fi
+          if [[ ! -f fastlane/Fastfile ]]; then
+            echo "Match is empty and automatic initialization requires fastlane/Fastfile with the ios sync_signing lane." >&2
+            exit 1
+          fi
+
+          echo "Match contains no signing identity; initializing it with ios sync_signing."
+          export MATCH_READONLY='false'
+          bundle exec fastlane ios sync_signing
+        fi
 
         identity_output="$(security find-identity -v -p codesigning "${MATCH_KEYCHAIN_NAME}")"
         printf '%s\n' "${identity_output}"
