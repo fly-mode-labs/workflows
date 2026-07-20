@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   google-play:
-    name: Google Play / ${{ inputs.stage == 'beta' && inputs.track || 'production' }}
+    name: ${{ inputs.stage == 'beta' && 'Google Play beta' || 'Google Play production' }}
     environment: ${{ inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 45
