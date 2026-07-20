@@ -28,7 +28,66 @@ runs:
     - name: Compile signed iOS archive
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: flutter build ipa --release
+      env:
+        IOS_SIGNING_CONFIGURED: ${{ steps.ios_signing.outputs.configured }}
+        IOS_BUNDLE_IDENTIFIER: ${{ steps.ios_signing.outputs.bundle-identifier }}
+        IOS_TEAM_ID: ${{ steps.ios_signing.outputs.team-id }}
+        IOS_PROFILE_NAME: ${{ steps.ios_signing.outputs.profile-name }}
+        IOS_CODE_SIGN_IDENTITY: ${{ steps.ios_signing.outputs.code-sign-identity }}
+        IOS_EXPORT_METHOD: ${{ steps.ios_signing.outputs.export-method }}
+      run: |
+        set -euo pipefail
+
+        if [[ "${IOS_SIGNING_CONFIGURED}" != 'true' ]]; then
+          flutter build ipa --release
+          exit 0
+        fi
+
+        signing_values=(
+          IOS_BUNDLE_IDENTIFIER
+          IOS_TEAM_ID
+          IOS_PROFILE_NAME
+          IOS_CODE_SIGN_IDENTITY
+          IOS_EXPORT_METHOD
+        )
+        for variable_name in "${signing_values[@]}"; do
+          if [[ -z "${!variable_name:-}" ]]; then
+            echo "Match signing did not resolve ${variable_name}." >&2
+            exit 1
+          fi
+        done
+
+        export FLUTTER_XCODE_CODE_SIGN_STYLE='Manual'
+        export FLUTTER_XCODE_CODE_SIGN_IDENTITY="${IOS_CODE_SIGN_IDENTITY}"
+        export FLUTTER_XCODE_DEVELOPMENT_TEAM="${IOS_TEAM_ID}"
+        export FLUTTER_XCODE_PROVISIONING_PROFILE_SPECIFIER="${IOS_PROFILE_NAME}"
+
+        export_options_plist="$(mktemp "${RUNNER_TEMP}/ExportOptions.XXXXXX")"
+        trap 'rm -f -- "${export_options_plist}"' EXIT
+        plutil -create xml1 "${export_options_plist}"
+        /usr/libexec/PlistBuddy \
+          -c "Add :method string ${IOS_EXPORT_METHOD}" \
+          "${export_options_plist}"
+        /usr/libexec/PlistBuddy \
+          -c 'Add :signingStyle string manual' \
+          "${export_options_plist}"
+        /usr/libexec/PlistBuddy \
+          -c "Add :teamID string ${IOS_TEAM_ID}" \
+          "${export_options_plist}"
+        /usr/libexec/PlistBuddy \
+          -c "Add :signingCertificate string ${IOS_CODE_SIGN_IDENTITY}" \
+          "${export_options_plist}"
+        /usr/libexec/PlistBuddy \
+          -c 'Add :provisioningProfiles dict' \
+          "${export_options_plist}"
+        /usr/libexec/PlistBuddy \
+          -c "Add :provisioningProfiles:${IOS_BUNDLE_IDENTIFIER} string ${IOS_PROFILE_NAME}" \
+          "${export_options_plist}"
+
+        echo "Signing ${IOS_BUNDLE_IDENTIFIER} manually with ${IOS_CODE_SIGN_IDENTITY} and profile '${IOS_PROFILE_NAME}'."
+        flutter build ipa \
+          --release \
+          --export-options-plist="${export_options_plist}"
     - name: Upload iOS artifacts
       uses: actions/upload-artifact@v4
       with:

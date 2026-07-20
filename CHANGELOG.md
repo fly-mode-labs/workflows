@@ -14,6 +14,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Los builds iOS con Match ya no delegan la firma automática a Xcode. El
+  pipeline resuelve el provisioning profile del target `Runner`, firma los
+  archives App Store con `Apple Distribution` y genera opciones de exportación
+  manuales, evitando solicitudes de login y certificados de desarrollo.
 - Cuando un runner self-hosted no tiene espacio suficiente para Android, el
   build elimina la copia antigua de Flutter que quedó sin uso en
   `RUNNER_TOOL_CACHE` después de migrar el SDK a `runner.temp`. La copia activa

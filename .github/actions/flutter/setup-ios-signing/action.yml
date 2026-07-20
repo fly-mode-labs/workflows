@@ -41,6 +41,21 @@ outputs:
   profiles-cleanup-list:
     description: Internal list of provisioning profiles added by Match
     value: ${{ steps.config.outputs.profiles-cleanup-list }}
+  bundle-identifier:
+    description: Bundle identifier resolved from the Flutter Runner target
+    value: ${{ steps.signing.outputs.bundle-identifier }}
+  team-id:
+    description: Apple Developer team read from the Match provisioning profile
+    value: ${{ steps.signing.outputs.team-id }}
+  profile-name:
+    description: Provisioning profile installed by Match for the Runner target
+    value: ${{ steps.signing.outputs.profile-name }}
+  code-sign-identity:
+    description: Xcode signing identity required by the selected Match profile type
+    value: ${{ steps.signing.outputs.code-sign-identity }}
+  export-method:
+    description: Xcode archive export method corresponding to the Match profile type
+    value: ${{ steps.signing.outputs.export-method }}
 
 runs:
   using: composite
@@ -202,6 +217,127 @@ runs:
           echo "Match did not install a valid iOS code-signing identity." >&2
           exit 1
         fi
+
+    - name: Resolve manual signing settings from Match
+      if: steps.config.outputs.configured == 'true'
+      id: signing
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        MATCH_TYPE: ${{ inputs.match-type }}
+      run: |
+        set -euo pipefail
+
+        xcode_project='ios/Runner.xcodeproj'
+        if [[ ! -d "${xcode_project}" ]]; then
+          echo "Expected Flutter iOS project at ${PWD}/${xcode_project}." >&2
+          exit 1
+        fi
+
+        temporary_directory="$(mktemp -d "${RUNNER_TEMP}/ios-signing-profile.XXXXXX")"
+        trap 'rm -rf -- "${temporary_directory}"' EXIT
+
+        build_settings="$(
+          xcodebuild \
+            -project "${xcode_project}" \
+            -scheme Runner \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "${temporary_directory}/DerivedData" \
+            -showBuildSettings
+        )"
+        bundle_identifier="$(
+          awk -F ' = ' \
+            '/^[[:space:]]*PRODUCT_BUNDLE_IDENTIFIER = / { print $2; exit }' \
+            <<< "${build_settings}"
+        )"
+        if [[ -z "${bundle_identifier}" || "${bundle_identifier}" == *'$('* ]]; then
+          echo "Could not resolve a concrete PRODUCT_BUNDLE_IDENTIFIER for the Runner Release target." >&2
+          exit 1
+        fi
+
+        case "${MATCH_TYPE}" in
+          appstore)
+            code_sign_identity='Apple Distribution'
+            export_method='app-store'
+            expected_profile_name="match AppStore ${bundle_identifier}"
+            ;;
+          adhoc)
+            code_sign_identity='Apple Distribution'
+            export_method='ad-hoc'
+            expected_profile_name="match AdHoc ${bundle_identifier}"
+            ;;
+          development)
+            code_sign_identity='Apple Development'
+            export_method='development'
+            expected_profile_name="match Development ${bundle_identifier}"
+            ;;
+          enterprise)
+            code_sign_identity='Apple Distribution'
+            export_method='enterprise'
+            expected_profile_name="match InHouse ${bundle_identifier}"
+            ;;
+          *)
+            echo "Unsupported Match type: ${MATCH_TYPE}" >&2
+            exit 1
+            ;;
+        esac
+
+        selected_profile_name=''
+        selected_team_id=''
+        profile_paths=()
+        for profile_directory in \
+          "${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+          "${HOME}/Library/MobileDevice/Provisioning Profiles"; do
+          if [[ -d "${profile_directory}" ]]; then
+            while IFS= read -r -d '' profile_path; do
+              profile_paths+=("${profile_path}")
+            done < <(find "${profile_directory}" -type f -name '*.mobileprovision' -print0)
+          fi
+        done
+
+        for profile_path in "${profile_paths[@]}"; do
+          profile_plist="${temporary_directory}/profile.plist"
+          if ! security cms -D -i "${profile_path}" > "${profile_plist}" 2>/dev/null; then
+            if ! /usr/bin/openssl smime \
+              -inform der \
+              -verify \
+              -noverify \
+              -in "${profile_path}" \
+              > "${profile_plist}" 2>/dev/null; then
+              continue
+            fi
+          fi
+
+          profile_name="$(/usr/libexec/PlistBuddy -c 'Print :Name' "${profile_plist}" 2>/dev/null || true)"
+          profile_team_id="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "${profile_plist}" 2>/dev/null || true)"
+          application_identifier="$(
+            /usr/libexec/PlistBuddy \
+              -c 'Print :Entitlements:application-identifier' \
+              "${profile_plist}" 2>/dev/null || true
+          )"
+          if [[ "${profile_name}" != "${expected_profile_name}" || \
+                -z "${profile_team_id}" || \
+                "${application_identifier}" != "${profile_team_id}.${bundle_identifier}" ]]; then
+            continue
+          fi
+
+          selected_profile_name="${profile_name}"
+          selected_team_id="${profile_team_id}"
+          break
+        done
+
+        if [[ -z "${selected_profile_name}" || -z "${selected_team_id}" ]]; then
+          echo "Match did not install the expected ${MATCH_TYPE} profile '${expected_profile_name}'." >&2
+          exit 1
+        fi
+
+        echo "Resolved ${MATCH_TYPE} profile '${selected_profile_name}' for ${bundle_identifier}."
+        echo "bundle-identifier=${bundle_identifier}" >> "${GITHUB_OUTPUT}"
+        echo "team-id=${selected_team_id}" >> "${GITHUB_OUTPUT}"
+        echo "profile-name=${selected_profile_name}" >> "${GITHUB_OUTPUT}"
+        echo "code-sign-identity=${code_sign_identity}" >> "${GITHUB_OUTPUT}"
+        echo "export-method=${export_method}" >> "${GITHUB_OUTPUT}"
 
     - name: Record provisioning profiles installed by Match
       if: always() && steps.config.outputs.configured == 'true'

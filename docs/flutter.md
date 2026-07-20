@@ -107,6 +107,19 @@ temporal. El Keychain se elimina siempre al terminar y también se retiran los
 perfiles que no estaban instalados antes del job. Esto funciona igual en
 `self-hosted` y `github-hosted`.
 
+Cuando Match está configurado, el pipeline lee el provisioning profile que
+instaló para el bundle identifier del target `Runner` y fuerza la firma manual
+solo durante el comando de CI. Para `match-type: appstore` usa
+`Apple Distribution`, el team del profile y su nombre exacto tanto en el
+archive como en `ExportOptions.plist`. De esta forma Xcode no intenta iniciar
+sesión con una cuenta de Apple ni busca un certificado `iOS Development`. El
+proyecto puede conservar firma automática para desarrollo local; no es
+necesario versionar un `.p12` ni modificar `project.pbxproj` para el runner.
+
+La resolución automática actual cubre el target Flutter principal `Runner`.
+Una aplicación con extensiones firmadas necesita configurar sus targets y el
+mapa `provisioningProfiles` de forma específica para cada bundle identifier.
+
 Cada aplicación debe incluir `fastlane` en un `Gemfile` versionado junto con su
 `Gemfile.lock`:
 
