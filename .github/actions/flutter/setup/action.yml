@@ -1,5 +1,5 @@
 name: Setup Flutter application
-description: Installs Flutter dependencies for an application job.
+description: Prepares the Flutter SDK and optionally resolves application dependencies.
 
 inputs:
   flutter-version:
@@ -9,6 +9,10 @@ inputs:
   working-directory:
     description: Flutter application directory
     required: true
+  resolve-dependencies:
+    description: Run flutter pub get after preparing the SDK
+    required: false
+    default: 'true'
 
 runs:
   using: composite
@@ -62,6 +66,7 @@ runs:
           exit 1
         fi
     - name: Resolve Flutter dependencies
+      if: inputs.resolve-dependencies == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: flutter pub get

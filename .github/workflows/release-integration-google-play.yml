@@ -23,17 +23,23 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
-        if: inputs.stage == 'beta'
+      # Gradle still loads Flutter's plugins while configuring the publishing
+      # tasks, but the application was built previously and Dart packages are
+      # unused.
+      - name: Prepare Flutter SDK for Gradle publishing
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+          resolve-dependencies: false
       - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Release Android application
         uses: Juanpabedoyav/workflows/.github/actions/flutter/release-android@v2
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
         with:
           stage: ${{ inputs.stage }}
           artifact-run-id: ${{ inputs.artifact-run-id }}

@@ -14,6 +14,15 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- La distribución en Google Play regenera en el checkout limpio el Gradle
+  wrapper y `local.properties` que Flutter necesita, sin recompilar la app ni
+  resolver nuevamente sus dependencias Dart.
+- Las credenciales JSON de Google Play se propagan desde el secret de
+  environment `ANDROID_PUBLISHER_CREDENTIALS` al estándar homónimo de Gradle
+  Play Publisher.
+- Google Play beta ya no ejecuta `flutter pub get`; conserva únicamente la
+  preparación del SDK que Gradle necesita para cargar los plugins Flutter al
+  publicar el AAB precompilado.
 - El provisioning profile de Match se aplica únicamente al target `Runner` en
   Release; ya no se propaga a los targets de CocoaPods que no admiten firma.
 - Los builds iOS con Match ya no delegan la firma automática a Xcode. El

@@ -243,16 +243,37 @@ AAB y ejecuta por defecto:
 `AAB_ARTIFACT_DIRECTORY` su directorio. El argumento `--artifact-dir` evita que
 Gradle Play Publisher vuelva a construir o firmar el bundle.
 
+La distribución beta no ejecuta `flutter pub get`: las dependencias Dart ya se
+resolvieron durante el build y el AAB descargado es inmutable. El job prepara
+únicamente el SDK porque la configuración Gradle estándar de una app Flutter
+carga sus plugins desde la ruta `flutter.sdk`, incluso al publicar un artefacto
+preexistente.
+
+Antes de ejecutar la tarea de publicación, el composite action usa
+`flutter build apk --config-only --release --no-pub`. Este comando no compila
+un APK: únicamente prepara los archivos locales del proyecto Android. Así, un
+checkout limpio puede recuperar `gradlew`, `gradle-wrapper.jar` y
+`local.properties` aunque la aplicación los excluya de Git.
+
 La promoción ejecuta:
 
 ```bash
 ./gradlew promoteArtifact --from-track internal --promote-track production
 ```
 
-La app debe configurar el plugin Gradle Play Publisher y proporcionar su
-service account mediante los secretos del environment. Ambos comandos son
-inputs del reusable workflow, por lo que pueden adaptarse a `closed`, `beta` u
-otro esquema de tracks sin duplicar el pipeline.
+La app debe aplicar Gradle Play Publisher en el módulo Android de aplicación:
+
+```groovy
+plugins {
+    id 'com.github.triplet.play' version '3.13.0'
+}
+```
+
+Cada environment de GitHub (`beta` y `production`) debe definir
+`ANDROID_PUBLISHER_CREDENTIALS` con el contenido completo del JSON de la cuenta
+de servicio. El reusable workflow propaga ese secret únicamente al paso de
+distribución. Ambos comandos son inputs del workflow, por lo que pueden
+adaptarse a `closed`, `beta` u otro esquema de tracks sin duplicar el pipeline.
 
 ## Secrets y environments
 
