@@ -19,14 +19,26 @@ on:
         required: true
         type: choice
         options: [draft, beta, production]
+      runner:
+        description: Runner used for this manual execution
+        required: true
+        default: self-hosted
+        type: choice
+        options: [self-hosted, github-hosted]
 
 jobs:
   pipeline:
     uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v1
     with:
       technology: flutter
+      runner: ${{ inputs.runner || 'self-hosted' }}
     secrets: inherit
 ```
+
+El selector `runner` aparece al lanzar el workflow manualmente. Las ejecuciones
+automáticas de PR siguen usando `self-hosted`. Para ejecutar siempre en GitHub
+Actions, incluso en eventos de PR, se puede reemplazar la expresión anterior por
+`runner: github-hosted`.
 
 ## Valores instalados
 
@@ -44,6 +56,7 @@ central sin duplicarla en las apps.
 ## Requisitos pendientes de distribución
 
 Las apps todavía necesitan Fastlane para iOS, Gradle Play Publisher para
-Android, credenciales en los environments `beta`/`production` y un runner
-self-hosted registrado por repositorio. Hasta entonces se debe probar únicamente
-el stage draft.
+Android y credenciales en los environments `beta`/`production`. Si se elige
+`self-hosted`, también necesitan un runner registrado por repositorio. Hasta
+completar la configuración de distribución se debe probar únicamente el stage
+draft.

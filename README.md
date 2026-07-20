@@ -1,9 +1,9 @@
 # Centralized CI/CD workflows
 
 Repositorio privado central de workflows reutilizables para aplicaciones
-guardadas bajo una misma cuenta personal de GitHub. Los pipelines se ejecutan
-exclusivamente en runners macOS
-self-hosted.
+guardadas bajo una misma cuenta personal de GitHub. Los pipelines pueden
+ejecutarse en runners macOS self-hosted o en runners administrados por GitHub
+Actions.
 
 ## Flujo de una aplicación Flutter
 
@@ -34,7 +34,9 @@ esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
    valores por defecto si se omiten.
 5. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
    Gradle Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
-6. Registrar el Mac como runner con las labels `self-hosted`, `macOS` y `ARM64`.
+6. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
+   `self-hosted`, registrar el Mac con las labels `self-hosted`, `macOS` y
+   `ARM64`; `github-hosted` usa `macos-latest` y no requiere registro.
 
 Los callers concretos para `ride-your-soul`, `artistic` y `estudio-sybellafit`
 están en [docs/apps-francisco.md](docs/apps-francisco.md).
@@ -52,12 +54,13 @@ Por ejemplo, si el usuario es `juanpbedoya`, la referencia será:
 uses: juanpbedoya/workflows/.github/workflows/main.yml@v1
 ```
 
-Hay una limitación importante para los runners: en una cuenta personal cada
-runner registrado a nivel de repositorio queda dedicado a ese repositorio. El
-workflow central sí es compartido, pero cada app necesita al menos un runner
-registrado en **Settings → Actions → Runners**. Para compartir automáticamente
-un mismo pool de Macs entre muchos repositorios sería necesario moverlos a una
-organización y registrar runners a nivel de organización.
+Hay una limitación importante para los runners self-hosted: en una cuenta
+personal cada runner registrado a nivel de repositorio queda dedicado a ese
+repositorio. El workflow central sí es compartido, pero cada app que use esa
+modalidad necesita al menos un runner registrado en **Settings → Actions →
+Runners**. Para compartir automáticamente un mismo pool de Macs entre muchos
+repositorios sería necesario moverlos a una organización y registrar runners a
+nivel de organización. La modalidad `github-hosted` no tiene ese requisito.
 
 ## Versionado del pipeline
 
@@ -129,6 +132,17 @@ en la gráfica ni consume recursos.
 Las apps llaman únicamente a `.github/workflows/main.yml`. El input
 `technology` selecciona la implementación (`flutter` actualmente); agregar otra
 tecnología no requiere ampliar el caller de cada proyecto.
+
+El input `runner` acepta `self-hosted` (predeterminado) o `github-hosted`. Este
+último resuelve todos los jobs a `macos-latest`. El template incluye el selector
+en `workflow_dispatch`; para que también las ejecuciones automáticas de PR usen
+GitHub Actions, se configura de forma fija:
+
+```yaml
+with:
+  technology: flutter
+  runner: github-hosted
+```
 
 Para Flutter, el dispatcher localiza automáticamente el único `pubspec.yaml` a
 una profundidad máxima de dos directorios. `working-directory` solo se indica

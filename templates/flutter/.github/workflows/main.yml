@@ -11,6 +11,12 @@ on:
         required: true
         type: choice
         options: [draft, beta, production]
+      runner:
+        description: Runner used for this manual execution
+        required: true
+        default: self-hosted
+        type: choice
+        options: [self-hosted, github-hosted]
 
 permissions:
   contents: read
@@ -22,4 +28,5 @@ jobs:
       technology: flutter
       platforms: android,ios
       android-build-format: appbundle
+      runner: ${{ inputs.runner || 'self-hosted' }}
     secrets: inherit

@@ -2,16 +2,30 @@
 
 ## Runner
 
-El runner debe tener Xcode, CocoaPods, Ruby/Bundler, Java y Android SDK. Los
-workflows instalan la versión solicitada de Flutter y seleccionan una versión
-de Xcode que ya esté instalada en `/Applications`; no descargan Xcode ni
-administran las credenciales del host. Labels predeterminadas:
+El pipeline acepta dos proveedores mediante el input `runner`:
+
+```yaml
+with:
+  technology: flutter
+  runner: github-hosted # o self-hosted
+```
+
+`self-hosted` es el valor predeterminado y utiliza estas labels:
 
 ```text
 self-hosted, macOS, ARM64
 ```
 
 Se pueden cambiar mediante el input JSON `runner-labels` del caller.
+`github-hosted` usa `macos-latest`, por lo que no requiere registrar un runner y
+consume los minutos de GitHub Actions disponibles para el repositorio.
+
+En ambos casos el runner debe tener Xcode, CocoaPods, Ruby/Bundler, Java y
+Android SDK. Los workflows instalan la versión solicitada de Flutter y
+seleccionan una versión de Xcode que ya esté instalada en `/Applications`; no
+descargan Xcode ni administran las credenciales del host. En GitHub-hosted se
+debe usar una `XCODE_VERSION` incluida en la imagen `macos-latest`, o dejar el
+valor `default`.
 
 ## Versiones de Flutter y Xcode
 

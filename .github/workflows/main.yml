@@ -19,8 +19,12 @@ on:
         description: Application path or auto to locate pubspec.yaml
         type: string
         default: auto
+      runner:
+        description: Runner provider; self-hosted or github-hosted
+        type: string
+        default: self-hosted
       runner-labels:
-        description: JSON array of self-hosted runner labels
+        description: JSON array of labels used by the self-hosted runner
         type: string
         default: '["self-hosted", "macOS", "ARM64"]'
       stage:
@@ -34,7 +38,7 @@ permissions:
 jobs:
   validate:
     name: Validate pipeline configuration
-    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 5
     outputs:
       stage: ${{ steps.config.outputs.stage }}
@@ -45,6 +49,7 @@ jobs:
       platforms-json: ${{ steps.config.outputs.platforms-json }}
       flutter-version: ${{ steps.config.outputs.flutter-version }}
       xcode-version: ${{ steps.config.outputs.xcode-version }}
+      runner-labels: ${{ steps.config.outputs.runner-labels }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate technology and stage
@@ -57,6 +62,8 @@ jobs:
           CONFIGURED_DIRECTORY: ${{ inputs.working-directory }}
           CONFIGURED_PLATFORMS: ${{ inputs.platforms }}
           ANDROID_BUILD_FORMAT: ${{ inputs.android-build-format }}
+          CONFIGURED_RUNNER: ${{ inputs.runner }}
+          SELF_HOSTED_RUNNER_LABELS: ${{ inputs.runner-labels }}
           REPOSITORY_FLUTTER_VERSION: ${{ vars.FLUTTER_VERSION }}
           REPOSITORY_XCODE_VERSION: ${{ vars.XCODE_VERSION }}
         run: |
@@ -64,6 +71,13 @@ jobs:
             echo "Unsupported technology: ${TECHNOLOGY}"
             exit 1
           fi
+
+          case "${CONFIGURED_RUNNER}" in
+            self-hosted) effective_runner_labels="${SELF_HOSTED_RUNNER_LABELS}" ;;
+            github-hosted) effective_runner_labels='["macos-latest"]' ;;
+            *) echo "Unsupported runner: ${CONFIGURED_RUNNER}"; exit 1 ;;
+          esac
+          echo "runner-labels=${effective_runner_labels}" >> "${GITHUB_OUTPUT}"
 
           effective_stage="${CONFIGURED_STAGE}"
           if [[ "${effective_stage}" == "auto" && -n "${EVENT_STAGE}" ]]; then
@@ -156,7 +170,7 @@ jobs:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
-      runner-labels: ${{ inputs.runner-labels }}
+      runner-labels: ${{ needs.validate.outputs.runner-labels }}
       platforms-json: ${{ needs.validate.outputs.platforms-json }}
       android-build-format: ${{ inputs.android-build-format }}
     secrets: inherit
@@ -174,7 +188,7 @@ jobs:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
-      runner-labels: ${{ inputs.runner-labels }}
+      runner-labels: ${{ needs.validate.outputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets: inherit
@@ -192,7 +206,7 @@ jobs:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
-      runner-labels: ${{ inputs.runner-labels }}
+      runner-labels: ${{ needs.validate.outputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets: inherit

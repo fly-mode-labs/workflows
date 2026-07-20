@@ -3,6 +3,14 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-07-19
+
+### Added
+
+- Input `runner` para elegir entre runners macOS `self-hosted` y runners
+  `github-hosted` (`macos-latest`), incluido como selector en las ejecuciones
+  manuales del template Flutter.
+
 ## [1.2.0] - 2026-07-19
 
 ### Added
