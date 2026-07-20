@@ -67,5 +67,6 @@ Secrets `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION`, y las credenciales
 de cada tienda en los environments `beta`/`production`. Android beta sube el
 AAB precompilado directamente con `r0adkll/upload-google-play`; no requiere
 Flutter ni Gradle durante la distribución. La promoción Android a producción
-conserva temporalmente Gradle Play Publisher. Si se elige `self-hosted`, cada
-repositorio también necesita su propio runner registrado.
+conserva temporalmente Gradle Play Publisher, que la acción carga sin exigir
+configuración adicional permanente en el proyecto Android. Si se elige
+`self-hosted`, cada repositorio también necesita su propio runner registrado.

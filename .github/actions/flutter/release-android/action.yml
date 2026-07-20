@@ -142,4 +142,49 @@ runs:
       env:
         ANDROID_PUBLISHER_CREDENTIALS: ${{ inputs.service-account-json }}
         GOOGLE_PLAY_SOURCE_TRACK: ${{ inputs.track }}
-      run: ./gradlew promoteArtifact --from-track "${GOOGLE_PLAY_SOURCE_TRACK}" --promote-track production
+      run: |
+        set -euo pipefail
+
+        if [[ -f app/build.gradle.kts ]]; then
+          app_build_file='app/build.gradle.kts'
+          play_plugin_declaration='id("com.github.triplet.play") version "3.13.0"'
+        elif [[ -f app/build.gradle ]]; then
+          app_build_file='app/build.gradle'
+          play_plugin_declaration='id "com.github.triplet.play" version "3.13.0"'
+        else
+          echo 'The Android application module has no app/build.gradle or app/build.gradle.kts.' >&2
+          exit 1
+        fi
+
+        if ! grep -Fq 'com.github.triplet.play' "${app_build_file}"; then
+          app_build_backup="$(mktemp "${RUNNER_TEMP}/android-app-build.XXXXXX")"
+          modified_app_build="$(mktemp "${RUNNER_TEMP}/android-app-build-modified.XXXXXX")"
+          cp "${app_build_file}" "${app_build_backup}"
+
+          restore_app_build() {
+            cp "${app_build_backup}" "${app_build_file}"
+            rm -f -- "${app_build_backup}" "${modified_app_build}"
+          }
+          trap restore_app_build EXIT
+
+          if ! awk -v declaration="${play_plugin_declaration}" '
+            !inserted && /^[[:space:]]*plugins[[:space:]]*\{/ {
+              print
+              print "    " declaration
+              inserted = 1
+              next
+            }
+            { print }
+            END { if (!inserted) exit 1 }
+          ' "${app_build_file}" > "${modified_app_build}"; then
+            echo "Could not find a plugins block in ${app_build_file}." >&2
+            exit 1
+          fi
+
+          mv "${modified_app_build}" "${app_build_file}"
+        fi
+
+        ./gradlew \
+          promoteArtifact \
+          --from-track "${GOOGLE_PLAY_SOURCE_TRACK}" \
+          --promote-track production

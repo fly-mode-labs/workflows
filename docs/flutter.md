@@ -358,14 +358,11 @@ La promoción ejecuta:
 
 La promoción a producción conserva temporalmente Gradle Play Publisher porque
 `upload-google-play` no documenta una operación de promoción sin volver a subir
-el artefacto. Solo para esa etapa la app debe aplicar el plugin en el módulo
-Android de aplicación, usando una versión compatible con su Gradle/AGP:
-
-```groovy
-plugins {
-    id 'com.github.triplet.play' version '4.0.0'
-}
-```
+el artefacto. Cuando la app no declara `com.github.triplet.play`, la acción
+inyecta temporalmente la versión `3.13.0` en el bloque `plugins` del módulo
+Android. Esa versión es compatible con el wrapper Gradle 8.11.1 generado por
+Flutter; Gradle Play Publisher 4 requiere Gradle 9.1 o posterior. El archivo
+original se restaura al terminar, incluso si la promoción falla.
 
 Cada environment de GitHub (`beta` y `production`) debe definir
 `ANDROID_PUBLISHER_CREDENTIALS` con el contenido completo del JSON de la cuenta

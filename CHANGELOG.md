@@ -33,6 +33,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- La promoción Android inyecta temporalmente Gradle Play Publisher `3.13.0` en
+  el módulo de aplicación cuando el proyecto no lo declara. `promoteArtifact`
+  queda disponible con Gradle 8.11.1 y el archivo de build original se restaura
+  al terminar.
 - Los workflows reutilizables de `v3` ya no retroceden internamente a acciones
   y workflows de `v2`. La promoción de App Store ejecuta ahora la acción iOS de
   la misma versión mayor, que propaga `description`, `keywords`, `supportUrl` y
