@@ -160,7 +160,7 @@ jobs:
       ((github.event.pull_request.draft == true && github.event.action != 'closed') ||
       (github.event.pull_request.draft == false &&
       (github.event.action == 'opened' || github.event.action == 'reopened'))))
-    uses: Juanpabedoyav/workflows/.github/workflows/flutter-build.yml@v2
+    uses: ./.github/workflows/flutter-build.yml
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}

@@ -29,6 +29,9 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- El pipeline central invoca el workflow de build Flutter desde el mismo commit,
+  evitando que `main.yml@v3` valide el input `java-version` contra la interfaz
+  anterior de `flutter-build.yml@v2`.
 - Los builds Android en GitHub Hosted instalan el JDK remoto configurado por
   `JAVA_VERSION` (17 por defecto) y lo seleccionan explícitamente para Gradle,
   evitando fallos cuando la app conserva un `org.gradle.java.home` con una ruta
