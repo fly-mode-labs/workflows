@@ -19,11 +19,12 @@ La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
 
 Una PR creada directamente como open ejecuta un build antes de beta porque no
 tiene artefactos draft. En cambio, **Ready for review** localiza el build exitoso
-del mismo commit y pasa directamente a beta. Si no encuentra todos los artefactos
-requeridos, falla antes de contactar TestFlight o Google Play. Nuevos commits en
-una PR que ya está abierta no vuelven a distribuir una beta automáticamente;
-esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
-`workflow_dispatch`.
+del mismo commit y pasa directamente a beta. Si ese build todavía está en cola o
+en ejecución, espera hasta 40 minutos por sus artefactos; si termina sin todos
+los artefactos requeridos, falla antes de contactar TestFlight o Google Play.
+Nuevos commits en una PR que ya está abierta no vuelven a distribuir una beta
+automáticamente; esto evita publicar una versión por cada push. Se puede ejecutar
+de nuevo desde `workflow_dispatch`.
 
 ## Uso desde una app
 

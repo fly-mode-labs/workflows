@@ -29,6 +29,11 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- La publicación beta iniciada al marcar una PR como **Ready for review** espera
+  hasta 40 minutos cuando el build draft del mismo commit todavía está en cola o
+  en ejecución. Esto evita que los builds más lentos de GitHub Hosted fallen de
+  inmediato indicando que no existen artefactos. El resolvedor usa además
+  `actions/github-script@v8`, compatible de forma nativa con Node.js 24.
 - El pipeline central invoca el workflow de build Flutter desde el mismo commit,
   evitando que `main.yml@v3` valide el input `java-version` contra la interfaz
   anterior de `flutter-build.yml@v2`.
