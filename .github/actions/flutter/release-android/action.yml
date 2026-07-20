@@ -8,8 +8,8 @@ inputs:
   app-version: {required: true, description: Semantic application version}
   build-number: {required: true, description: Store build number}
   full-version: {required: true, description: Complete Flutter version}
-  beta-command: {required: false, default: ./gradlew publishBundle --track internal, description: Command that uploads the App Bundle to Google Play}
-  production-command: {required: false, default: ./gradlew promoteArtifact --from-track internal --promote-track production, description: Command that promotes the beta to production}
+  beta-command: {required: false, default: ./gradlew publishBundle --track beta, description: Command that uploads the App Bundle to Google Play closed beta testing}
+  production-command: {required: false, default: ./gradlew promoteArtifact --from-track beta --promote-track production, description: Command that promotes the closed beta to production}
 
 runs:
   using: composite
@@ -48,7 +48,58 @@ runs:
     - name: Prepare Android Gradle project
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: flutter build apk --config-only --release --no-pub
+      run: |
+        set -euo pipefail
+
+        # Flutter exposes --config-only through the apk subcommand only. It
+        # writes local Android configuration without building or uploading an
+        # APK. The downloaded AAB remains the only release artifact.
+        # --config-only may leave wrapper files ignored by an existing Android
+        # project absent, so seed only those missing files from the installed
+        # Flutter version without touching the app's Gradle configuration.
+        flutter build apk --config-only --release --no-pub
+
+        wrapper_files=(
+          gradlew
+          gradle/wrapper/gradle-wrapper.jar
+          gradle/wrapper/gradle-wrapper.properties
+        )
+        needs_wrapper_seed=false
+        for wrapper_file in "${wrapper_files[@]}"; do
+          if [[ ! -f "android/${wrapper_file}" ]]; then
+            needs_wrapper_seed=true
+            break
+          fi
+        done
+
+        if [[ "${needs_wrapper_seed}" == 'true' ]]; then
+          wrapper_seed="$(mktemp -d "${RUNNER_TEMP}/flutter-gradle-wrapper.XXXXXX")"
+          cleanup_wrapper_seed() {
+            rm -rf -- "${wrapper_seed}"
+          }
+          trap cleanup_wrapper_seed EXIT
+
+          flutter create \
+            --no-pub \
+            --platforms=android \
+            --project-name=gradle_wrapper_seed \
+            "${wrapper_seed}"
+
+          seed_files=(
+            gradlew
+            gradlew.bat
+            gradle/wrapper/gradle-wrapper.jar
+            gradle/wrapper/gradle-wrapper.properties
+          )
+          for wrapper_file in "${seed_files[@]}"; do
+            if [[ ! -f "android/${wrapper_file}" ]]; then
+              mkdir -p "android/$(dirname "${wrapper_file}")"
+              cp "${wrapper_seed}/android/${wrapper_file}" "android/${wrapper_file}"
+            fi
+          done
+        fi
+
+        chmod +x android/gradlew
     - name: Upload beta to Google Play
       if: inputs.stage == 'beta'
       shell: bash

@@ -14,9 +14,13 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- La distribución en Google Play regenera en el checkout limpio el Gradle
-  wrapper y `local.properties` que Flutter necesita, sin recompilar la app ni
-  resolver nuevamente sus dependencias Dart.
+- La etapa Android `beta` publica por defecto en el track cerrado `beta` de
+  Google Play en lugar de `internal`, y la promoción a producción parte de ese
+  mismo track.
+- La distribución en Google Play regenera explícitamente en el checkout limpio
+  el Gradle wrapper cuando `flutter build --config-only` lo deja ausente en un
+  proyecto Android existente, además de preparar `local.properties`, sin
+  recompilar la app ni resolver nuevamente sus dependencias Dart.
 - Las credenciales JSON de Google Play se propagan desde el secret de
   environment `ANDROID_PUBLISHER_CREDENTIALS` al estándar homónimo de Gradle
   Play Publisher.

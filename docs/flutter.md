@@ -236,12 +236,15 @@ pueden producirlo en su propia ejecución. La fase de distribución descarga ese
 AAB y ejecuta por defecto:
 
 ```bash
-./gradlew publishBundle --track internal --artifact-dir "${AAB_ARTIFACT_DIRECTORY}"
+./gradlew publishBundle --track beta --artifact-dir "${AAB_ARTIFACT_DIRECTORY}"
 ```
 
 `AAB_PATH` contiene la ruta absoluta del archivo y
 `AAB_ARTIFACT_DIRECTORY` su directorio. El argumento `--artifact-dir` evita que
 Gradle Play Publisher vuelva a construir o firmar el bundle.
+El track `beta` corresponde a la prueba cerrada; la aplicación debe tener
+configurados en Play Console el país o región y la lista, grupo o enlace de
+testers que podrán acceder a ella.
 
 La distribución beta no ejecuta `flutter pub get`: las dependencias Dart ya se
 resolvieron durante el build y el AAB descargado es inmutable. El job prepara
@@ -250,15 +253,22 @@ carga sus plugins desde la ruta `flutter.sdk`, incluso al publicar un artefacto
 preexistente.
 
 Antes de ejecutar la tarea de publicación, el composite action usa
-`flutter build apk --config-only --release --no-pub`. Este comando no compila
-un APK: únicamente prepara los archivos locales del proyecto Android. Así, un
-checkout limpio puede recuperar `gradlew`, `gradle-wrapper.jar` y
-`local.properties` aunque la aplicación los excluya de Git.
+`flutter build apk --config-only --release --no-pub`. Flutter expone
+`--config-only` únicamente mediante el subcomando `apk`; con esa opción no
+compila ni sube un APK, solo prepara la configuración local del proyecto
+Android. El único artefacto publicado continúa siendo el App Bundle descargado.
+Como `--config-only` puede dejar ausente el wrapper de un proyecto Android
+existente, si faltan `gradlew`, `gradle-wrapper.jar` o
+`gradle-wrapper.properties`, la action crea un proyecto temporal con la versión
+de Flutter instalada y copia exclusivamente los archivos ausentes. La
+configuración Gradle de la aplicación no se modifica. Esto permite publicar
+desde un checkout limpio aunque la aplicación excluya el wrapper y
+`local.properties` de Git.
 
 La promoción ejecuta:
 
 ```bash
-./gradlew promoteArtifact --from-track internal --promote-track production
+./gradlew promoteArtifact --from-track beta --promote-track production
 ```
 
 La app debe aplicar Gradle Play Publisher en el módulo Android de aplicación:

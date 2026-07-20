@@ -8,8 +8,8 @@ on:
       working-directory: {required: true, type: string}
       flutter-version: {type: string, default: stable}
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
-      beta-command: {type: string, default: ./gradlew publishBundle --track internal}
-      production-command: {type: string, default: ./gradlew promoteArtifact --from-track internal --promote-track production}
+      beta-command: {type: string, default: ./gradlew publishBundle --track beta}
+      production-command: {type: string, default: ./gradlew promoteArtifact --from-track beta --promote-track production}
 
 permissions:
   actions: read
@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   google-play:
-    name: ${{ inputs.stage == 'beta' && 'Google Play beta' || 'Google Play production' }}
+    name: ${{ inputs.stage == 'beta' && 'Google Play closed beta' || 'Google Play production' }}
     environment: ${{ inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 45
