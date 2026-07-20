@@ -32,26 +32,44 @@ runs:
       run: |
         set -euo pipefail
 
-        package_name="${APP_IDENTIFIER}"
-        if [[ -z "${package_name}" ]]; then
-          package_name_file=''
-          package_name_file_count=0
-          while IFS= read -r candidate; do
-            package_name_file="${candidate}"
-            package_name_file_count=$((package_name_file_count + 1))
-          done < <(find . -type f -name android-package-name.txt -print)
-
-          if [[ "${package_name_file_count}" -ne 1 ]]; then
-            echo "APP_IDENTIFIER was not passed and the artifact contains ${package_name_file_count} application identifier files." >&2
-            echo "Re-run all jobs with the latest v2 workflow after setting the APP_IDENTIFIER Repository Variable." >&2
-            exit 1
-          fi
-
-          package_name="$(tr -d '\r\n' < "${package_name_file}")"
+        configured_package_name="${APP_IDENTIFIER}"
+        if [[ -n "${configured_package_name}" ]] &&
+          [[ ! "${configured_package_name}" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
+          echo "Set the APP_IDENTIFIER Repository Variable to a valid application identifier." >&2
+          exit 1
         fi
 
-        if [[ ! "${package_name}" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
-          echo "Set the APP_IDENTIFIER Repository Variable to a valid application identifier." >&2
+        package_name_file=''
+        package_name_file_count=0
+        while IFS= read -r candidate; do
+          package_name_file="${candidate}"
+          package_name_file_count=$((package_name_file_count + 1))
+        done < <(find . -type f -name android-package-name.txt -print)
+
+        if [[ "${package_name_file_count}" -gt 1 ]]; then
+          echo "Expected at most one Android application identifier file, found ${package_name_file_count}." >&2
+          exit 1
+        fi
+
+        artifact_package_name=''
+        if [[ "${package_name_file_count}" -eq 1 ]]; then
+          artifact_package_name="$(tr -d '\r\n' < "${package_name_file}")"
+          if [[ ! "${artifact_package_name}" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
+            echo "The Android artifact contains an invalid application identifier." >&2
+            exit 1
+          fi
+        fi
+
+        if [[ -n "${configured_package_name}" && -n "${artifact_package_name}" &&
+          "${configured_package_name}" != "${artifact_package_name}" ]]; then
+          echo "APP_IDENTIFIER (${configured_package_name}) does not match the signed artifact (${artifact_package_name})." >&2
+          exit 1
+        fi
+
+        package_name="${artifact_package_name:-${configured_package_name}}"
+        if [[ -z "${package_name}" ]]; then
+          echo "No Android application identifier was passed or included in the artifact." >&2
+          echo "Re-run all jobs with the latest v2 workflow." >&2
           exit 1
         fi
 

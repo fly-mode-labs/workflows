@@ -315,11 +315,12 @@ puede cambiar a `beta` o a un track personalizado existente en Play Console.
 
 La acción recibe exactamente los inputs documentados por su autor:
 `serviceAccountJsonPlainText`, `packageName`, `releaseFiles`, `tracks` y
-`status`. `packageName` recibe `APP_IDENTIFIER` y `releaseFiles` usa el
-glob soportado oficialmente para seleccionar el único
-`.aab` dentro del artefacto descargado. La distribución beta no hace checkout,
-no instala Flutter y no ejecuta Gradle, Android SDK ni NDK. Tampoco recompila ni
-vuelve a firmar el AAB.
+`status`. `packageName` recibe el application ID extraído por Android Gradle
+Plugin durante el build; si `APP_IDENTIFIER` está disponible, el pipeline exige
+que ambos valores coincidan. `releaseFiles` usa el glob soportado oficialmente
+para seleccionar el único `.aab` dentro del artefacto descargado. La
+distribución beta no hace checkout, no instala Flutter y no ejecuta Gradle,
+Android SDK ni NDK. Tampoco recompila ni vuelve a firmar el AAB.
 
 La promoción ejecuta:
 

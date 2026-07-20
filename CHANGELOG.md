@@ -19,10 +19,11 @@ usa [Semantic Versioning](https://semver.org/).
   `serviceAccountJsonPlainText`, `packageName`, `releaseFiles`, `tracks` y
   `status`.
 - La distribución Android beta ya no hace checkout, instala Flutter, configura
-  el proyecto Android ni ejecuta Gradle. El application ID se obtiene de la
-  Repository Variable `APP_IDENTIFIER`, por lo que no se duplica en los
-  callers ni en los artefactos. `android-track` permite seleccionar el track y
-  usa `internal` de forma predeterminada.
+  el proyecto Android ni ejecuta Gradle. El application ID efectivo se extrae
+  del metadata generado por Android Gradle Plugin y se transporta junto al AAB;
+  la Repository Variable `APP_IDENTIFIER` se usa para comprobar que el destino
+  de Google Play coincide con el artefacto firmado. `android-track` permite
+  seleccionar el track y usa `internal` de forma predeterminada.
 - Los artefactos Android usan `actions/upload-artifact@v7` con compresión `0`,
   apropiada para AAB/APK ya comprimidos y documentada por la acción upstream.
 
@@ -37,6 +38,9 @@ usa [Semantic Versioning](https://semver.org/).
   propaga explícitamente a través de los workflows anidados. Los runs iniciados
   con una revisión anterior de `v2` que no propaga ese input conservan
   compatibilidad mediante el application ID incluido en el artefacto Android.
+- Los artefactos Android vuelven a incluir `android-package-name.txt`; la
+  publicación usa ese valor como fuente de verdad y detecta diferencias con
+  `APP_IDENTIFIER` antes de invocar Google Play.
 - El provisioning profile de Match se aplica únicamente al target `Runner` en
   Release; ya no se propaga a los targets de CocoaPods que no admiten firma.
 - Los builds iOS con Match ya no delegan la firma automática a Xcode. El
