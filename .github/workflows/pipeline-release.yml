@@ -8,10 +8,14 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: pipeline-release
+  cancel-in-progress: true
+
 jobs:
   validate-and-release:
     name: Validate and publish ${{ github.ref_name }}
-    runs-on: [self-hosted, macOS, ARM64]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4

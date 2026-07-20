@@ -3,6 +3,15 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.3.6] - 2026-07-20
+
+### Fixed
+
+- La publicación del pipeline usa `ubuntu-latest` porque solo necesita Git y
+  GitHub CLI; ya no queda bloqueada esperando un runner self-hosted dedicado.
+- Los releases se serializan y una versión nueva cancela una publicación
+  anterior todavía en curso, evitando que el alias mayor retroceda.
+
 ## [2.3.5] - 2026-07-20
 
 ### Fixed
