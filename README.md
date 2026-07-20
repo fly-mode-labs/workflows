@@ -104,7 +104,8 @@ Para publicar una versión:
    `VERSION` y crea el GitHub Release.
 5. El release mueve automáticamente el alias `v3`; las apps no cambian.
 
-Los tags SemVer exactos son inmutables. Únicamente el alias mayor (`v1`, `v3`)
+Los tags SemVer exactos son inmutables. Únicamente los alias mayores (`v1`,
+`v2`, `v3`)
 es flotante por diseño.
 
 Las distribuciones beta y production se serializan por repositorio para impedir

@@ -19,3 +19,6 @@ jobs:
       - name: Run parser regression tests
         shell: bash
         run: bash .github/actions/flutter/setup/test-read-version.sh
+      - name: Validate first-party workflow version alignment
+        shell: bash
+        run: bash .github/test-version-alignment.sh

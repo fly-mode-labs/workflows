@@ -31,7 +31,9 @@ jobs:
           fi
       - name: Run pipeline regression tests
         shell: bash
-        run: bash .github/actions/flutter/setup/test-read-version.sh
+        run: |
+          bash .github/actions/flutter/setup/test-read-version.sh
+          bash .github/test-version-alignment.sh
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
