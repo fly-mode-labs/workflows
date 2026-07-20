@@ -30,6 +30,10 @@ on:
       release-android:
         type: boolean
         default: false
+      app-identifier:
+        description: Android application identifier used for Google Play releases
+        type: string
+        default: ''
       android-track:
         description: Google Play testing track receiving beta releases
         type: string
@@ -162,5 +166,6 @@ jobs:
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
       track: ${{ inputs.android-track }}
+      app-identifier: ${{ inputs.app-identifier }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels }}
     secrets: inherit

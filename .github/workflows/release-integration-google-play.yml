@@ -9,6 +9,7 @@ on:
       flutter-version: {type: string, default: stable}
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
       track: {type: string, default: internal}
+      app-identifier: {type: string, default: ''}
 
 permissions:
   actions: read
@@ -37,5 +38,5 @@ jobs:
           artifact-run-id: ${{ inputs.artifact-run-id }}
           working-directory: ${{ inputs.working-directory }}
           track: ${{ inputs.track }}
-          identifier: ${{ vars.APP_IDENTIFIER }}
+          identifier: ${{ inputs.app-identifier || vars.APP_IDENTIFIER }}
           service-account-json: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}

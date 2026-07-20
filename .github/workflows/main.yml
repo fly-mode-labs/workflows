@@ -191,6 +191,7 @@ jobs:
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
+      app-identifier: ${{ vars.APP_IDENTIFIER }}
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets: inherit
@@ -211,6 +212,7 @@ jobs:
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
+      app-identifier: ${{ vars.APP_IDENTIFIER }}
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets: inherit

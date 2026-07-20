@@ -33,7 +33,10 @@ usa [Semantic Versioning](https://semver.org/).
   contiene un application ID válido.
 - El composite Android consume `APP_IDENTIFIER` mediante su input `identifier`,
   ya que el contexto `vars` no está disponible al validar el manifiesto de una
-  composite action.
+  composite action. El workflow exterior resuelve la Repository Variable y la
+  propaga explícitamente a través de los workflows anidados. Los runs iniciados
+  con una revisión anterior de `v2` que no propaga ese input conservan
+  compatibilidad mediante el application ID incluido en el artefacto Android.
 - El provisioning profile de Match se aplica únicamente al target `Runner` en
   Release; ya no se propaga a los targets de CocoaPods que no admiten firma.
 - Los builds iOS con Match ya no delegan la firma automática a Xcode. El
