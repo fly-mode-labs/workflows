@@ -109,7 +109,9 @@ perfiles que no estaban instalados antes del job. Esto funciona igual en
 
 Cuando Match está configurado, el pipeline lee el provisioning profile que
 instaló para el bundle identifier del target `Runner` y fuerza la firma manual
-solo durante el comando de CI. Para `match-type: appstore` usa
+en la configuración `Release` de ese target dentro del checkout temporal de
+CI. No pasa el profile como un build setting global, por lo que los targets de
+CocoaPods conservan su configuración sin firma. Para `match-type: appstore` usa
 `Apple Distribution`, el team del profile y su nombre exacto tanto en el
 archive como en `ExportOptions.plist`. De esta forma Xcode no intenta iniciar
 sesión con una cuenta de Apple ni busca un certificado `iOS Development`. El

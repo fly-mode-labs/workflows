@@ -57,10 +57,14 @@ runs:
           fi
         done
 
-        export FLUTTER_XCODE_CODE_SIGN_STYLE='Manual'
-        export FLUTTER_XCODE_CODE_SIGN_IDENTITY="${IOS_CODE_SIGN_IDENTITY}"
-        export FLUTTER_XCODE_DEVELOPMENT_TEAM="${IOS_TEAM_ID}"
-        export FLUTTER_XCODE_PROVISIONING_PROFILE_SPECIFIER="${IOS_PROFILE_NAME}"
+        bundle exec fastlane run update_code_signing_settings \
+          path:ios/Runner.xcodeproj \
+          use_automatic_signing:false \
+          targets:Runner \
+          build_configurations:Release \
+          team_id:"${IOS_TEAM_ID}" \
+          code_sign_identity:"${IOS_CODE_SIGN_IDENTITY}" \
+          profile_name:"${IOS_PROFILE_NAME}"
 
         export_options_plist="$(mktemp "${RUNNER_TEMP}/ExportOptions.XXXXXX")"
         trap 'rm -f -- "${export_options_plist}"' EXIT
@@ -84,7 +88,7 @@ runs:
           -c "Add :provisioningProfiles:${IOS_BUNDLE_IDENTIFIER} string ${IOS_PROFILE_NAME}" \
           "${export_options_plist}"
 
-        echo "Signing ${IOS_BUNDLE_IDENTIFIER} manually with ${IOS_CODE_SIGN_IDENTITY} and profile '${IOS_PROFILE_NAME}'."
+        echo "Signing Runner (${IOS_BUNDLE_IDENTIFIER}) manually with ${IOS_CODE_SIGN_IDENTITY} and profile '${IOS_PROFILE_NAME}'."
         flutter build ipa \
           --release \
           --export-options-plist="${export_options_plist}"

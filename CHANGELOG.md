@@ -14,6 +14,8 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- El provisioning profile de Match se aplica únicamente al target `Runner` en
+  Release; ya no se propaga a los targets de CocoaPods que no admiten firma.
 - Los builds iOS con Match ya no delegan la firma automática a Xcode. El
   pipeline resuelve el provisioning profile del target `Runner`, firma los
   archives App Store con `Apple Distribution` y genera opciones de exportación
