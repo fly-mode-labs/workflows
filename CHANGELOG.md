@@ -3,6 +3,17 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.3.3] - 2026-07-19
+
+### Fixed
+
+- El setup de Flutter instala el SDK bajo `runner.temp` para evitar reutilizar
+  instalaciones incompletas persistidas en `RUNNER_TOOL_CACHE` por runners
+  self-hosted, manteniendo la restauración mediante `actions/cache`.
+- El setup valida `FLUTTER_ROOT` y el repositorio Git del SDK antes de ejecutar
+  comandos de Flutter, produciendo un diagnóstico explícito si la instalación
+  está incompleta.
+
 ## [2.3.1] - 2026-07-19
 
 ### Fixed
