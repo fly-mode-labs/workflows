@@ -30,6 +30,10 @@ on:
       release-android:
         type: boolean
         default: false
+      android-track:
+        description: Google Play testing track receiving beta releases
+        type: string
+        default: internal
       release-ios:
         type: boolean
         default: false
@@ -157,5 +161,6 @@ jobs:
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
+      track: ${{ inputs.android-track }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels }}
     secrets: inherit

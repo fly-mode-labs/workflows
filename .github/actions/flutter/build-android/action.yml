@@ -67,21 +67,45 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: flutter build appbundle --release
+    - name: Export Android application ID
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+
+        metadata_directory="build/app/outputs/pipeline-metadata"
+        package_name_file="${metadata_directory}/android-package-name.txt"
+        mkdir -p "${metadata_directory}"
+
+        find build/app/intermediates -type f -name output-metadata.json \
+          -exec jq -r '.applicationId // empty' {} + |
+          sed '/^$/d' |
+          sort -u > "${package_name_file}"
+
+        package_name_count="$(wc -l < "${package_name_file}" | tr -d ' ')"
+        if [[ "${package_name_count}" -ne 1 ]]; then
+          echo "Expected one Android application ID in AGP output metadata, found ${package_name_count}." >&2
+          exit 1
+        fi
+
+        echo "Android application ID: $(< "${package_name_file}")"
     - name: Remove Gradle CI project cache
       if: always()
       shell: bash
       working-directory: ${{ inputs.working-directory }}/android
       run: rm -rf -- "${GRADLE_PROJECT_CACHE_DIR}"
     - name: Upload Android artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: android-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
         path: |
           ${{ inputs.working-directory }}/build/app/outputs/flutter-apk/*.apk
           ${{ inputs.working-directory }}/build/app/outputs/bundle/**/*.aab
+          ${{ inputs.working-directory }}/build/app/outputs/pipeline-metadata/android-package-name.txt
         retention-days: 14
         if-no-files-found: error
         overwrite: true
+        compression-level: 0
     - name: Remove temporary Android signing files
       if: ${{ always() && steps.android_signing.outputs.configured == 'true' }}
       shell: bash

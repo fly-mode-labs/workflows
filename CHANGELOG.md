@@ -12,21 +12,22 @@ usa [Semantic Versioning](https://semver.org/).
   sincronizar en modo `readonly` y solo permiten escritura cuando falta la
   identidad.
 
+### Changed
+
+- Google Play beta descarga el AAB con `actions/download-artifact@v8` y lo publica
+  directamente con `r0adkll/upload-google-play@v1.1.5`, usando los inputs documentados
+  `serviceAccountJsonPlainText`, `packageName`, `releaseFiles`, `tracks` y
+  `status`.
+- La distribución Android beta ya no hace checkout, instala Flutter, configura
+  el proyecto Android ni ejecuta Gradle. El application ID efectivo se extrae
+  del metadata generado por Android Gradle Plugin y se transporta junto al AAB,
+  por lo que no se duplica en los callers. `android-track` permite seleccionar
+  el track y usa `internal` de forma predeterminada.
+- Los artefactos Android usan `actions/upload-artifact@v7` con compresión `0`,
+  apropiada para AAB/APK ya comprimidos y documentada por la acción upstream.
+
 ### Fixed
 
-- La etapa Android `beta` publica por defecto en el track cerrado `beta` de
-  Google Play en lugar de `internal`, y la promoción a producción parte de ese
-  mismo track.
-- La distribución en Google Play regenera explícitamente en el checkout limpio
-  el Gradle wrapper cuando `flutter build --config-only` lo deja ausente en un
-  proyecto Android existente, además de preparar `local.properties`, sin
-  recompilar la app ni resolver nuevamente sus dependencias Dart.
-- Las credenciales JSON de Google Play se propagan desde el secret de
-  environment `ANDROID_PUBLISHER_CREDENTIALS` al estándar homónimo de Gradle
-  Play Publisher.
-- Google Play beta ya no ejecuta `flutter pub get`; conserva únicamente la
-  preparación del SDK que Gradle necesita para cargar los plugins Flutter al
-  publicar el AAB precompilado.
 - El provisioning profile de Match se aplica únicamente al target `Runner` en
   Release; ya no se propaga a los targets de CocoaPods que no admiten firma.
 - Los builds iOS con Match ya no delegan la firma automática a Xcode. El

@@ -211,7 +211,58 @@ recibe `APP_VERSION` y `BUILD_NUMBER`.
 `ios release` debe localizar ese mismo build beta y enviarlo o promoverlo a App
 Store según la política del equipo.
 
-## Android (Gradle Play Publisher)
+### Metadata de App Store
+
+La metadata estable y localizada (descripción, keywords, URLs, subtítulo y
+texto promocional) debe vivir versionada en `fastlane/metadata`. Las notas que
+cambian para cada publicación se configuran como **Repository Variables** en la
+aplicación consumidora:
+
+```text
+APP_STORE_LOCALE=es-ES
+APP_STORE_RELEASE_NOTES=Mejoras de rendimiento y correcciones de errores.
+```
+
+`APP_STORE_RELEASE_NOTES` corresponde exclusivamente al campo **What's New**
+de la versión. Es opcional para el workflow reutilizable; las lanes de las apps
+pueden exigirla para impedir una promoción sin notas.
+
+El workflow expone esas variables a la lane `ios release` con los mismos
+nombres. Una implementación recomendada es:
+
+```ruby
+locale = ENV["APP_STORE_LOCALE"].to_s.strip
+release_notes = ENV["APP_STORE_RELEASE_NOTES"].to_s.strip
+
+UI.user_error!("APP_STORE_LOCALE is required") if locale.empty?
+UI.user_error!("APP_STORE_RELEASE_NOTES is required") if release_notes.empty?
+
+options = {
+  api_key: app_store_connect_key,
+  app_identifier: APP_IDENTIFIER,
+  app_version: ENV.fetch("APP_VERSION"),
+  build_number: ENV.fetch("BUILD_NUMBER"),
+  skip_binary_upload: true,
+  skip_metadata: false,
+  skip_screenshots: true,
+  submit_for_review: true,
+  automatic_release: true,
+  force: true,
+  # La API Key todavía no permite a precheck consultar las compras integradas.
+  precheck_include_in_app_purchases: false
+}
+
+options[:release_notes] = { locale => release_notes }
+
+upload_to_app_store(**options)
+```
+
+No se recomienda `run_precheck_before_submit: false`: desactivaría todas las
+comprobaciones. `precheck_include_in_app_purchases: false` omite solamente la
+consulta que no es compatible con App Store Connect API Key y conserva el resto
+de la validación.
+
+## Android (Google Play)
 
 La firma Android se configura con cuatro Repository Secrets en cada aplicación:
 
@@ -232,66 +283,69 @@ archivos.
 
 El app bundle firmado se construye en el build previo. En **Ready for review** se
 reutiliza el artefacto del draft del mismo commit; los otros disparadores beta
-pueden producirlo en su propia ejecución. La fase de distribución descarga ese
-AAB y ejecuta por defecto:
+pueden producirlo en su propia ejecución. La fase de distribución usa
+[`actions/download-artifact`](https://github.com/actions/download-artifact#usage)
+para descargar el AAB y
+[`r0adkll/upload-google-play`](https://github.com/r0adkll/upload-google-play#inputs)
+para enviarlo directamente a Google Play mediante la Android Publisher API.
 
-```bash
-./gradlew publishBundle --track beta --artifact-dir "${AAB_ARTIFACT_DIRECTORY}"
+La aplicación puede declarar únicamente un track diferente al predeterminado:
+
+```yaml
+with:
+  technology: flutter
+  platforms: android,ios
+  android-build-format: appbundle
+  android-track: internal
 ```
 
-`AAB_PATH` contiene la ruta absoluta del archivo y
-`AAB_ARTIFACT_DIRECTORY` su directorio. El argumento `--artifact-dir` evita que
-Gradle Play Publisher vuelva a construir o firmar el bundle.
-El track `beta` corresponde a la prueba cerrada; la aplicación debe tener
-configurados en Play Console el país o región y la lista, grupo o enlace de
-testers que podrán acceder a ella.
+`android-track` usa `internal` por defecto, así que también puede omitirse. Se
+puede cambiar a `beta` o a un track personalizado existente en Play Console.
 
-La distribución beta no ejecuta `flutter pub get`: las dependencias Dart ya se
-resolvieron durante el build y el AAB descargado es inmutable. El job prepara
-únicamente el SDK porque la configuración Gradle estándar de una app Flutter
-carga sus plugins desde la ruta `flutter.sdk`, incluso al publicar un artefacto
-preexistente.
+Android Gradle Plugin genera `output-metadata.json` con el `applicationId`
+efectivo de la variante compilada. El build valida que exista un único valor,
+lo guarda como `android-package-name.txt` y lo incluye junto al AAB mediante
+[`actions/upload-artifact`](https://github.com/actions/upload-artifact#usage).
+De esta forma se respetan variables, sufijos y variantes resueltos durante el
+build sin repetir el package name en el caller ni interpretar `build.gradle`.
 
-Antes de ejecutar la tarea de publicación, el composite action usa
-`flutter build apk --config-only --release --no-pub`. Flutter expone
-`--config-only` únicamente mediante el subcomando `apk`; con esa opción no
-compila ni sube un APK, solo prepara la configuración local del proyecto
-Android. El único artefacto publicado continúa siendo el App Bundle descargado.
-Como `--config-only` puede dejar ausente el wrapper de un proyecto Android
-existente, si faltan `gradlew`, `gradle-wrapper.jar` o
-`gradle-wrapper.properties`, la action crea un proyecto temporal con la versión
-de Flutter instalada y copia exclusivamente los archivos ausentes. La
-configuración Gradle de la aplicación no se modifica. Esto permite publicar
-desde un checkout limpio aunque la aplicación excluya el wrapper y
-`local.properties` de Git.
+La acción recibe exactamente los inputs documentados por su autor:
+`serviceAccountJsonPlainText`, `packageName`, `releaseFiles`, `tracks` y
+`status`. `packageName` recibe el valor transportado en la metadata y
+`releaseFiles` usa el glob soportado oficialmente para seleccionar el único
+`.aab` dentro del artefacto descargado. La distribución beta no hace checkout,
+no instala Flutter y no ejecuta Gradle, Android SDK ni NDK. Tampoco recompila ni
+vuelve a firmar el AAB.
 
 La promoción ejecuta:
 
 ```bash
-./gradlew promoteArtifact --from-track beta --promote-track production
+./gradlew promoteArtifact --from-track internal --promote-track production
 ```
 
-La app debe aplicar Gradle Play Publisher en el módulo Android de aplicación:
+La promoción a producción conserva temporalmente Gradle Play Publisher porque
+`upload-google-play` no documenta una operación de promoción sin volver a subir
+el artefacto. Solo para esa etapa la app debe aplicar el plugin en el módulo
+Android de aplicación, usando una versión compatible con su Gradle/AGP:
 
 ```groovy
 plugins {
-    id 'com.github.triplet.play' version '3.13.0'
+    id 'com.github.triplet.play' version '4.0.0'
 }
 ```
 
 Cada environment de GitHub (`beta` y `production`) debe definir
 `ANDROID_PUBLISHER_CREDENTIALS` con el contenido completo del JSON de la cuenta
-de servicio. El reusable workflow propaga ese secret únicamente al paso de
-distribución. Ambos comandos son inputs del workflow, por lo que pueden
-adaptarse a `closed`, `beta` u otro esquema de tracks sin duplicar el pipeline.
+de servicio. En beta se entrega al input `serviceAccountJsonPlainText` de la
+acción; en producción se expone a Gradle Play Publisher con su nombre estándar.
 
 ## Secrets y environments
 
 El template usa `secrets: inherit`: los secretos permanecen en el repo de cada
 app y no pasan a este repositorio central. Los secrets de Match son Repository
 Secrets porque se consumen durante los builds draft y beta. Configure las
-credenciales de subida que consuman Fastlane y Gradle dentro de los environments
-`beta` y `production`. Proteja `production` con reviewers si se requiere
+credenciales de subida que consuman Fastlane y Google Play dentro de los
+environments `beta` y `production`. Proteja `production` con reviewers si se requiere
 aprobación humana.
 
 ## Versionado

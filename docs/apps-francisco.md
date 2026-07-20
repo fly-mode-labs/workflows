@@ -60,11 +60,12 @@ con los permisos mostrados antes de habilitar beta. El dispatcher encuentra el
 futura solo cambia `technology`; la lógica se agrega en el dispatcher central
 sin duplicarla en las apps.
 
-## Requisitos pendientes de distribución
+## Requisitos de distribución
 
-Las apps todavía necesitan Fastlane para iOS, un `fastlane/Matchfile`, los
-Repository Secrets `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION`, Gradle
-Play Publisher para Android y credenciales en los environments
-`beta`/`production`. Si se elige `self-hosted`, también necesitan un runner
-registrado por repositorio. Hasta completar la configuración de distribución
-se debe probar únicamente el stage draft.
+Las apps necesitan Fastlane para iOS, un `fastlane/Matchfile`, los Repository
+Secrets `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION`, y las credenciales
+de cada tienda en los environments `beta`/`production`. Android beta sube el
+AAB precompilado directamente con `r0adkll/upload-google-play`; no requiere
+Flutter ni Gradle durante la distribución. La promoción Android a producción
+conserva temporalmente Gradle Play Publisher. Si se elige `self-hosted`, cada
+repositorio también necesita su propio runner registrado.

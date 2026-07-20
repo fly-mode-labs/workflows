@@ -11,6 +11,8 @@ inputs:
   app-store-connect-api-key-base64: {required: true, description: Base64-encoded App Store Connect API private key}
   app-store-connect-issuer-id: {required: true, description: App Store Connect API issuer ID}
   app-store-connect-key-id: {required: true, description: App Store Connect API key ID}
+  app-store-locale: {required: false, default: '', description: App Store locale used for release metadata}
+  app-store-release-notes: {required: false, default: '', description: Localized App Store release notes}
   beta-command: {required: false, default: bundle exec fastlane ios beta, description: Command that uploads the IPA to TestFlight}
   production-command: {required: false, default: bundle exec fastlane ios release, description: Command that promotes the beta to production}
 
@@ -91,6 +93,8 @@ runs:
         APP_STORE_CONNECT_API_KEY_BASE64: ${{ inputs.app-store-connect-api-key-base64 }}
         APP_STORE_CONNECT_ISSUER_ID: ${{ inputs.app-store-connect-issuer-id }}
         APP_STORE_CONNECT_KEY_ID: ${{ inputs.app-store-connect-key-id }}
+        APP_STORE_LOCALE: ${{ inputs.app-store-locale }}
+        APP_STORE_RELEASE_NOTES: ${{ inputs.app-store-release-notes }}
         APP_VERSION: ${{ inputs.app-version }}
         BUILD_NUMBER: ${{ inputs.build-number }}
         FULL_VERSION: ${{ inputs.full-version }}

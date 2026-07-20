@@ -1,62 +1,71 @@
 name: Release Flutter Android
-description: Distributes a built App Bundle to Google Play or promotes it to production.
+description: Uploads a built App Bundle to Google Play or promotes it to production.
 
 inputs:
   stage: {required: true, description: beta or production}
   artifact-run-id: {required: false, default: '', description: Workflow run containing the App Bundle}
-  working-directory: {required: true, description: Flutter application directory}
-  app-version: {required: true, description: Semantic application version}
-  build-number: {required: true, description: Store build number}
-  full-version: {required: true, description: Complete Flutter version}
-  beta-command: {required: false, default: ./gradlew publishBundle --track beta, description: Command that uploads the App Bundle to Google Play closed beta testing}
-  production-command: {required: false, default: ./gradlew promoteArtifact --from-track beta --promote-track production, description: Command that promotes the closed beta to production}
+  working-directory: {required: true, description: Flutter application directory used only for production promotion}
+  track: {required: false, default: internal, description: Google Play testing track receiving the beta release}
+  service-account-json: {required: true, description: Google Play service account JSON}
 
 runs:
   using: composite
   steps:
     - name: Download signed Android artifact
       if: inputs.stage == 'beta'
-      uses: actions/download-artifact@v4
+      id: artifact
+      uses: actions/download-artifact@v8
       with:
-        name: android-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
+        pattern: android-*-${{ github.event.pull_request.head.sha || github.sha }}
         path: ${{ runner.temp }}/android-${{ github.run_id }}
+        merge-multiple: true
         github-token: ${{ github.token }}
         run-id: ${{ inputs.artifact-run-id }}
-    - name: Locate downloaded App Bundle
+    - name: Read Android application ID
       if: inputs.stage == 'beta'
-      id: artifact
+      id: metadata
       shell: bash
-      working-directory: ${{ runner.temp }}/android-${{ github.run_id }}
+      working-directory: ${{ steps.artifact.outputs.download-path }}
       run: |
         set -euo pipefail
 
-        aab_path=''
-        aab_count=0
+        package_name_file=''
+        package_name_file_count=0
         while IFS= read -r candidate; do
-          aab_path="${candidate}"
-          aab_count=$((aab_count + 1))
-        done < <(find . -type f -name '*.aab' -print)
+          package_name_file="${candidate}"
+          package_name_file_count=$((package_name_file_count + 1))
+        done < <(find . -type f -name android-package-name.txt -print)
 
-        if [[ "${aab_count}" -ne 1 ]]; then
-          echo "Expected exactly one AAB in the build artifact, found ${aab_count}." >&2
+        if [[ "${package_name_file_count}" -ne 1 ]]; then
+          echo "Expected one Android package name file, found ${package_name_file_count}." >&2
           exit 1
         fi
 
-        absolute_aab_path="${PWD}/${aab_path#./}"
-        echo "aab-path=${absolute_aab_path}" >> "${GITHUB_OUTPUT}"
-        echo "aab-directory=$(dirname "${absolute_aab_path}")" >> "${GITHUB_OUTPUT}"
-    - name: Prepare Android Gradle project
+        package_name="$(tr -d '\r\n' < "${package_name_file}")"
+        if [[ -z "${package_name}" || "${package_name}" == *[[:space:]]* ]]; then
+          echo "The Android package name metadata is empty or invalid." >&2
+          exit 1
+        fi
+
+        echo "package-name=${package_name}" >> "${GITHUB_OUTPUT}"
+    - name: Upload beta to Google Play
+      if: inputs.stage == 'beta'
+      uses: r0adkll/upload-google-play@v1.1.5
+      with:
+        serviceAccountJsonPlainText: ${{ inputs.service-account-json }}
+        packageName: ${{ steps.metadata.outputs.package-name }}
+        releaseFiles: ${{ steps.artifact.outputs.download-path }}/**/*.aab
+        tracks: ${{ inputs.track }}
+        status: completed
+    - name: Prepare Android Gradle project for production promotion
+      if: inputs.stage == 'production'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
         set -euo pipefail
 
-        # Flutter exposes --config-only through the apk subcommand only. It
-        # writes local Android configuration without building or uploading an
-        # APK. The downloaded AAB remains the only release artifact.
-        # --config-only may leave wrapper files ignored by an existing Android
-        # project absent, so seed only those missing files from the installed
-        # Flutter version without touching the app's Gradle configuration.
+        # Production still uses Gradle Play Publisher's promoteArtifact task.
+        # Flutter exposes --config-only through the apk subcommand only.
         flutter build apk --config-only --release --no-pub
 
         wrapper_files=(
@@ -100,23 +109,11 @@ runs:
         fi
 
         chmod +x android/gradlew
-    - name: Upload beta to Google Play
-      if: inputs.stage == 'beta'
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}/android
-      env:
-        APP_VERSION: ${{ inputs.app-version }}
-        BUILD_NUMBER: ${{ inputs.build-number }}
-        FULL_VERSION: ${{ inputs.full-version }}
-        AAB_PATH: ${{ steps.artifact.outputs.aab-path }}
-        AAB_ARTIFACT_DIRECTORY: ${{ steps.artifact.outputs.aab-directory }}
-      run: ${{ inputs.beta-command }} --artifact-dir "${AAB_ARTIFACT_DIRECTORY}"
     - name: Promote to Google Play production
       if: inputs.stage == 'production'
       shell: bash
       working-directory: ${{ inputs.working-directory }}/android
       env:
-        APP_VERSION: ${{ inputs.app-version }}
-        BUILD_NUMBER: ${{ inputs.build-number }}
-        FULL_VERSION: ${{ inputs.full-version }}
-      run: ${{ inputs.production-command }}
+        ANDROID_PUBLISHER_CREDENTIALS: ${{ inputs.service-account-json }}
+        GOOGLE_PLAY_SOURCE_TRACK: ${{ inputs.track }}
+      run: ./gradlew promoteArtifact --from-track "${GOOGLE_PLAY_SOURCE_TRACK}" --promote-track production

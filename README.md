@@ -44,9 +44,12 @@ esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
    repositorio de Match todavía está vacío; después se puede reemplazar por uno
    de solo lectura.
 7. Añadir como Repository Secrets `APP_STORE_CONNECT_API_KEY_BASE64`,
-   `APP_STORE_CONNECT_ISSUER_ID` y `APP_STORE_CONNECT_KEY_ID`, y preparar en el
-   proyecto las lanes `ios beta` y `ios release`, además de las tareas de Gradle
-   Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
+   `APP_STORE_CONNECT_ISSUER_ID` y `APP_STORE_CONNECT_KEY_ID`, preparar en el
+   proyecto las lanes `ios beta` y `ios release`, y configurar el secret
+   `ANDROID_PUBLISHER_CREDENTIALS` de Google Play según
+   [docs/flutter.md](docs/flutter.md). Las notas cambiantes de App Store pueden
+   configurarse con las Repository Variables `APP_STORE_LOCALE` y
+   `APP_STORE_RELEASE_NOTES`.
 8. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
    `self-hosted`, registrar el Mac con las labels `self-hosted`, `macOS` y
    `ARM64`; `github-hosted` usa `macos-latest` para iOS y `ubuntu-latest` para
@@ -135,6 +138,12 @@ docs/                     # Contratos por tecnología
 directamente en `.github/workflows`; las operaciones repetidas a nivel de steps
 se organizan como composite actions bajo `.github/actions`.
 
+Cuando una integración dispone de una GitHub Action mantenida, el pipeline usa
+esa acción y los inputs publicados en su documentación upstream. Los scripts o
+composite actions propios se reservan para orquestación o capacidades que la
+acción correspondiente no ofrece; no deben reimplementar descargas, uploads o
+autenticación ya soportados por la integración.
+
 - `flutter-build.yml`: agrupa jobs explícitos e independientes para checks,
   Android, iOS y Web; todos los seleccionados comienzan en paralelo y cada uno
   se puede reejecutar individualmente.
@@ -187,6 +196,10 @@ with:
 
 `android-build-format` controla los artefactos Android de los builds draft y
 beta, y acepta `apk`, `appbundle` o `both` (valor predeterminado).
+El application ID se extrae del metadata generado por Android Gradle Plugin y
+viaja dentro del mismo artefacto, por lo que no se duplica en el caller. El
+track de pruebas se puede cambiar con `android-track`; su valor predeterminado
+es `internal` y también puede omitirse del template.
 
 Si se omite `platforms`, el valor `auto` habilita Android, iOS o Web según los
 directorios presentes en el proyecto.

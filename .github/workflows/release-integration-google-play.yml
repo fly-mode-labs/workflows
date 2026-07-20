@@ -8,8 +8,7 @@ on:
       working-directory: {required: true, type: string}
       flutter-version: {type: string, default: stable}
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
-      beta-command: {type: string, default: ./gradlew publishBundle --track beta}
-      production-command: {type: string, default: ./gradlew promoteArtifact --from-track beta --promote-track production}
+      track: {type: string, default: internal}
 
 permissions:
   actions: read
@@ -17,35 +16,25 @@ permissions:
 
 jobs:
   google-play:
-    name: ${{ inputs.stage == 'beta' && 'Google Play closed beta' || 'Google Play production' }}
+    name: Google Play / ${{ inputs.stage == 'beta' && inputs.track || 'production' }}
     environment: ${{ inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      # Gradle still loads Flutter's plugins while configuring the publishing
-      # tasks, but the application was built previously and Dart packages are
-      # unused.
+      - if: inputs.stage == 'production'
+        uses: actions/checkout@v4
       - name: Prepare Flutter SDK for Gradle publishing
+        if: inputs.stage == 'production'
         uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
           resolve-dependencies: false
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
-        id: version
-        with:
-          working-directory: ${{ inputs.working-directory }}
       - name: Release Android application
         uses: Juanpabedoyav/workflows/.github/actions/flutter/release-android@v2
-        env:
-          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
         with:
           stage: ${{ inputs.stage }}
           artifact-run-id: ${{ inputs.artifact-run-id }}
           working-directory: ${{ inputs.working-directory }}
-          app-version: ${{ steps.version.outputs.app-version }}
-          build-number: ${{ steps.version.outputs.build-number }}
-          full-version: ${{ steps.version.outputs.full-version }}
-          beta-command: ${{ inputs.beta-command }}
-          production-command: ${{ inputs.production-command }}
+          track: ${{ inputs.track }}
+          service-account-json: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}

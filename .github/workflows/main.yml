@@ -15,6 +15,10 @@ on:
         description: Android draft artifact format; apk, appbundle or both
         type: string
         default: both
+      android-track:
+        description: Google Play testing track receiving beta releases
+        type: string
+        default: internal
       working-directory:
         description: Application path or auto to locate pubspec.yaml
         type: string
@@ -187,6 +191,7 @@ jobs:
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
+      android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets: inherit
 
@@ -206,5 +211,6 @@ jobs:
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
+      android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets: inherit
