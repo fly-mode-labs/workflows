@@ -22,6 +22,12 @@ solo se usa cuando `runner` es `self-hosted`.
 validación, checks, Android, Web y Google Play. No requiere registrar un runner
 y consume los minutos de GitHub Actions disponibles para el repositorio.
 
+En Android, `github-hosted` instala el JDK remoto con `actions/setup-java` y
+fuerza a Gradle a usar su `JAVA_HOME`. Esto tiene precedencia sobre un
+`org.gradle.java.home` versionado con una ruta local de macOS. En
+`self-hosted`, el workflow no instala ni reemplaza Java y conserva el JDK del
+host.
+
 El Mac mini self-hosted debe tener Xcode, CocoaPods, Ruby/Bundler, Java y Android
 SDK. Los workflows instalan la versión solicitada de Flutter y, en los jobs de
 iOS, seleccionan una versión de Xcode que ya esté instalada en `/Applications`;
@@ -36,17 +42,19 @@ Variables** de cada repositorio consumidor:
 
 ```text
 FLUTTER_VERSION=3.32.8
+JAVA_VERSION=17
 XCODE_VERSION=16.4
 ```
 
 Son variables y no secrets porque las versiones no son información sensible.
 El pipeline reutilizable lee las variables del repositorio que lo llama; no se
-declaran `flutter-version` ni `xcode-version` en el YAML del caller.
+declaran `flutter-version`, `java-version` ni `xcode-version` en el YAML del
+caller. `JAVA_VERSION` solo se usa para el build Android en GitHub Hosted.
 
-Si una variable no existe, los defaults son `stable` para Flutter y `default`
-para Xcode. `default` conserva el Xcode activo del runner; `XCODE_VERSION` debe
-coincidir con la primera línea de `xcodebuild -version` y estar instalada bajo
-`/Applications/Xcode*.app`.
+Si una variable no existe, los defaults son `stable` para Flutter, `17` para
+Java y `default` para Xcode. `default` conserva el Xcode activo del runner;
+`XCODE_VERSION` debe coincidir con la primera línea de `xcodebuild -version` y
+estar instalada bajo `/Applications/Xcode*.app`.
 La selección usa `DEVELOPER_DIR` únicamente durante el job, por lo que no cambia
 el Xcode global del Mac y no requiere `sudo`.
 

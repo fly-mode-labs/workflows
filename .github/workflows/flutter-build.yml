@@ -9,6 +9,10 @@ on:
       flutter-version:
         type: string
         default: stable
+      java-version:
+        description: JDK version installed for Android on GitHub-hosted runners
+        type: string
+        default: '17'
       xcode-version:
         description: Xcode version reported by xcodebuild, or default
         type: string
@@ -79,6 +83,26 @@ jobs:
     steps:
       - name: Checkout application
         uses: actions/checkout@v4
+      - name: Setup hosted Android JDK
+        if: inputs.runner == 'github-hosted'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+      - name: Select hosted JDK for Gradle
+        if: inputs.runner == 'github-hosted'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${JAVA_HOME:-}" || ! -x "${JAVA_HOME}/bin/java" ]]; then
+            echo "The hosted JDK was not installed correctly: JAVA_HOME=${JAVA_HOME:-<unset>}" >&2
+            exit 1
+          fi
+
+          echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.java.home=${JAVA_HOME}" >> "${GITHUB_ENV}"
+          echo "Gradle JDK: ${JAVA_HOME}"
+          java -version
       - name: Setup Flutter SDK and dependencies
         uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
         with:

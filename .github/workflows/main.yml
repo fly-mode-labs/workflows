@@ -52,6 +52,7 @@ jobs:
       ios: ${{ steps.config.outputs.ios }}
       web: ${{ steps.config.outputs.web }}
       flutter-version: ${{ steps.config.outputs.flutter-version }}
+      java-version: ${{ steps.config.outputs.java-version }}
       xcode-version: ${{ steps.config.outputs.xcode-version }}
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +68,7 @@ jobs:
           ANDROID_BUILD_FORMAT: ${{ inputs.android-build-format }}
           CONFIGURED_RUNNER: ${{ inputs.runner }}
           REPOSITORY_FLUTTER_VERSION: ${{ vars.FLUTTER_VERSION }}
+          REPOSITORY_JAVA_VERSION: ${{ vars.JAVA_VERSION }}
           REPOSITORY_XCODE_VERSION: ${{ vars.XCODE_VERSION }}
         run: |
           if [[ "${TECHNOLOGY}" != "flutter" ]]; then
@@ -90,8 +92,10 @@ jobs:
           echo "stage=${effective_stage}" >> "${GITHUB_OUTPUT}"
 
           effective_flutter_version="${REPOSITORY_FLUTTER_VERSION:-stable}"
+          effective_java_version="${REPOSITORY_JAVA_VERSION:-17}"
           effective_xcode_version="${REPOSITORY_XCODE_VERSION:-default}"
           echo "flutter-version=${effective_flutter_version}" >> "${GITHUB_OUTPUT}"
+          echo "java-version=${effective_java_version}" >> "${GITHUB_OUTPUT}"
           echo "xcode-version=${effective_xcode_version}" >> "${GITHUB_OUTPUT}"
 
           app_directory="${CONFIGURED_DIRECTORY}"
@@ -160,6 +164,7 @@ jobs:
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
+      java-version: ${{ needs.validate.outputs.java-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}

@@ -29,6 +29,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Los builds Android en GitHub Hosted instalan el JDK remoto configurado por
+  `JAVA_VERSION` (17 por defecto) y lo seleccionan explícitamente para Gradle,
+  evitando fallos cuando la app conserva un `org.gradle.java.home` con una ruta
+  absoluta del runner self-hosted.
 - La publicación Android valida `APP_IDENTIFIER` antes de invocar Google
   Play y muestra una instrucción explícita si la Repository Variable falta o no
   contiene un application ID válido.

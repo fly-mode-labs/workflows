@@ -172,9 +172,12 @@ tecnología no requiere ampliar el caller de cada proyecto.
 El input `runner` acepta `self-hosted` (predeterminado) o `github-hosted`. Con
 `github-hosted`, iOS y App Store usan `macos-latest`; validación, checks,
 Android, Web y Google Play usan `ubuntu-latest`. Con `self-hosted`, todos los
-jobs usan las labels configuradas para el Mac mini. El template incluye el
-selector en `workflow_dispatch`; para que también las ejecuciones automáticas
-de PR usen GitHub Actions, se configura de forma fija:
+jobs usan las labels configuradas para el Mac mini. El build Android hospedado
+instala el JDK indicado por la Repository Variable `JAVA_VERSION` (17 por
+defecto) y hace que Gradle use ese JDK aunque la app contenga una ruta
+`org.gradle.java.home` local. El self-hosted conserva su Java. El template
+incluye el selector en `workflow_dispatch`; para que también las ejecuciones
+automáticas de PR usen GitHub Actions, se configura de forma fija:
 
 ```yaml
 with:
