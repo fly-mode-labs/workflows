@@ -3,6 +3,15 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.3.5] - 2026-07-20
+
+### Fixed
+
+- La validación del setup obtiene `frameworkVersion` desde la salida JSON de
+  `flutter --version --machine`, sin depender de mensajes destinados a humanos.
+- Una prueba de regresión reproduce el aviso de actualización observado en los
+  runners self-hosted y se ejecuta en cada PR, push a `main` y publicación.
+
 ## [2.3.4] - 2026-07-20
 
 ### Fixed

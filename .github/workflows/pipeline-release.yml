@@ -25,6 +25,9 @@ jobs:
             echo "Tag ${GITHUB_REF_NAME} does not match VERSION (${expected})"
             exit 1
           fi
+      - name: Run pipeline regression tests
+        shell: bash
+        run: bash .github/actions/flutter/setup/test-read-version.sh
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

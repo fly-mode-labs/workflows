@@ -1,0 +1,21 @@
+name: Validate pipeline
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-version-parser:
+    name: Validate Flutter version parser
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run parser regression tests
+        shell: bash
+        run: bash .github/actions/flutter/setup/test-read-version.sh
