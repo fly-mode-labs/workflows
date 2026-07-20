@@ -15,7 +15,7 @@ Actions.
 | Merge a `main` (`closed` + `merged`) | Promueve ambas betas a producción. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
-2.3.0+47`). Es independiente del tag mayor del pipeline (`@v2`).
+2.3.0+47`). Es independiente del tag mayor del pipeline (`@v3`).
 
 Una PR creada directamente como open ejecuta un build antes de beta porque no
 tiene artefactos draft. En cambio, **Ready for review** localiza el build exitoso
@@ -30,7 +30,7 @@ de nuevo desde `workflow_dispatch`.
 
 1. Copiar `templates/flutter/.github/workflows/main.yml` a la app.
 2. Sustituir `YOUR_GITHUB_USER/workflows` por tu usuario y el nombre real de
-   este repositorio. El template consume el alias compatible `@v2`, nunca
+   este repositorio. El template consume el alias compatible `@v3`, nunca
    `@main`.
 3. Conservar `actions: read` y `contents: read` en los permisos del caller; beta
    descarga los artefactos producidos por el build actual o por el draft previo.
@@ -72,7 +72,7 @@ también deben ser privadas y pertenecer a esa misma cuenta.
 Por ejemplo, si el usuario es `juanpbedoya`, la referencia será:
 
 ```yaml
-uses: juanpbedoya/workflows/.github/workflows/main.yml@v2
+uses: juanpbedoya/workflows/.github/workflows/main.yml@v3
 ```
 
 Hay una limitación importante para los runners self-hosted: en una cuenta
@@ -85,26 +85,26 @@ nivel de organización. La modalidad `github-hosted` no tiene ese requisito.
 
 ## Versionado del pipeline
 
-Los callers usan el alias mayor `@v2`. Las versiones exactas (`v2.0.1`,
-`v2.1.0`) permanecen inmutables y el release actualiza `v2` al último cambio
+Los callers usan el alias mayor `@v3`. Las versiones exactas (`v3.0.1`,
+`v3.1.0`) permanecen inmutables y el release actualiza `v3` al último cambio
 compatible. Así las apps reciben fixes y capacidades compatibles sin modificar
 sus repositorios. Solo un breaking change futuro exige cambiar los callers a
-`@v3`.
+`@v4`.
 
-- `PATCH` (`2.0.1`): correcciones compatibles.
-- `MINOR` (`2.1.0`): capacidades nuevas compatibles.
-- `MAJOR` (`3.0.0`): inputs, comportamiento o requisitos incompatibles.
+- `PATCH` (`3.0.1`): correcciones compatibles.
+- `MINOR` (`3.1.0`): capacidades nuevas compatibles.
+- `MAJOR` (`4.0.0`): inputs, comportamiento o requisitos incompatibles.
 
 Para publicar una versión:
 
 1. Actualizar `VERSION` y `CHANGELOG.md` en una PR.
 2. Fusionar la PR a `main`.
-3. Crear y subir el tag exacto: `git tag v2.0.1` y `git push origin v2.0.1`.
+3. Crear y subir el tag exacto: `git tag v3.0.1` y `git push origin v3.0.1`.
 4. El workflow `Release pipeline version` valida que el tag coincida con
    `VERSION` y crea el GitHub Release.
-5. El release mueve automáticamente el alias `v2`; las apps no cambian.
+5. El release mueve automáticamente el alias `v3`; las apps no cambian.
 
-Los tags SemVer exactos son inmutables. Únicamente el alias mayor (`v1`, `v2`)
+Los tags SemVer exactos son inmutables. Únicamente el alias mayor (`v1`, `v3`)
 es flotante por diseño.
 
 Las distribuciones beta y production se serializan por repositorio para impedir

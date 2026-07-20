@@ -16,7 +16,7 @@ runs:
   steps:
     - name: Setup iOS signing with Match
       id: ios_signing
-      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-ios-signing@v2
+      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-ios-signing@v3
       with:
         working-directory: ${{ inputs.working-directory }}
         match-password: ${{ inputs.match-password }}

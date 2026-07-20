@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Read application version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
@@ -175,7 +175,7 @@ jobs:
       always() && !cancelled() && inputs.release-ios &&
       (inputs.stage != 'beta' || inputs.artifact-run-id != '' ||
       needs.resolve-build-artifacts.result == 'success')
-    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-app-store.yml@v2
+    uses: ./.github/workflows/release-integration-app-store.yml
     with:
       stage: ${{ inputs.stage }}
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}
@@ -192,7 +192,7 @@ jobs:
       always() && !cancelled() && inputs.release-android &&
       (inputs.stage != 'beta' || inputs.artifact-run-id != '' ||
       needs.resolve-build-artifacts.result == 'success')
-    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-google-play.yml@v2
+    uses: ./.github/workflows/release-integration-google-play.yml
     with:
       stage: ${{ inputs.stage }}
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}

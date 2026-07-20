@@ -25,15 +25,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v2
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v3
         with:
           xcode-version: ${{ inputs.xcode-version }}
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Release iOS application
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/release-ios@v2
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/release-ios@v3
         with:
           stage: ${{ inputs.stage }}
           artifact-run-id: ${{ inputs.artifact-run-id }}

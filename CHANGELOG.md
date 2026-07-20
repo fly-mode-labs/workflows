@@ -33,6 +33,11 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Los workflows reutilizables de `v3` ya no retroceden internamente a acciones
+  y workflows de `v2`. La promoción de App Store ejecuta ahora la acción iOS de
+  la misma versión mayor, que propaga `description`, `keywords`, `supportUrl` y
+  `whatsNew`; las llamadas entre workflows usan el mismo commit del caller para
+  evitar divergencias futuras.
 - Cuando un runner self-hosted tiene menos de 5 GiB libres, el build Android
   elimina primero las cachés regenerables de Gradle y conserva los módulos y
   las distribuciones descargadas. El workflow invoca la versión `v3` de la

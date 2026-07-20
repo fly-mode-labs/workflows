@@ -69,7 +69,7 @@ runs:
         echo "Gradle daemon: disabled for this CI build"
     - name: Setup Android signing
       id: android_signing
-      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-android-signing@v2
+      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-android-signing@v3
       with:
         working-directory: ${{ inputs.working-directory }}
         keystore-base64: ${{ inputs.keystore-base64 }}

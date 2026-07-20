@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   pipeline:
-    uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v2
+    uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v3
     with:
       technology: flutter
       platforms: android,ios

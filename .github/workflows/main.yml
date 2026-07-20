@@ -186,7 +186,7 @@ jobs:
       (github.event.pull_request.draft == false &&
       (github.event.action == 'opened' || github.event.action == 'reopened'))))) &&
       (github.event.action == 'ready_for_review' || needs.flutter-build.result == 'success')
-    uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v2
+    uses: ./.github/workflows/flutter-release.yml
     with:
       stage: beta
       artifact-run-id: ${{ github.event.action != 'ready_for_review' && github.run_id || '' }}
@@ -208,7 +208,7 @@ jobs:
       (needs.validate.outputs.stage == 'production') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.action == 'closed' && github.event.pull_request.merged == true)
-    uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v2
+    uses: ./.github/workflows/flutter-release.yml
     with:
       stage: production
       working-directory: ${{ needs.validate.outputs.working-directory }}

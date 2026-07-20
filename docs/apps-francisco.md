@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   pipeline:
-    uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v2
+    uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v3
     with:
       technology: flutter
       runner: ${{ inputs.runner || 'self-hosted' }}
@@ -54,7 +54,7 @@ la PR pasa a **Ready for review**.
 | `artistic` | `main` | `app_artistic` | `1.1.7+1014` |
 | `booty_factory_admin` | `main` | `app_sybellafit` | `2.7.3+277` |
 
-Los tres callers viven en `.github/workflows/main.yml` y deben migrarse a `@v2`
+Los tres callers viven en `.github/workflows/main.yml` y deben usar `@v3`
 con los permisos mostrados antes de habilitar beta. El dispatcher encuentra el
 único `pubspec.yaml` y obtiene de allí la ruta de la app. Para una tecnología
 futura solo cambia `technology`; la lógica se agrega en el dispatcher central
