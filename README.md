@@ -36,7 +36,8 @@ esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
    Gradle Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
 6. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
    `self-hosted`, registrar el Mac con las labels `self-hosted`, `macOS` y
-   `ARM64`; `github-hosted` usa `macos-latest` y no requiere registro.
+   `ARM64`; `github-hosted` usa `macos-latest` para iOS y `ubuntu-latest` para
+   los demás jobs, sin requerir registro.
 
 Los callers concretos para `ride-your-soul`, `artistic` y `estudio-sybellafit`
 están en [docs/apps-francisco.md](docs/apps-francisco.md).
@@ -133,10 +134,12 @@ Las apps llaman únicamente a `.github/workflows/main.yml`. El input
 `technology` selecciona la implementación (`flutter` actualmente); agregar otra
 tecnología no requiere ampliar el caller de cada proyecto.
 
-El input `runner` acepta `self-hosted` (predeterminado) o `github-hosted`. Este
-último resuelve todos los jobs a `macos-latest`. El template incluye el selector
-en `workflow_dispatch`; para que también las ejecuciones automáticas de PR usen
-GitHub Actions, se configura de forma fija:
+El input `runner` acepta `self-hosted` (predeterminado) o `github-hosted`. Con
+`github-hosted`, iOS y App Store usan `macos-latest`; validación, checks,
+Android, Web y Google Play usan `ubuntu-latest`. Con `self-hosted`, todos los
+jobs usan las labels configuradas para el Mac mini. El template incluye el
+selector en `workflow_dispatch`; para que también las ejecuciones automáticas
+de PR usen GitHub Actions, se configura de forma fija:
 
 ```yaml
 with:

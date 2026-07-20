@@ -38,7 +38,7 @@ permissions:
 jobs:
   validate:
     name: Validate pipeline configuration
-    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels) }}
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 5
     outputs:
       stage: ${{ steps.config.outputs.stage }}
@@ -49,7 +49,6 @@ jobs:
       platforms-json: ${{ steps.config.outputs.platforms-json }}
       flutter-version: ${{ steps.config.outputs.flutter-version }}
       xcode-version: ${{ steps.config.outputs.xcode-version }}
-      runner-labels: ${{ steps.config.outputs.runner-labels }}
     steps:
       - uses: actions/checkout@v4
       - name: Validate technology and stage
@@ -63,7 +62,6 @@ jobs:
           CONFIGURED_PLATFORMS: ${{ inputs.platforms }}
           ANDROID_BUILD_FORMAT: ${{ inputs.android-build-format }}
           CONFIGURED_RUNNER: ${{ inputs.runner }}
-          SELF_HOSTED_RUNNER_LABELS: ${{ inputs.runner-labels }}
           REPOSITORY_FLUTTER_VERSION: ${{ vars.FLUTTER_VERSION }}
           REPOSITORY_XCODE_VERSION: ${{ vars.XCODE_VERSION }}
         run: |
@@ -73,11 +71,9 @@ jobs:
           fi
 
           case "${CONFIGURED_RUNNER}" in
-            self-hosted) effective_runner_labels="${SELF_HOSTED_RUNNER_LABELS}" ;;
-            github-hosted) effective_runner_labels='["macos-latest"]' ;;
+            self-hosted|github-hosted) ;;
             *) echo "Unsupported runner: ${CONFIGURED_RUNNER}"; exit 1 ;;
           esac
-          echo "runner-labels=${effective_runner_labels}" >> "${GITHUB_OUTPUT}"
 
           effective_stage="${CONFIGURED_STAGE}"
           if [[ "${effective_stage}" == "auto" && -n "${EVENT_STAGE}" ]]; then
@@ -170,7 +166,8 @@ jobs:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
-      runner-labels: ${{ needs.validate.outputs.runner-labels }}
+      runner: ${{ inputs.runner }}
+      runner-labels: ${{ inputs.runner-labels }}
       platforms-json: ${{ needs.validate.outputs.platforms-json }}
       android-build-format: ${{ inputs.android-build-format }}
     secrets: inherit
@@ -188,7 +185,8 @@ jobs:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
-      runner-labels: ${{ needs.validate.outputs.runner-labels }}
+      runner: ${{ inputs.runner }}
+      runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets: inherit
@@ -206,7 +204,8 @@ jobs:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
-      runner-labels: ${{ needs.validate.outputs.runner-labels }}
+      runner: ${{ inputs.runner }}
+      runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets: inherit

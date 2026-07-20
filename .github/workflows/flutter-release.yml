@@ -15,7 +15,12 @@ on:
       xcode-version:
         type: string
         default: default
+      runner:
+        description: Runner provider; self-hosted or github-hosted
+        type: string
+        default: self-hosted
       runner-labels:
+        description: JSON array of labels used by the self-hosted runner
         type: string
         default: '["self-hosted", "macOS", "ARM64"]'
       release-android:
@@ -42,7 +47,7 @@ jobs:
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
       xcode-version: ${{ inputs.xcode-version }}
-      runner-labels: ${{ inputs.runner-labels }}
+      runner-labels: ${{ inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels }}
     secrets: inherit
 
   google-play:
@@ -53,5 +58,5 @@ jobs:
       stage: ${{ inputs.stage }}
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
-      runner-labels: ${{ inputs.runner-labels }}
+      runner-labels: ${{ inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels }}
     secrets: inherit

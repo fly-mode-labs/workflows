@@ -7,9 +7,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Input `runner` para elegir entre runners macOS `self-hosted` y runners
-  `github-hosted` (`macos-latest`), incluido como selector en las ejecuciones
-  manuales del template Flutter.
+- Input `runner` para elegir entre el Mac mini `self-hosted` y runners
+  `github-hosted`, incluido como selector en las ejecuciones manuales del
+  template Flutter. GitHub Actions asigna `macos-latest` a iOS/App Store y
+  `ubuntu-latest` a validación, checks, Android, Web y Google Play.
 
 ## [1.2.0] - 2026-07-19
 

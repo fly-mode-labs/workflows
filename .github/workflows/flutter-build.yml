@@ -13,7 +13,12 @@ on:
         description: Xcode version reported by xcodebuild, or default
         type: string
         default: default
+      runner:
+        description: Runner provider; self-hosted or github-hosted
+        type: string
+        default: self-hosted
       runner-labels:
+        description: JSON array of labels used by the self-hosted runner
         type: string
         default: '["self-hosted", "macOS", "ARM64"]'
       platforms-json:
@@ -39,7 +44,7 @@ jobs:
       fail-fast: false
       matrix:
         task: ${{ fromJSON(inputs.platforms-json) }}
-    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && (matrix.task.id == 'ios' && '["macos-latest"]' || '["ubuntu-latest"]') || inputs.runner-labels) }}
     timeout-minutes: 40
     steps:
       - name: Checkout application
