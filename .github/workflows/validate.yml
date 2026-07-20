@@ -22,3 +22,6 @@ jobs:
       - name: Validate first-party workflow version alignment
         shell: bash
         run: bash .github/test-version-alignment.sh
+      - name: Run App Store metadata staging tests
+        shell: bash
+        run: bash .github/actions/flutter/release-ios/test-stage-metadata.sh

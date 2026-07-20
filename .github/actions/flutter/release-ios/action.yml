@@ -65,6 +65,19 @@ runs:
           exit 1
         fi
 
+    - name: Stage localized App Store metadata
+      if: inputs.stage == 'production'
+      id: metadata
+      shell: bash
+      env:
+        APP_STORE_LOCALE: ${{ inputs.app-store-locale }}
+        APP_STORE_DESCRIPTION: ${{ inputs.app-store-description }}
+        APP_STORE_KEYWORDS: ${{ inputs.app-store-keywords }}
+        APP_STORE_SUPPORT_URL: ${{ inputs.app-store-support-url }}
+        APP_STORE_RELEASE_NOTES: ${{ inputs.app-store-release-notes }}
+        METADATA_SCRIPT: ${{ github.action_path }}/stage-metadata.sh
+      run: bash "${METADATA_SCRIPT}"
+
     - name: Download signed iOS artifact
       if: inputs.stage == 'beta'
       uses: actions/download-artifact@v4
@@ -125,6 +138,7 @@ runs:
         APP_STORE_KEYWORDS: ${{ inputs.app-store-keywords }}
         APP_STORE_SUPPORT_URL: ${{ inputs.app-store-support-url }}
         APP_STORE_RELEASE_NOTES: ${{ inputs.app-store-release-notes }}
+        DELIVER_METADATA_PATH: ${{ steps.metadata.outputs.path }}
         APP_VERSION: ${{ inputs.app-version }}
         BUILD_NUMBER: ${{ inputs.build-number }}
         FULL_VERSION: ${{ inputs.full-version }}

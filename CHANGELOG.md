@@ -38,6 +38,9 @@ usa [Semantic Versioning](https://semver.org/).
   la misma versión mayor, que propaga `description`, `keywords`, `supportUrl` y
   `whatsNew`; las llamadas entre workflows usan el mismo commit del caller para
   evitar divergencias futuras.
+- La acción de producción iOS materializa las Repository Variables como
+  metadata localizada temporal de `deliver`. Esto mantiene compatibles las
+  lanes existentes que todavía no convierten esas variables en hashes Ruby.
 - Cuando un runner self-hosted tiene menos de 5 GiB libres, el build Android
   elimina primero las cachés regenerables de Gradle y conserva los módulos y
   las distribuciones descargadas. El workflow invoca la versión `v3` de la

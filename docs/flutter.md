@@ -240,7 +240,10 @@ producción; el workflow falla antes de invocar Fastlane si falta alguna.
 `APP_STORE_SUPPORT_URL` debe ser una URL pública completa.
 
 El workflow expone esas variables a la lane `ios release` con los mismos
-nombres. Una implementación recomendada es:
+nombres y crea un directorio temporal compatible con `deliver` mediante
+`DELIVER_METADATA_PATH`. Esto permite que lanes existentes que llaman
+`upload_to_app_store` carguen los cuatro archivos localizados sin cambios. Aun
+así, una implementación explícita recomendada es:
 
 ```ruby
 locale = ENV["APP_STORE_LOCALE"].to_s.strip
