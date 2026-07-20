@@ -45,6 +45,9 @@ jobs:
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           app-store-locale: ${{ vars.APP_STORE_LOCALE }}
+          app-store-description: ${{ vars.APP_STORE_DESCRIPTION }}
+          app-store-keywords: ${{ vars.APP_STORE_KEYWORDS }}
+          app-store-support-url: ${{ vars.APP_STORE_SUPPORT_URL }}
           app-store-release-notes: ${{ vars.APP_STORE_RELEASE_NOTES }}
           beta-command: ${{ inputs.beta-command }}
           production-command: ${{ inputs.production-command }}

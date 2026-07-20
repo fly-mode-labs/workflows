@@ -11,6 +11,10 @@ usa [Semantic Versioning](https://semver.org/).
   privado de Match. Los builds primero intentan sincronizar en modo `readonly` y
   solo permiten escritura cuando falta la identidad o el provisioning profile
   de la aplicación.
+- La publicación de App Store propaga las Repository Variables localizadas
+  `APP_STORE_DESCRIPTION`, `APP_STORE_KEYWORDS`, `APP_STORE_SUPPORT_URL` y
+  `APP_STORE_RELEASE_NOTES` a Fastlane, y valida los campos requeridos antes de
+  ejecutar `deliver`. Las release notes se envían como el campo **What's New**.
 
 ### Changed
 

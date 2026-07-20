@@ -222,28 +222,37 @@ Store según la política del equipo.
 
 ### Metadata de App Store
 
-La metadata estable y localizada (descripción, keywords, URLs, subtítulo y
-texto promocional) debe vivir versionada en `fastlane/metadata`. Las notas que
-cambian para cada publicación se configuran como **Repository Variables** en la
-aplicación consumidora:
+Los campos localizados requeridos por App Store Connect se configuran como
+**Repository Variables** en la aplicación consumidora:
 
 ```text
 APP_STORE_LOCALE=es-ES
+APP_STORE_DESCRIPTION=Descripción completa de la aplicación.
+APP_STORE_KEYWORDS=entrenamiento,bienestar,fitness
+APP_STORE_SUPPORT_URL=https://example.com/soporte
 APP_STORE_RELEASE_NOTES=Mejoras de rendimiento y correcciones de errores.
 ```
 
 `APP_STORE_RELEASE_NOTES` corresponde exclusivamente al campo **What's New**
-de la versión. Es opcional para el workflow reutilizable; las lanes de las apps
-pueden exigirla para impedir una promoción sin notas.
+de la versión. Las cinco variables son obligatorias para una publicación a
+producción; el workflow falla antes de invocar Fastlane si falta alguna.
+`APP_STORE_KEYWORDS` debe contener palabras separadas por comas y
+`APP_STORE_SUPPORT_URL` debe ser una URL pública completa.
 
 El workflow expone esas variables a la lane `ios release` con los mismos
 nombres. Una implementación recomendada es:
 
 ```ruby
 locale = ENV["APP_STORE_LOCALE"].to_s.strip
+description = ENV["APP_STORE_DESCRIPTION"].to_s.strip
+keywords = ENV["APP_STORE_KEYWORDS"].to_s.strip
+support_url = ENV["APP_STORE_SUPPORT_URL"].to_s.strip
 release_notes = ENV["APP_STORE_RELEASE_NOTES"].to_s.strip
 
 UI.user_error!("APP_STORE_LOCALE is required") if locale.empty?
+UI.user_error!("APP_STORE_DESCRIPTION is required") if description.empty?
+UI.user_error!("APP_STORE_KEYWORDS is required") if keywords.empty?
+UI.user_error!("APP_STORE_SUPPORT_URL is required") if support_url.empty?
 UI.user_error!("APP_STORE_RELEASE_NOTES is required") if release_notes.empty?
 
 options = {
@@ -261,10 +270,18 @@ options = {
   precheck_include_in_app_purchases: false
 }
 
+options[:description] = { locale => description }
+options[:keywords] = { locale => keywords }
+options[:support_url] = { locale => support_url }
 options[:release_notes] = { locale => release_notes }
 
-upload_to_app_store(**options)
+deliver(**options)
 ```
+
+`deliver` es un alias de `upload_to_app_store`. Los hashes asocian cada valor
+con `APP_STORE_LOCALE`; pasar solamente strings desde la CLI no permite expresar
+correctamente metadata localizada, por eso esta configuración debe estar en la
+lane del `Fastfile`.
 
 No se recomienda `run_precheck_before_submit: false`: desactivaría todas las
 comprobaciones. `precheck_include_in_app_purchases: false` omite solamente la

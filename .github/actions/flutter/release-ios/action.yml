@@ -12,6 +12,9 @@ inputs:
   app-store-connect-issuer-id: {required: true, description: App Store Connect API issuer ID}
   app-store-connect-key-id: {required: true, description: App Store Connect API key ID}
   app-store-locale: {required: false, default: '', description: App Store locale used for release metadata}
+  app-store-description: {required: false, default: '', description: Localized App Store description}
+  app-store-keywords: {required: false, default: '', description: Comma-separated localized App Store keywords}
+  app-store-support-url: {required: false, default: '', description: Localized App Store support URL}
   app-store-release-notes: {required: false, default: '', description: Localized App Store release notes}
   beta-command: {required: false, default: bundle exec fastlane ios beta, description: Command that uploads the IPA to TestFlight}
   production-command: {required: false, default: bundle exec fastlane ios release, description: Command that promotes the beta to production}
@@ -35,6 +38,30 @@ runs:
 
         if [[ "${#missing[@]}" -ne 0 ]]; then
           printf 'Missing required App Store Connect secrets: %s\n' "${missing[*]}" >&2
+          exit 1
+        fi
+
+    - name: Validate App Store metadata
+      if: inputs.stage == 'production'
+      shell: bash
+      env:
+        APP_STORE_LOCALE: ${{ inputs.app-store-locale }}
+        APP_STORE_DESCRIPTION: ${{ inputs.app-store-description }}
+        APP_STORE_KEYWORDS: ${{ inputs.app-store-keywords }}
+        APP_STORE_SUPPORT_URL: ${{ inputs.app-store-support-url }}
+        APP_STORE_RELEASE_NOTES: ${{ inputs.app-store-release-notes }}
+      run: |
+        set -euo pipefail
+
+        missing=()
+        [[ -n "${APP_STORE_LOCALE}" ]] || missing+=(APP_STORE_LOCALE)
+        [[ -n "${APP_STORE_DESCRIPTION}" ]] || missing+=(APP_STORE_DESCRIPTION)
+        [[ -n "${APP_STORE_KEYWORDS}" ]] || missing+=(APP_STORE_KEYWORDS)
+        [[ -n "${APP_STORE_SUPPORT_URL}" ]] || missing+=(APP_STORE_SUPPORT_URL)
+        [[ -n "${APP_STORE_RELEASE_NOTES}" ]] || missing+=(APP_STORE_RELEASE_NOTES)
+
+        if [[ "${#missing[@]}" -ne 0 ]]; then
+          printf 'Missing required App Store Repository Variables: %s\n' "${missing[*]}" >&2
           exit 1
         fi
 
@@ -94,6 +121,9 @@ runs:
         APP_STORE_CONNECT_ISSUER_ID: ${{ inputs.app-store-connect-issuer-id }}
         APP_STORE_CONNECT_KEY_ID: ${{ inputs.app-store-connect-key-id }}
         APP_STORE_LOCALE: ${{ inputs.app-store-locale }}
+        APP_STORE_DESCRIPTION: ${{ inputs.app-store-description }}
+        APP_STORE_KEYWORDS: ${{ inputs.app-store-keywords }}
+        APP_STORE_SUPPORT_URL: ${{ inputs.app-store-support-url }}
         APP_STORE_RELEASE_NOTES: ${{ inputs.app-store-release-notes }}
         APP_VERSION: ${{ inputs.app-version }}
         BUILD_NUMBER: ${{ inputs.build-number }}

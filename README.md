@@ -50,9 +50,10 @@ de nuevo desde `workflow_dispatch`.
    `APP_STORE_CONNECT_ISSUER_ID` y `APP_STORE_CONNECT_KEY_ID`, preparar en el
    proyecto las lanes `ios beta` y `ios release`, y configurar el secret
    `ANDROID_PUBLISHER_CREDENTIALS` de Google Play según
-   [docs/flutter.md](docs/flutter.md). Las notas cambiantes de App Store pueden
-   configurarse con las Repository Variables `APP_STORE_LOCALE` y
-   `APP_STORE_RELEASE_NOTES`.
+   [docs/flutter.md](docs/flutter.md). La metadata requerida por App Store se
+   configura con las Repository Variables `APP_STORE_LOCALE`,
+   `APP_STORE_DESCRIPTION`, `APP_STORE_KEYWORDS`, `APP_STORE_SUPPORT_URL` y
+   `APP_STORE_RELEASE_NOTES`; esta última corresponde a **What's New**.
 8. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
    `self-hosted`, registrar el Mac con las labels `self-hosted`, `macOS` y
    `ARM64`; `github-hosted` usa `macos-latest` para iOS y `ubuntu-latest` para
