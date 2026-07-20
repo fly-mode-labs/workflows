@@ -31,9 +31,9 @@ usa [Semantic Versioning](https://semver.org/).
 - La publicación Android valida `APP_IDENTIFIER` antes de invocar Google
   Play y muestra una instrucción explícita si la Repository Variable falta o no
   contiene un application ID válido.
-- El composite Android consulta `APP_IDENTIFIER` directamente cuando un
-  reusable workflow iniciado antes de actualizar `v2` todavía no propaga el
-  input `identifier`, evitando carreras entre revisiones del alias mayor.
+- El composite Android consume `APP_IDENTIFIER` mediante su input `identifier`,
+  ya que el contexto `vars` no está disponible al validar el manifiesto de una
+  composite action.
 - El provisioning profile de Match se aplica únicamente al target `Runner` en
   Release; ya no se propaga a los targets de CocoaPods que no admiten firma.
 - Los builds iOS con Match ya no delegan la firma automática a Xcode. El
