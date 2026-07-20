@@ -39,6 +39,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- La firma Android detecta si el módulo Gradle consume `key.properties` o la
+  convención anterior `keystore.properties`. Esto evita crear el archivo con un
+  nombre que la aplicación no lee y que `signReleaseBundle` falle después con
+  una configuración de firma nula.
 - La promoción Android inyecta temporalmente Gradle Play Publisher `3.13.0` en
   el módulo de aplicación cuando el proyecto no lo declara. `promoteArtifact`
   queda disponible con Gradle 8.11.1 y el archivo de build original se restaura

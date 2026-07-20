@@ -21,6 +21,9 @@ jobs:
       - name: Run parser regression tests
         shell: bash
         run: bash .github/actions/flutter/setup/test-read-version.sh
+      - name: Run Android signing regression tests
+        shell: bash
+        run: bash .github/actions/flutter/setup-android-signing/test-select-properties-file.sh
       - name: Validate first-party workflow version alignment
         shell: bash
         run: bash .github/test-version-alignment.sh

@@ -315,10 +315,11 @@ secret y no se declara como input en el workflow caller.
 `ANDROID_KEYSTORE_BASE64` contiene el keystore completo codificado en base64,
 no una ruta. Antes de compilar, el pipeline lo decodifica en
 `RUNNER_TEMP`, valida el store password y el alias, y crea temporalmente
-`android/key.properties` con la ruta real. Ambos archivos se eliminan siempre
-al terminar el job. La aplicación debe ignorar `android/key.properties`,
-`*.jks` y `*.keystore`; no debe guardar placeholders de secrets en esos
-archivos.
+`android/key.properties` con la ruta real. Si el módulo de aplicación referencia
+explícitamente `keystore.properties`, conserva esa convención para aplicaciones
+anteriores. Ambos archivos se eliminan siempre al terminar el job. La aplicación
+debe ignorar `android/key.properties`, `android/keystore.properties`, `*.jks` y
+`*.keystore`; no debe guardar placeholders de secrets en esos archivos.
 
 El app bundle firmado se construye en el build previo. En **Ready for review** se
 reutiliza el artefacto del draft del mismo commit; los otros disparadores beta

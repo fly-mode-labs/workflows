@@ -1,5 +1,5 @@
 name: Setup Android signing
-description: Decodes an Android keystore and creates a temporary key.properties file.
+description: Decodes an Android keystore and creates the properties file consumed by Gradle.
 
 inputs:
   working-directory: {required: true, description: Flutter application directory}
@@ -16,7 +16,7 @@ outputs:
     description: Path to the temporary decoded keystore
     value: ${{ steps.signing.outputs.keystore-path }}
   properties-path:
-    description: Path to the temporary key.properties file
+    description: Path to the temporary Android signing properties file
     value: ${{ steps.signing.outputs.properties-path }}
 
 runs:
@@ -63,7 +63,8 @@ runs:
 
         umask 077
         keystore_path="$(mktemp "${RUNNER_TEMP}/android-keystore.XXXXXX")"
-        properties_path="${android_path}/key.properties"
+        properties_filename="$(bash "${GITHUB_ACTION_PATH}/select-properties-file.sh" "${android_path}")"
+        properties_path="${android_path}/${properties_filename}"
 
         cleanup_on_error() {
           status=$?
