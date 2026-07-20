@@ -114,7 +114,7 @@ jobs:
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build Android artifacts
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v2
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v3
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}

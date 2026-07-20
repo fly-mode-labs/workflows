@@ -20,12 +20,12 @@ runs:
         set -euo pipefail
 
         minimum_kb=$((5 * 1024 * 1024))
-        available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
         gradle_project_cache=".gradle/ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
 
         # A cancelled build can leave this run-specific cache behind. Remove it
         # before measuring the space available for the replacement build.
         rm -rf -- "${gradle_project_cache}"
+        available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
 
         # v2.3.3 moved Flutter from RUNNER_TOOL_CACHE to RUNNER_TEMP so a
         # cancelled install cannot leave a broken persistent SDK behind. Remove

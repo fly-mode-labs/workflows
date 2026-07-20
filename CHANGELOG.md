@@ -31,8 +31,11 @@ usa [Semantic Versioning](https://semver.org/).
 
 - Cuando un runner self-hosted tiene menos de 5 GiB libres, el build Android
   elimina primero las cachés regenerables de Gradle y conserva los módulos y
-  las distribuciones descargadas. La limpieza final calcula su propia ruta de
-  caché y ya no falla si la preparación termina antes de exportar el entorno.
+  las distribuciones descargadas. El workflow invoca la versión `v3` de la
+  acción que contiene esta limpieza y vuelve a medir el espacio después de
+  eliminar una caché de proyecto anterior. La limpieza final calcula su propia
+  ruta de caché y ya no falla si la preparación termina antes de exportar el
+  entorno.
 - La publicación beta iniciada al marcar una PR como **Ready for review** espera
   hasta 40 minutos cuando el build draft del mismo commit todavía está en cola o
   en ejecución. Esto evita que los builds más lentos de GitHub Hosted fallen de
