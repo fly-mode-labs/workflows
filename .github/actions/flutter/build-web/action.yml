@@ -19,3 +19,4 @@ runs:
         path: ${{ inputs.working-directory }}/build/web
         retention-days: 14
         if-no-files-found: error
+        overwrite: true

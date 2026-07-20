@@ -47,7 +47,6 @@ jobs:
       android: ${{ steps.config.outputs.android }}
       ios: ${{ steps.config.outputs.ios }}
       web: ${{ steps.config.outputs.web }}
-      platforms-json: ${{ steps.config.outputs.platforms-json }}
       flutter-version: ${{ steps.config.outputs.flutter-version }}
       xcode-version: ${{ steps.config.outputs.xcode-version }}
     steps:
@@ -122,8 +121,6 @@ jobs:
             done
           fi
 
-          platforms_json='[{"id":"checks","name":"Static analysis and tests"}'
-          platform_separator=','
           platform_count=0
           for platform in android ios web; do
             enabled=false
@@ -139,21 +136,12 @@ jobs:
             echo "${platform}=${enabled}" >> "${GITHUB_OUTPUT}"
             if [[ "${enabled}" == "true" ]]; then
               platform_count=$((platform_count + 1))
-              case "${platform}" in
-                android) platform_name='Android' ;;
-                ios) platform_name='iOS' ;;
-                web) platform_name='Web' ;;
-              esac
-              platforms_json="${platforms_json}${platform_separator}{\"id\":\"${platform}\",\"name\":\"${platform_name}\"}"
-              platform_separator=','
             fi
           done
-          platforms_json="${platforms_json}]"
           if [[ "${platform_count}" -eq 0 ]]; then
             echo "No build platforms were selected."
             exit 1
           fi
-          echo "platforms-json=${platforms_json}" >> "${GITHUB_OUTPUT}"
 
   flutter-build:
     name: Flutter / Build
@@ -169,7 +157,9 @@ jobs:
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
-      platforms-json: ${{ needs.validate.outputs.platforms-json }}
+      build-android: ${{ needs.validate.outputs.android == 'true' }}
+      build-ios: ${{ needs.validate.outputs.ios == 'true' }}
+      build-web: ${{ needs.validate.outputs.web == 'true' }}
       android-build-format: ${{ inputs.android-build-format }}
     secrets: inherit
 

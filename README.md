@@ -123,17 +123,19 @@ docs/                     # Contratos por tecnología
 directamente en `.github/workflows`; las operaciones repetidas a nivel de steps
 se organizan como composite actions bajo `.github/actions`.
 
-- `flutter-build.yml`: crea una única matriz paralela con análisis y tests junto
-  a las plataformas seleccionadas.
+- `flutter-build.yml`: agrupa jobs explícitos e independientes para checks,
+  Android, iOS y Web; todos los seleccionados comienzan en paralelo y cada uno
+  se puede reejecutar individualmente.
 - `flutter-release.yml`: exige los artefactos de un draft exitoso y coordina
   los adaptadores `release-integration-*` para App Store y Google Play.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.
 - `.github/actions/flutter`: preparación del SDK y lectura normalizada de la
   versión de `pubspec.yaml` sin duplicar steps.
 
-Las plataformas se autodetectan o se fijan mediante `platforms`. La matriz solo
-crea jobs para las seleccionadas: si Artistic usa `android,ios`, Web no aparece
-en la gráfica ni consume recursos.
+Las plataformas se autodetectan o se fijan mediante `platforms`. Cada plataforma
+tiene un job propio; las no seleccionadas quedan omitidas y no consumen runner.
+Los nombres comparten el prefijo `Flutter build /` para mantenerlos agrupados en
+la interfaz de Actions.
 
 Las apps llaman únicamente a `.github/workflows/main.yml`. El input
 `technology` selecciona la implementación (`flutter` actualmente); agregar otra

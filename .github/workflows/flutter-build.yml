@@ -21,10 +21,18 @@ on:
         description: JSON array of labels used by the self-hosted runner
         type: string
         default: '["self-hosted", "macOS", "ARM64"]'
-      platforms-json:
-        description: JSON matrix containing checks and selected platforms
-        required: true
-        type: string
+      build-android:
+        description: Run the Android build job
+        type: boolean
+        default: false
+      build-ios:
+        description: Run the iOS build job
+        type: boolean
+        default: false
+      build-web:
+        description: Run the Web build job
+        type: boolean
+        default: false
       android-build-format:
         description: Android artifact format; apk, appbundle or both
         type: string
@@ -38,35 +46,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  task:
-    name: ${{ matrix.task.id == 'checks' && matrix.task.name || format('Build {0}', matrix.task.name) }}
-    strategy:
-      fail-fast: false
-      matrix:
-        task: ${{ fromJSON(inputs.platforms-json) }}
-    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && (matrix.task.id == 'ios' && '["macos-latest"]' || '["ubuntu-latest"]') || inputs.runner-labels) }}
+  checks:
+    name: Flutter build / Checks
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 40
     steps:
       - name: Checkout application
         uses: actions/checkout@v4
-      - name: Select Xcode version
-        if: matrix.task.id == 'ios'
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v2
-        with:
-          xcode-version: ${{ inputs.xcode-version }}
       - name: Setup Flutter SDK and dependencies
         uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
-      - name: Read and validate application version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
-        id: version
-        if: matrix.task.id != 'checks'
-        with:
-          working-directory: ${{ inputs.working-directory }}
       - name: Run Flutter static analysis and tests
-        if: matrix.task.id == 'checks'
         shell: bash
         working-directory: ${{ inputs.working-directory }}
         run: |
@@ -78,9 +70,27 @@ jobs:
           done
           flutter analyze "${analysis_targets[@]}"
           flutter test
+
+  android:
+    name: Flutter build / Android
+    if: inputs.build-android
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
+    timeout-minutes: 40
+    steps:
+      - name: Checkout application
+        uses: actions/checkout@v4
+      - name: Setup Flutter SDK and dependencies
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+      - name: Read and validate application version
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
       - name: Build Android artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v2
-        if: matrix.task.id == 'android'
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
@@ -89,15 +99,55 @@ jobs:
           key-alias: ${{ secrets.KEYALIAS }}
           store-password: ${{ secrets.STOREPASSWORD }}
           key-password: ${{ secrets.KEYPASSWORD }}
+
+  ios:
+    name: Flutter build / iOS
+    if: inputs.build-ios
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels) }}
+    timeout-minutes: 40
+    steps:
+      - name: Checkout application
+        uses: actions/checkout@v4
+      - name: Select Xcode version
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v2
+        with:
+          xcode-version: ${{ inputs.xcode-version }}
+      - name: Setup Flutter SDK and dependencies
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+      - name: Read and validate application version
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
       - name: Build iOS artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v2
-        if: matrix.task.id == 'ios'
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
+
+  web:
+    name: Flutter build / Web
+    if: inputs.build-web
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
+    timeout-minutes: 40
+    steps:
+      - name: Checkout application
+        uses: actions/checkout@v4
+      - name: Setup Flutter SDK and dependencies
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v2
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+      - name: Read and validate application version
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
       - name: Build Web artifacts
         uses: Juanpabedoyav/workflows/.github/actions/flutter/build-web@v2
-        if: matrix.task.id == 'web'
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}

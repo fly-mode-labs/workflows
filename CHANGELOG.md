@@ -3,6 +3,15 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-07-19
+
+### Changed
+
+- Checks, Android, iOS y Web son jobs explícitos e independientes, agrupados
+  bajo el prefijo `Flutter build /`; se ejecutan en paralelo y cada uno admite
+  un re-run individual.
+- Los artefactos de build pueden reemplazarse durante un re-run del mismo job.
+
 ## [2.0.0] - 2026-07-19
 
 ### Added

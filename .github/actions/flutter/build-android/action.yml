@@ -67,6 +67,7 @@ runs:
           ${{ inputs.working-directory }}/build/app/outputs/bundle/**/*.aab
         retention-days: 14
         if-no-files-found: error
+        overwrite: true
     - name: Remove temporary Android signing files
       if: ${{ always() && steps.android_signing.outputs.configured == 'true' }}
       shell: bash
