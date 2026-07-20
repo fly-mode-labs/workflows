@@ -21,6 +21,11 @@ runs:
 
         minimum_kb=$((5 * 1024 * 1024))
         available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
+        gradle_project_cache=".gradle/ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
+
+        # A cancelled build can leave this run-specific cache behind. Remove it
+        # before measuring the space available for the replacement build.
+        rm -rf -- "${gradle_project_cache}"
 
         # v2.3.3 moved Flutter from RUNNER_TOOL_CACHE to RUNNER_TEMP so a
         # cancelled install cannot leave a broken persistent SDK behind. Remove
@@ -35,14 +40,28 @@ runs:
           available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
         fi
 
+        # Gradle's version-specific transform and execution caches can consume
+        # several GiB on a self-hosted runner. They are safe to regenerate.
+        # Keep downloaded dependency modules and wrapper distributions so the
+        # next build does not need to download the whole toolchain again.
+        gradle_user_home="${GRADLE_USER_HOME:-${HOME}/.gradle}"
+        gradle_caches="${gradle_user_home%/}/caches"
+        if (( available_kb < minimum_kb )) && [[ -d "${gradle_caches}" ]]; then
+          echo "Low disk space; removing regenerable Gradle caches from: ${gradle_caches}"
+          ./gradlew --stop || true
+          find "${gradle_caches}" -mindepth 1 -maxdepth 1 \
+            ! -name modules-2 \
+            ! -name CACHEDIR.TAG \
+            -exec rm -rf -- {} +
+          available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
+        fi
+
         if (( available_kb < minimum_kb )); then
           echo "Android release builds require at least 5 GiB of free disk space; only $((available_kb / 1024)) MiB is available." >&2
           df -h .
           exit 1
         fi
 
-        gradle_project_cache=".gradle/ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
-        rm -rf -- "${gradle_project_cache}"
         echo "GRADLE_PROJECT_CACHE_DIR=${gradle_project_cache}" >> "${GITHUB_ENV}"
         echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.daemon=false -Dorg.gradle.projectcachedir=${gradle_project_cache}" >> "${GITHUB_ENV}"
 
@@ -93,7 +112,10 @@ runs:
       if: always()
       shell: bash
       working-directory: ${{ inputs.working-directory }}/android
-      run: rm -rf -- "${GRADLE_PROJECT_CACHE_DIR}"
+      run: |
+        set -euo pipefail
+        gradle_project_cache=".gradle/ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
+        rm -rf -- "${gradle_project_cache}"
     - name: Upload Android artifacts
       uses: actions/upload-artifact@v7
       with:
