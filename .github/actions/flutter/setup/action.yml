@@ -47,11 +47,18 @@ runs:
         version_output="$(flutter --version)"
         printf '%s\n' "${version_output}"
 
-        if [[ ! "${version_output}" =~ Flutter[[:space:]]+([^[:space:]]+) ]]; then
+        actual_flutter_version=""
+        while IFS= read -r line; do
+          if [[ "${line}" =~ ^Flutter[[:space:]]+([0-9]+\.[0-9]+\.[0-9]+[^[:space:]]*) ]]; then
+            actual_flutter_version="${BASH_REMATCH[1]}"
+            break
+          fi
+        done <<< "${version_output}"
+
+        if [[ -z "${actual_flutter_version}" ]]; then
           echo "Could not determine the installed Flutter SDK version." >&2
           exit 1
         fi
-        actual_flutter_version="${BASH_REMATCH[1]}"
         echo "Requested Flutter SDK: ${EXPECTED_FLUTTER_VERSION}"
         echo "Installed Flutter SDK: ${actual_flutter_version}"
 
