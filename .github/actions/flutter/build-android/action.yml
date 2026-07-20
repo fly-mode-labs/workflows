@@ -36,7 +36,7 @@ runs:
         echo "Gradle daemon: disabled for this CI build"
     - name: Setup Android signing
       id: android_signing
-      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-android-signing@v1
+      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-android-signing@v2
       with:
         working-directory: ${{ inputs.working-directory }}
         keystore-base64: ${{ inputs.keystore-base64 }}
@@ -61,7 +61,7 @@ runs:
     - name: Upload Android artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: android-${{ inputs.full-version }}-${{ github.sha }}
+        name: android-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
         path: |
           ${{ inputs.working-directory }}/build/app/outputs/flutter-apk/*.apk
           ${{ inputs.working-directory }}/build/app/outputs/bundle/**/*.aab

@@ -26,9 +26,13 @@ on:
         type: choice
         options: [self-hosted, github-hosted]
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
   pipeline:
-    uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v1
+    uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v2
     with:
       technology: flutter
       runner: ${{ inputs.runner || 'self-hosted' }}
@@ -38,7 +42,8 @@ jobs:
 El selector `runner` aparece al lanzar el workflow manualmente. Las ejecuciones
 automáticas de PR siguen usando `self-hosted`. Para ejecutar siempre en GitHub
 Actions, incluso en eventos de PR, se puede reemplazar la expresión anterior por
-`runner: github-hosted`.
+`runner: github-hosted`. El permiso `actions: read` es necesario para que beta
+descargue los artefactos producidos por draft.
 
 ## Valores instalados
 
@@ -48,10 +53,11 @@ Actions, incluso en eventos de PR, se puede reemplazar la expresión anterior po
 | `artistic` | `main` | `app_artistic` | `1.1.7+1014` |
 | `booty_factory_admin` | `main` | `app_sybellafit` | `2.7.3+277` |
 
-Los tres callers están instalados en `.github/workflows/main.yml`. El dispatcher
-encuentra el único `pubspec.yaml` y obtiene de allí la ruta de la app. Para una
-tecnología futura solo cambia `technology`; la lógica se agrega en el dispatcher
-central sin duplicarla en las apps.
+Los tres callers viven en `.github/workflows/main.yml` y deben migrarse a `@v2`
+con los permisos mostrados antes de habilitar beta. El dispatcher encuentra el
+único `pubspec.yaml` y obtiene de allí la ruta de la app. Para una tecnología
+futura solo cambia `technology`; la lógica se agrega en el dispatcher central
+sin duplicarla en las apps.
 
 ## Requisitos pendientes de distribución
 

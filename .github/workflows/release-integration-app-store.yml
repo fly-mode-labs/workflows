@@ -4,6 +4,7 @@ on:
   workflow_call:
     inputs:
       stage: {required: true, type: string}
+      artifact-run-id: {type: string, default: ''}
       working-directory: {required: true, type: string}
       flutter-version: {type: string, default: stable}
       xcode-version: {type: string, default: default}
@@ -12,6 +13,7 @@ on:
       production-command: {type: string, default: bundle exec fastlane ios release}
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -26,18 +28,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v1
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v2
         with:
           xcode-version: ${{ inputs.xcode-version }}
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v1
-        if: inputs.stage == 'beta'
-        with:
-          flutter-version: ${{ inputs.flutter-version }}
-          working-directory: ${{ inputs.working-directory }}
-      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v1
+      - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
+      - name: Download signed iOS artifact
+        if: inputs.stage == 'beta'
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-${{ steps.version.outputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/ios-${{ github.run_id }}
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.artifact-run-id }}
+      - name: Locate downloaded IPA
+        if: inputs.stage == 'beta'
+        id: artifact
+        shell: bash
+        working-directory: ${{ runner.temp }}/ios-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+
+          ipa_path=''
+          ipa_count=0
+          while IFS= read -r candidate; do
+            ipa_path="${candidate}"
+            ipa_count=$((ipa_count + 1))
+          done < <(find . -type f -name '*.ipa' -print)
+
+          if [[ "${ipa_count}" -ne 1 ]]; then
+            echo "Expected exactly one IPA in the draft artifact, found ${ipa_count}." >&2
+            exit 1
+          fi
+
+          echo "ipa-path=${PWD}/${ipa_path#./}" >> "${GITHUB_OUTPUT}"
       - run: bundle install
       - name: Upload beta to TestFlight
         if: inputs.stage == 'beta'
@@ -45,6 +71,7 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.app-version }}
           BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
           FULL_VERSION: ${{ steps.version.outputs.full-version }}
+          IPA_PATH: ${{ steps.artifact.outputs.ipa-path }}
           FASTLANE_SKIP_UPDATE_CHECK: '1'
         run: ${{ inputs.beta-command }}
       - name: Promote to App Store

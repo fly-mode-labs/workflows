@@ -19,11 +19,12 @@ on:
         options: [self-hosted, github-hosted]
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
   pipeline:
-    uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v1
+    uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v2
     with:
       technology: flutter
       platforms: android,ios

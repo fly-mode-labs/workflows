@@ -10,31 +10,35 @@ Actions.
 | Estado de la PR | Acción |
 | --- | --- |
 | Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Compila Android e iOS sin publicar y conserva los artefactos. |
-| Open (`ready_for_review`) | Publica la beta de iOS en TestFlight y la beta de Android en el track configurado. |
+| Open (`ready_for_review`) | Exige un draft exitoso del mismo commit, descarga sus artefactos y publica la beta de iOS en TestFlight y la de Android en el track configurado. |
 | Merge a `main` (`closed` + `merged`) | Promueve ambas betas a producción. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
-2.3.0+47`). Es independiente del tag mayor del pipeline (`@v1`).
+2.3.0+47`). Es independiente del tag mayor del pipeline (`@v2`).
 
 El cambio de draft a open debe hacerse con **Ready for review**. Nuevos commits
 en una PR que ya está abierta no vuelven a distribuir una beta automáticamente;
 esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
-`workflow_dispatch`.
+`workflow_dispatch`. Si el draft no terminó correctamente, beta falla antes de
+contactar TestFlight o Google Play. Después de corregir o reintentar el draft,
+se puede relanzar beta manualmente.
 
 ## Uso desde una app
 
 1. Copiar `templates/flutter/.github/workflows/main.yml` a la app.
 2. Sustituir `YOUR_GITHUB_USER/workflows` por tu usuario y el nombre real de
-   este repositorio. El template consume el alias compatible `@v1`, nunca
+   este repositorio. El template consume el alias compatible `@v2`, nunca
    `@main`.
-3. Crear en GitHub el environment `beta` y el environment `production`, con sus
+3. Conservar `actions: read` y `contents: read` en los permisos del caller; beta
+   necesita leer los artefactos del run draft anterior.
+4. Crear en GitHub el environment `beta` y el environment `production`, con sus
    secretos y protecciones.
-4. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con
+5. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con
    las versiones usadas por la app; no se declaran en el caller y se aplican
    valores por defecto si se omiten.
-5. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
+6. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
    Gradle Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
-6. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
+7. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
    `self-hosted`, registrar el Mac con las labels `self-hosted`, `macOS` y
    `ARM64`; `github-hosted` usa `macos-latest` para iOS y `ubuntu-latest` para
    los demás jobs, sin requerir registro.
@@ -52,7 +56,7 @@ también deben ser privadas y pertenecer a esa misma cuenta.
 Por ejemplo, si el usuario es `juanpbedoya`, la referencia será:
 
 ```yaml
-uses: juanpbedoya/workflows/.github/workflows/main.yml@v1
+uses: juanpbedoya/workflows/.github/workflows/main.yml@v2
 ```
 
 Hay una limitación importante para los runners self-hosted: en una cuenta
@@ -65,23 +69,24 @@ nivel de organización. La modalidad `github-hosted` no tiene ese requisito.
 
 ## Versionado del pipeline
 
-Los callers usan el alias mayor `@v1`. Las versiones exactas (`v1.0.1`,
-`v1.1.0`) permanecen inmutables y el release actualiza `v1` al último cambio
+Los callers usan el alias mayor `@v2`. Las versiones exactas (`v2.0.1`,
+`v2.1.0`) permanecen inmutables y el release actualiza `v2` al último cambio
 compatible. Así las apps reciben fixes y capacidades compatibles sin modificar
-sus repositorios. Solo un breaking change exige cambiar los callers a `@v2`.
+sus repositorios. Solo un breaking change futuro exige cambiar los callers a
+`@v3`.
 
-- `PATCH` (`1.0.1`): correcciones compatibles.
-- `MINOR` (`1.1.0`): capacidades nuevas compatibles.
-- `MAJOR` (`2.0.0`): inputs, comportamiento o requisitos incompatibles.
+- `PATCH` (`2.0.1`): correcciones compatibles.
+- `MINOR` (`2.1.0`): capacidades nuevas compatibles.
+- `MAJOR` (`3.0.0`): inputs, comportamiento o requisitos incompatibles.
 
 Para publicar una versión:
 
 1. Actualizar `VERSION` y `CHANGELOG.md` en una PR.
 2. Fusionar la PR a `main`.
-3. Crear y subir el tag exacto: `git tag v1.0.1` y `git push origin v1.0.1`.
+3. Crear y subir el tag exacto: `git tag v2.0.1` y `git push origin v2.0.1`.
 4. El workflow `Release pipeline version` valida que el tag coincida con
    `VERSION` y crea el GitHub Release.
-5. El release mueve automáticamente el alias `v1`; las apps no cambian.
+5. El release mueve automáticamente el alias `v2`; las apps no cambian.
 
 Los tags SemVer exactos son inmutables. Únicamente el alias mayor (`v1`, `v2`)
 es flotante por diseño.
@@ -120,8 +125,8 @@ se organizan como composite actions bajo `.github/actions`.
 
 - `flutter-build.yml`: crea una única matriz paralela con análisis y tests junto
   a las plataformas seleccionadas.
-- `flutter-release.yml`: coordina los adaptadores `release-integration-*` para
-  App Store y Google Play.
+- `flutter-release.yml`: exige los artefactos de un draft exitoso y coordina
+  los adaptadores `release-integration-*` para App Store y Google Play.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.
 - `.github/actions/flutter`: preparación del SDK y lectura normalizada de la
   versión de `pubspec.yaml` sin duplicar steps.

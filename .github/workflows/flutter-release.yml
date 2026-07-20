@@ -31,6 +31,7 @@ on:
         default: false
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -38,12 +39,98 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  resolve-build-artifacts:
+    name: Require successful draft build
+    if: inputs.stage == 'beta' && (inputs.release-android || inputs.release-ios)
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
+    timeout-minutes: 5
+    outputs:
+      run-id: ${{ steps.artifacts.outputs.result }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read application version
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v2
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
+      - name: Locate artifacts from a successful draft run
+        id: artifacts
+        uses: actions/github-script@v7
+        env:
+          FULL_VERSION: ${{ steps.version.outputs.full-version }}
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          REQUIRE_ANDROID: ${{ inputs.release-android }}
+          REQUIRE_IOS: ${{ inputs.release-ios }}
+        with:
+          github-token: ${{ github.token }}
+          result-encoding: string
+          script: |
+            const { owner, repo } = context.repo;
+            const requiredNames = [];
+
+            if (process.env.REQUIRE_ANDROID === 'true') {
+              requiredNames.push(`android-${process.env.FULL_VERSION}-${process.env.SOURCE_SHA}`);
+            }
+            if (process.env.REQUIRE_IOS === 'true') {
+              requiredNames.push(`ios-${process.env.FULL_VERSION}-${process.env.SOURCE_SHA}`);
+            }
+
+            const artifactsByRun = new Map();
+            for (const name of requiredNames) {
+              const artifacts = await github.paginate(
+                github.rest.actions.listArtifactsForRepo,
+                { owner, repo, name, per_page: 100 }
+              );
+
+              for (const artifact of artifacts) {
+                if (artifact.expired || !artifact.workflow_run) continue;
+                const runArtifacts = artifactsByRun.get(artifact.workflow_run.id) || new Set();
+                runArtifacts.add(artifact.name);
+                artifactsByRun.set(artifact.workflow_run.id, runArtifacts);
+              }
+            }
+
+            const candidateRunIds = [...artifactsByRun.entries()]
+              .filter(([, names]) => requiredNames.every((name) => names.has(name)))
+              .map(([runId]) => runId);
+
+            const successfulRuns = [];
+            for (const runId of candidateRunIds) {
+              if (runId === context.runId) continue;
+              const { data: run } = await github.rest.actions.getWorkflowRun({
+                owner,
+                repo,
+                run_id: runId,
+              });
+              if (run.conclusion === 'success') successfulRuns.push(run);
+            }
+
+            successfulRuns.sort((left, right) =>
+              new Date(right.created_at) - new Date(left.created_at)
+            );
+
+            if (successfulRuns.length === 0) {
+              core.setFailed(
+                `Beta requires a successful draft run for commit ${process.env.SOURCE_SHA} ` +
+                `with artifacts: ${requiredNames.join(', ')}`
+              );
+              return '';
+            }
+
+            const draftRun = successfulRuns[0];
+            core.notice(`Using draft artifacts from ${draftRun.html_url}`);
+            return String(draftRun.id);
+
   app-store:
     name: Release / Integration / App Store
-    if: inputs.release-ios
-    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-app-store.yml@v1
+    needs: resolve-build-artifacts
+    if: >-
+      always() && !cancelled() && inputs.release-ios &&
+      (inputs.stage != 'beta' || needs.resolve-build-artifacts.result == 'success')
+    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-app-store.yml@v2
     with:
       stage: ${{ inputs.stage }}
+      artifact-run-id: ${{ needs.resolve-build-artifacts.outputs.run-id }}
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
       xcode-version: ${{ inputs.xcode-version }}
@@ -52,10 +139,14 @@ jobs:
 
   google-play:
     name: Release / Integration / Google Play
-    if: inputs.release-android
-    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-google-play.yml@v1
+    needs: resolve-build-artifacts
+    if: >-
+      always() && !cancelled() && inputs.release-android &&
+      (inputs.stage != 'beta' || needs.resolve-build-artifacts.result == 'success')
+    uses: Juanpabedoyav/workflows/.github/workflows/release-integration-google-play.yml@v2
     with:
       stage: ${{ inputs.stage }}
+      artifact-run-id: ${{ needs.resolve-build-artifacts.outputs.run-id }}
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels }}

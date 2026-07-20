@@ -73,7 +73,10 @@ Las lanes reciben los secretos del environment de GitHub como variables de
 entorno. Se recomiendan credenciales mediante App Store Connect API Key y Match,
 nunca certificados guardados en este repositorio.
 
-`ios beta` debe usar `APP_VERSION` y `BUILD_NUMBER`, firmar y subir a TestFlight.
+El draft ya produce el IPA firmado. `ios beta` recibe su ruta absoluta en
+`IPA_PATH` y debe limitarse a subir ese archivo, por ejemplo con
+`upload_to_testflight(ipa: ENV.fetch("IPA_PATH"))`; no debe ejecutar
+`build_app` ni volver a firmar. También recibe `APP_VERSION` y `BUILD_NUMBER`.
 `ios release` debe localizar ese mismo build beta y enviarlo o promoverlo a App
 Store según la política del equipo.
 
@@ -96,11 +99,16 @@ al terminar el job. La aplicación debe ignorar `android/key.properties`,
 `*.jks` y `*.keystore`; no debe guardar placeholders de secrets en esos
 archivos.
 
-La fase beta construye el app bundle y ejecuta por defecto:
+El app bundle firmado se construye únicamente en draft. La fase beta descarga
+ese AAB y ejecuta por defecto:
 
 ```bash
-./gradlew publishBundle --track internal
+./gradlew publishBundle --track internal --artifact-dir "${AAB_ARTIFACT_DIRECTORY}"
 ```
+
+`AAB_PATH` contiene la ruta absoluta del archivo y
+`AAB_ARTIFACT_DIRECTORY` su directorio. El argumento `--artifact-dir` evita que
+Gradle Play Publisher vuelva a construir o firmar el bundle.
 
 La promoción ejecuta:
 
@@ -142,5 +150,5 @@ versión completa en el nombre. Las lanes/tareas no deben generar otra versión;
 deben usar estas variables y asegurar que el build number no haya sido publicado
 antes. Una promoción no recompila: promueve el binario que ya pasó por beta.
 
-Este número es independiente de la versión mayor del pipeline central (`@v1`). La
+Este número es independiente de la versión mayor del pipeline central (`@v2`). La
 primera versiona la aplicación; la segunda versiona las reglas de CI/CD.

@@ -1,5 +1,5 @@
 name: Build Flutter iOS
-description: Builds and uploads a signed XCArchive.
+description: Builds and uploads a signed XCArchive and IPA.
 
 inputs:
   working-directory: {required: true, description: Flutter application directory}
@@ -12,10 +12,12 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: flutter build ipa --release
-    - name: Upload iOS archive
+    - name: Upload iOS artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ios-${{ inputs.full-version }}-${{ github.sha }}
-        path: ${{ inputs.working-directory }}/build/ios/archive/*.xcarchive
+        name: ios-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
+        path: |
+          ${{ inputs.working-directory }}/build/ios/archive/*.xcarchive
+          ${{ inputs.working-directory }}/build/ios/ipa/*.ipa
         retention-days: 14
         if-no-files-found: error

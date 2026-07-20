@@ -3,6 +3,26 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-07-19
+
+### Added
+
+- La distribución beta exige un run draft exitoso del mismo commit y reutiliza
+  sus artefactos Android/iOS entre ejecuciones de GitHub Actions.
+
+### Changed
+
+- TestFlight recibe el IPA firmado mediante `IPA_PATH`, sin volver a compilar
+  la aplicación.
+- Google Play publica el AAB firmado descargado mediante
+  `publishBundle --artifact-dir`, sin volver a construirlo ni recrear la firma.
+
+### Migration
+
+- Los callers deben cambiar de `@v1` a `@v2` y conceder `actions: read`.
+- La lane `ios beta` debe subir el archivo indicado por `IPA_PATH` y no ejecutar
+  un build nuevo.
+
 ## [1.3.0] - 2026-07-19
 
 ### Added

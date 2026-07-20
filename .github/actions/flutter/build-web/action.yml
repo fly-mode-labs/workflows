@@ -15,7 +15,7 @@ runs:
     - name: Upload Web bundle
       uses: actions/upload-artifact@v4
       with:
-        name: web-${{ inputs.full-version }}-${{ github.sha }}
+        name: web-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
         path: ${{ inputs.working-directory }}/build/web
         retention-days: 14
         if-no-files-found: error
