@@ -132,11 +132,12 @@ gem "fastlane"
 ```
 
 El primer build intenta descargar las credenciales en modo `readonly`. Si el
-repositorio privado de Match todavía no contiene una identidad, el pipeline
-ejecuta automáticamente la lane `ios sync_signing` con `readonly: false`, crea
-el certificado y los perfiles y los guarda cifrados. Para esa primera ejecución,
-`MATCH_GIT_BASIC_AUTHORIZATION` debe usar un token con acceso de escritura y las
-tres credenciales de App Store Connect deben ser Repository Secrets.
+repositorio privado de Match todavía no contiene la identidad o el provisioning
+profile requerido por la aplicación, el pipeline ejecuta automáticamente la lane
+`ios sync_signing` con `readonly: false`, crea los recursos ausentes y los guarda
+cifrados. Para crear esos recursos, `MATCH_GIT_BASIC_AUTHORIZATION` debe usar un
+token con acceso de escritura y las tres credenciales de App Store Connect deben
+ser Repository Secrets.
 
 También se puede configurar e inicializar previamente de forma local:
 

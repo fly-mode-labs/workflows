@@ -7,10 +7,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Inicialización automática de certificados y perfiles iOS cuando el
-  repositorio privado de Match todavía está vacío. Los builds primero intentan
-  sincronizar en modo `readonly` y solo permiten escritura cuando falta la
-  identidad.
+- Creación automática de certificados y perfiles iOS ausentes en el repositorio
+  privado de Match. Los builds primero intentan sincronizar en modo `readonly` y
+  solo permiten escritura cuando falta la identidad o el provisioning profile
+  de la aplicación.
 
 ### Changed
 
@@ -31,6 +31,9 @@ usa [Semantic Versioning](https://semver.org/).
 - La publicación Android valida `APP_IDENTIFIER` antes de invocar Google
   Play y muestra una instrucción explícita si la Repository Variable falta o no
   contiene un application ID válido.
+- El composite Android consulta `APP_IDENTIFIER` directamente cuando un
+  reusable workflow iniciado antes de actualizar `v2` todavía no propaga el
+  input `identifier`, evitando carreras entre revisiones del alias mayor.
 - El provisioning profile de Match se aplica únicamente al target `Runner` en
   Release; ya no se propaga a los targets de CocoaPods que no admiten firma.
 - Los builds iOS con Match ya no delegan la firma automática a Xcode. El

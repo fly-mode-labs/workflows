@@ -17,13 +17,13 @@ inputs:
     description: Match profile type
   app-store-connect-api-key-base64:
     required: false
-    description: Base64 App Store Connect API private key used only to initialize an empty Match repository
+    description: Base64 App Store Connect API private key used to create missing Match signing assets
   app-store-connect-issuer-id:
     required: false
-    description: App Store Connect API issuer ID used only to initialize an empty Match repository
+    description: App Store Connect API issuer ID used to create missing Match signing assets
   app-store-connect-key-id:
     required: false
-    description: App Store Connect API key ID used only to initialize an empty Match repository
+    description: App Store Connect API key ID used to create missing Match signing assets
 
 outputs:
   configured:
@@ -182,9 +182,15 @@ runs:
         printf '%s\n' "${match_output}"
 
         if [[ "${match_status}" -ne 0 ]]; then
-          if ! grep -Fq \
+          if grep -Fq \
             'No code signing identity found and cannot create a new one because you enabled' \
             <<< "${match_output}"; then
+            missing_asset='code signing identity'
+          elif grep -Fq \
+            'No matching provisioning profiles found' \
+            <<< "${match_output}"; then
+            missing_asset='provisioning profile'
+          else
             exit "${match_status}"
           fi
 
@@ -198,15 +204,15 @@ runs:
             fi
           done
           if [[ "${#missing[@]}" -gt 0 ]]; then
-            echo "Match is empty and cannot be initialized because these Repository Secrets are missing: ${missing[*]}" >&2
+            echo "Match is missing a ${missing_asset} and cannot create it because these Repository Secrets are missing: ${missing[*]}" >&2
             exit 1
           fi
           if [[ ! -f fastlane/Fastfile ]]; then
-            echo "Match is empty and automatic initialization requires fastlane/Fastfile with the ios sync_signing lane." >&2
+            echo "Creating a missing Match ${missing_asset} requires fastlane/Fastfile with the ios sync_signing lane." >&2
             exit 1
           fi
 
-          echo "Match contains no signing identity; initializing it with ios sync_signing."
+          echo "Match is missing a ${missing_asset}; creating it with ios sync_signing."
           export MATCH_READONLY='false'
           bundle exec fastlane ios sync_signing
         fi

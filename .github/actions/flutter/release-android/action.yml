@@ -16,7 +16,7 @@ runs:
       if: inputs.stage == 'beta'
       shell: bash
       env:
-        APP_IDENTIFIER: ${{ inputs.identifier }}
+        APP_IDENTIFIER: ${{ vars.APP_IDENTIFIER }}
       run: |
         set -euo pipefail
 
