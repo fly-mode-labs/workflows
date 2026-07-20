@@ -3,6 +3,17 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.3.0] - 2026-07-19
+
+### Changed
+
+- Beta ya no requiere una ejecución draft previa: primero corre checks y
+  compila los artefactos firmados del commit actual, y después los distribuye
+  desde la misma ejecución.
+- `flutter-release.yml` acepta `artifact-run-id` para consumir explícitamente
+  los artefactos generados por el orquestador, conservando como fallback la
+  resolución de un build exitoso anterior.
+
 ## [2.2.0] - 2026-07-19
 
 ### Added

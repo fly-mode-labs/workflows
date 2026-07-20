@@ -147,9 +147,10 @@ jobs:
     name: Flutter / Build
     needs: validate
     if: >-
-      (needs.validate.outputs.stage == 'draft') ||
+      (needs.validate.outputs.stage == 'draft') || (needs.validate.outputs.stage == 'beta') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
-      github.event.pull_request.draft == true && github.event.action != 'closed')
+      ((github.event.pull_request.draft == true && github.event.action != 'closed') ||
+      github.event.action == 'ready_for_review'))
     uses: Juanpabedoyav/workflows/.github/workflows/flutter-build.yml@v2
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
@@ -165,7 +166,7 @@ jobs:
 
   flutter-beta-release:
     name: Flutter / Beta release
-    needs: validate
+    needs: [validate, flutter-build]
     if: >-
       (needs.validate.outputs.stage == 'beta') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
@@ -173,6 +174,7 @@ jobs:
     uses: Juanpabedoyav/workflows/.github/workflows/flutter-release.yml@v2
     with:
       stage: beta
+      artifact-run-id: ${{ github.run_id }}
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}

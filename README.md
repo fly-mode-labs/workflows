@@ -10,7 +10,7 @@ Actions.
 | Estado de la PR | Acción |
 | --- | --- |
 | Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Compila Android e iOS sin publicar y conserva los artefactos. |
-| Open (`ready_for_review`) | Exige un draft exitoso del mismo commit, descarga sus artefactos y publica la beta de iOS en TestFlight y la de Android en el track configurado. |
+| Open (`ready_for_review`) | Compila el commit actual y publica la beta de iOS en TestFlight y la de Android en el track configurado. No requiere un draft previo. |
 | Merge a `main` (`closed` + `merged`) | Promueve ambas betas a producción. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
@@ -19,9 +19,8 @@ La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
 El cambio de draft a open debe hacerse con **Ready for review**. Nuevos commits
 en una PR que ya está abierta no vuelven a distribuir una beta automáticamente;
 esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
-`workflow_dispatch`. Si el draft no terminó correctamente, beta falla antes de
-contactar TestFlight o Google Play. Después de corregir o reintentar el draft,
-se puede relanzar beta manualmente.
+`workflow_dispatch`. Una ejecución beta es autosuficiente: corre checks, compila
+los binarios firmados del commit actual y solo entonces los distribuye.
 
 ## Uso desde una app
 
@@ -30,14 +29,14 @@ se puede relanzar beta manualmente.
    este repositorio. El template consume el alias compatible `@v2`, nunca
    `@main`.
 3. Conservar `actions: read` y `contents: read` en los permisos del caller; beta
-   necesita leer los artefactos del run draft anterior.
+   descarga los artefactos producidos dentro de su propia ejecución.
 4. Crear en GitHub el environment `beta` y el environment `production`, con sus
    secretos y protecciones.
 5. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con
    las versiones usadas por la app; no se declaran en el caller y se aplican
    valores por defecto si se omiten.
 6. Configurar Fastlane Match en cada app y añadir los Repository Secrets
-   `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION` para firmar el draft iOS.
+   `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION` para firmar los builds iOS.
 7. Preparar en el proyecto las lanes `ios beta` y `ios release`, y las tareas de
    Gradle Play Publisher indicadas en [docs/flutter.md](docs/flutter.md).
 8. Elegir `self-hosted` o `github-hosted` al ejecutar manualmente. Para
@@ -94,8 +93,8 @@ Los tags SemVer exactos son inmutables. Únicamente el alias mayor (`v1`, `v2`)
 es flotante por diseño.
 
 Las distribuciones beta y production se serializan por repositorio para impedir
-que dos promociones compitan. Los builds draft anteriores sí se cancelan cuando
-llega un commit nuevo a la misma PR.
+que dos promociones compitan. Los builds anteriores sí se cancelan cuando llega
+un commit nuevo a la misma PR.
 
 ## Organización
 
@@ -131,8 +130,10 @@ se organizan como composite actions bajo `.github/actions`.
 - `flutter-build.yml`: agrupa jobs explícitos e independientes para checks,
   Android, iOS y Web; todos los seleccionados comienzan en paralelo y cada uno
   se puede reejecutar individualmente.
-- `flutter-release.yml`: exige los artefactos de un draft exitoso y coordina
-  los adaptadores `release-integration-*` para App Store y Google Play.
+- `flutter-release.yml`: recibe los artefactos producidos por el build de la
+  ejecución beta y coordina los adaptadores `release-integration-*` para App
+  Store y Google Play. También puede resolver un build exitoso anterior cuando
+  se invoca directamente sin `artifact-run-id`.
 - `release-integration-*`: prepara cada job de distribución y delega la
   publicación a las composite actions `release-ios` y `release-android`.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.
@@ -177,7 +178,7 @@ with:
 ```
 
 `android-build-format` controla los artefactos Android de los builds draft y
-acepta `apk`, `appbundle` o `both` (valor predeterminado).
+beta, y acepta `apk`, `appbundle` o `both` (valor predeterminado).
 
 Si se omite `platforms`, el valor `auto` habilita Android, iOS o Web según los
 directorios presentes en el proyecto.

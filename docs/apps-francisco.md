@@ -42,8 +42,8 @@ jobs:
 El selector `runner` aparece al lanzar el workflow manualmente. Las ejecuciones
 automáticas de PR siguen usando `self-hosted`. Para ejecutar siempre en GitHub
 Actions, incluso en eventos de PR, se puede reemplazar la expresión anterior por
-`runner: github-hosted`. El permiso `actions: read` es necesario para que beta
-descargue los artefactos producidos por draft.
+`runner: github-hosted`. El permiso `actions: read` permite que beta descargue
+los artefactos producidos por su propio build.
 
 ## Valores instalados
 

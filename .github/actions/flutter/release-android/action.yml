@@ -3,7 +3,7 @@ description: Distributes a built App Bundle to Google Play or promotes it to pro
 
 inputs:
   stage: {required: true, description: beta or production}
-  artifact-run-id: {required: false, default: '', description: Draft workflow run containing the App Bundle}
+  artifact-run-id: {required: false, default: '', description: Workflow run containing the App Bundle}
   working-directory: {required: true, description: Flutter application directory}
   app-version: {required: true, description: Semantic application version}
   build-number: {required: true, description: Store build number}
@@ -38,7 +38,7 @@ runs:
         done < <(find . -type f -name '*.aab' -print)
 
         if [[ "${aab_count}" -ne 1 ]]; then
-          echo "Expected exactly one AAB in the draft artifact, found ${aab_count}." >&2
+          echo "Expected exactly one AAB in the build artifact, found ${aab_count}." >&2
           exit 1
         fi
 
