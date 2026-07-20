@@ -10,18 +10,20 @@ Actions.
 | Estado de la PR | Acción |
 | --- | --- |
 | Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Compila Android e iOS sin publicar y conserva los artefactos. |
-| Open (`opened`, `reopened`, `ready_for_review`) | Compila el commit actual y publica la beta de iOS en TestFlight y la de Android en el track configurado. No requiere un draft previo. |
+| Open directo (`opened`, `reopened`) | Compila el commit actual y publica la beta de iOS en TestFlight y la de Android en el track configurado. |
+| Ready for review (`ready_for_review`) | Reutiliza los artefactos del build draft exitoso del mismo commit y los publica en TestFlight y Google Play, sin recompilar. |
 | Merge a `main` (`closed` + `merged`) | Promueve ambas betas a producción. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
 2.3.0+47`). Es independiente del tag mayor del pipeline (`@v2`).
 
-Una PR creada directamente como open ejecuta beta sin haber pasado por draft;
-también lo hace al usar **Ready for review** sobre una PR draft. Nuevos commits
-en una PR que ya está abierta no vuelven a distribuir una beta automáticamente;
+Una PR creada directamente como open ejecuta un build antes de beta porque no
+tiene artefactos draft. En cambio, **Ready for review** localiza el build exitoso
+del mismo commit y pasa directamente a beta. Si no encuentra todos los artefactos
+requeridos, falla antes de contactar TestFlight o Google Play. Nuevos commits en
+una PR que ya está abierta no vuelven a distribuir una beta automáticamente;
 esto evita publicar una versión por cada push. Se puede ejecutar de nuevo desde
-`workflow_dispatch`. Una ejecución beta es autosuficiente: corre checks, compila
-los binarios firmados del commit actual y solo entonces los distribuye.
+`workflow_dispatch`.
 
 ## Uso desde una app
 
@@ -30,7 +32,7 @@ los binarios firmados del commit actual y solo entonces los distribuye.
    este repositorio. El template consume el alias compatible `@v2`, nunca
    `@main`.
 3. Conservar `actions: read` y `contents: read` en los permisos del caller; beta
-   descarga los artefactos producidos dentro de su propia ejecución.
+   descarga los artefactos producidos por el build actual o por el draft previo.
 4. Crear en GitHub el environment `beta` y el environment `production`, con sus
    secretos y protecciones.
 5. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con
@@ -134,9 +136,9 @@ se organizan como composite actions bajo `.github/actions`.
   Android, iOS y Web; todos los seleccionados comienzan en paralelo y cada uno
   se puede reejecutar individualmente.
 - `flutter-release.yml`: recibe los artefactos producidos por el build de la
-  ejecución beta y coordina los adaptadores `release-integration-*` para App
-  Store y Google Play. También puede resolver un build exitoso anterior cuando
-  se invoca directamente sin `artifact-run-id`.
+  ejecución actual o resuelve el build exitoso anterior del mismo commit al usar
+  **Ready for review**, y coordina los adaptadores `release-integration-*` para
+  App Store y Google Play.
 - `release-integration-*`: prepara cada job de distribución y delega la
   publicación a las composite actions `release-ios` y `release-android`.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.

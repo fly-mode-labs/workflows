@@ -154,7 +154,8 @@ app_identifier([
 ```
 
 La aplicación necesita estos **Repository Secrets**, porque la firma sucede en
-los jobs de build, tanto en `draft` como en `beta`, antes de publicar:
+los jobs de build antes de publicar; **Ready for review** reutiliza el build
+firmado del draft del mismo commit:
 
 ```text
 MATCH_PASSWORD
@@ -176,7 +177,9 @@ uno está configurado, el job falla antes de compilar para evitar una firma
 parcial. No se deben guardar `.p12`, `.cer` o `.mobileprovision` dentro del
 repositorio de la aplicación ni del repositorio central de workflows.
 
-El build de la ejecución beta produce el IPA firmado. `ios beta` recibe su ruta
+El build previo produce el IPA firmado. En **Ready for review** se reutiliza el
+artefacto del draft del mismo commit; una beta manual o una PR creada directamente
+como open puede producirlo en su propia ejecución. `ios beta` recibe su ruta
 absoluta en `IPA_PATH` y debe limitarse a subir ese archivo, por ejemplo con
 `upload_to_testflight(api_key: app_store_connect_key, ipa:
 ENV.fetch("IPA_PATH"))`; no debe ejecutar `build_app` ni volver a firmar. También
@@ -203,8 +206,10 @@ al terminar el job. La aplicación debe ignorar `android/key.properties`,
 `*.jks` y `*.keystore`; no debe guardar placeholders de secrets en esos
 archivos.
 
-El app bundle firmado se construye dentro de la ejecución beta. La fase de
-distribución descarga ese AAB y ejecuta por defecto:
+El app bundle firmado se construye en el build previo. En **Ready for review** se
+reutiliza el artefacto del draft del mismo commit; los otros disparadores beta
+pueden producirlo en su propia ejecución. La fase de distribución descarga ese
+AAB y ejecuta por defecto:
 
 ```bash
 ./gradlew publishBundle --track internal --artifact-dir "${AAB_ARTIFACT_DIRECTORY}"

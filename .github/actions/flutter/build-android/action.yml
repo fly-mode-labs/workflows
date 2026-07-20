@@ -19,8 +19,22 @@ runs:
       run: |
         set -euo pipefail
 
-        available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
         minimum_kb=$((5 * 1024 * 1024))
+        available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
+
+        # v2.3.3 moved Flutter from RUNNER_TOOL_CACHE to RUNNER_TEMP so a
+        # cancelled install cannot leave a broken persistent SDK behind. Remove
+        # that now-unused legacy copy only when the runner needs the space. The
+        # active SDK is protected by checking FLUTTER_ROOT first.
+        legacy_flutter_cache="${RUNNER_TOOL_CACHE}/flutter"
+        if (( available_kb < minimum_kb )) &&
+          [[ -d "${legacy_flutter_cache}" ]] &&
+          [[ "${FLUTTER_ROOT}" != "${legacy_flutter_cache}"/* ]]; then
+          echo "Low disk space; removing unused legacy Flutter tool cache: ${legacy_flutter_cache}"
+          rm -rf -- "${legacy_flutter_cache}"
+          available_kb="$(df -Pk . | awk 'NR == 2 { print $4 }')"
+        fi
+
         if (( available_kb < minimum_kb )); then
           echo "Android release builds require at least 5 GiB of free disk space; only $((available_kb / 1024)) MiB is available." >&2
           df -h .

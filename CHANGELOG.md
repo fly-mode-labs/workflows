@@ -3,6 +3,15 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+### Fixed
+
+- Cuando un runner self-hosted no tiene espacio suficiente para Android, el
+  build elimina la copia antigua de Flutter que quedó sin uso en
+  `RUNNER_TOOL_CACHE` después de migrar el SDK a `runner.temp`. La copia activa
+  indicada por `FLUTTER_ROOT` nunca se elimina.
+
 ## [2.3.6] - 2026-07-20
 
 ### Fixed
