@@ -3,6 +3,14 @@
 Todos los cambios relevantes de los pipelines se documentan aquí. El proyecto
 usa [Semantic Versioning](https://semver.org/).
 
+## [2.3.4] - 2026-07-20
+
+### Fixed
+
+- La validación del setup de Flutter obtiene la versión desde la línea que
+  comienza con `Flutter <versión>`, evitando interpretar como versión la palabra
+  `is` del aviso de actualización mostrado por el SDK.
+
 ## [2.3.3] - 2026-07-19
 
 ### Fixed
