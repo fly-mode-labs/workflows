@@ -8,6 +8,7 @@ on:
       working-directory: {required: true, type: string}
       flutter-version: {type: string, default: stable}
       xcode-version: {type: string, default: default}
+      runner: {type: string, default: self-hosted}
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
       beta-command: {type: string, default: bundle exec fastlane ios beta}
       production-command: {type: string, default: bundle exec fastlane ios release}
@@ -28,6 +29,7 @@ jobs:
         uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v3
         with:
           xcode-version: ${{ inputs.xcode-version }}
+          runner: ${{ inputs.runner }}
       - uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:
@@ -38,6 +40,7 @@ jobs:
           stage: ${{ inputs.stage }}
           artifact-run-id: ${{ inputs.artifact-run-id }}
           working-directory: ${{ inputs.working-directory }}
+          runner: ${{ inputs.runner }}
           app-version: ${{ steps.version.outputs.app-version }}
           build-number: ${{ steps.version.outputs.build-number }}
           full-version: ${{ steps.version.outputs.full-version }}

@@ -136,6 +136,7 @@ jobs:
         uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v3
         with:
           xcode-version: ${{ inputs.xcode-version }}
+          runner: ${{ inputs.runner }}
       - name: Setup Flutter SDK and dependencies
         uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3
         with:
@@ -151,6 +152,7 @@ jobs:
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
+          runner: ${{ inputs.runner }}
           match-password: ${{ secrets.MATCH_PASSWORD }}
           match-git-basic-authorization: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           app-store-connect-api-key-base64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}

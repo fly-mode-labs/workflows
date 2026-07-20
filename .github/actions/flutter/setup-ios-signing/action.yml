@@ -5,6 +5,10 @@ inputs:
   working-directory:
     required: true
     description: Flutter application directory containing Gemfile and fastlane/Matchfile
+  runner:
+    required: false
+    default: self-hosted
+    description: Runner provider; self-hosted or github-hosted
   match-password:
     required: false
     description: Password used to decrypt the Match repository
@@ -138,8 +142,14 @@ runs:
         echo "profiles-before-list=${profiles_before_list}" >> "${GITHUB_OUTPUT}"
         echo "profiles-cleanup-list=${profiles_cleanup_list}" >> "${GITHUB_OUTPUT}"
 
-    - name: Install Fastlane dependencies
-      if: steps.config.outputs.configured == 'true'
+    - name: Setup hosted Ruby, Bundler and gem cache
+      if: steps.config.outputs.configured == 'true' && inputs.runner == 'github-hosted'
+      uses: ruby/setup-ruby@v1
+      with:
+        working-directory: ${{ inputs.working-directory }}
+        bundler-cache: true
+    - name: Install Fastlane dependencies on the self-hosted runner
+      if: steps.config.outputs.configured == 'true' && inputs.runner == 'self-hosted'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: bundle check || bundle install

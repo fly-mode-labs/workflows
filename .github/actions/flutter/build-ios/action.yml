@@ -4,6 +4,7 @@ description: Builds and uploads a signed XCArchive and IPA.
 inputs:
   working-directory: {required: true, description: Flutter application directory}
   full-version: {required: true, description: Full pubspec version}
+  runner: {required: false, default: self-hosted, description: Runner provider; self-hosted or github-hosted}
   match-password: {required: false, description: Match repository encryption password}
   match-git-basic-authorization: {required: false, description: Base64 Git authorization for Match}
   match-type: {required: false, default: appstore, description: Match profile type}
@@ -19,6 +20,7 @@ runs:
       uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-ios-signing@v3
       with:
         working-directory: ${{ inputs.working-directory }}
+        runner: ${{ inputs.runner }}
         match-password: ${{ inputs.match-password }}
         match-git-basic-authorization: ${{ inputs.match-git-basic-authorization }}
         match-type: ${{ inputs.match-type }}

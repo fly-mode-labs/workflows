@@ -149,6 +149,14 @@ composite actions propios se reservan para orquestación o capacidades que la
 acción correspondiente no ofrece; no deben reimplementar descargas, uploads o
 autenticación ya soportados por la integración.
 
+En runners administrados por GitHub, `maxim-lobanov/setup-xcode` selecciona la
+versión instalada de Xcode y `ruby/setup-ruby` instala Bundler, ejecuta
+`bundle install` y conserva la caché de gems. El Mac self-hosted mantiene la
+selección mediante `DEVELOPER_DIR` y su Ruby local: `setup-xcode` cambia
+globalmente `xcode-select` y `setup-ruby` solo soporta de forma general imágenes
+self-hosted equivalentes a las de GitHub. `raven-actions/actionlint` valida los
+workflows en cada PR y push a `main`.
+
 - `flutter-build.yml`: agrupa jobs explícitos e independientes para checks,
   Android, iOS y Web; todos los seleccionados comienzan en paralelo y cada uno
   se puede reejecutar individualmente.

@@ -16,6 +16,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Validate GitHub Actions workflows
+        uses: raven-actions/actionlint@v2
       - name: Run parser regression tests
         shell: bash
         run: bash .github/actions/flutter/setup/test-read-version.sh

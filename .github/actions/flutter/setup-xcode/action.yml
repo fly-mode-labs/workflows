@@ -6,11 +6,21 @@ inputs:
     description: Version reported by xcodebuild, or default for the active Xcode
     required: false
     default: default
+  runner:
+    description: Runner provider; self-hosted or github-hosted
+    required: false
+    default: self-hosted
 
 runs:
   using: composite
   steps:
-    - name: Resolve installed Xcode
+    - name: Select hosted Xcode from the runner image
+      if: inputs.runner == 'github-hosted'
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: ${{ inputs.xcode-version == 'default' && 'latest-stable' || inputs.xcode-version }}
+    - name: Resolve self-hosted Xcode without changing the machine default
+      if: inputs.runner == 'self-hosted'
       shell: bash
       env:
         REQUESTED_XCODE_VERSION: ${{ inputs.xcode-version }}
@@ -46,3 +56,11 @@ runs:
 
         echo "DEVELOPER_DIR=${developer_dir}" >> "${GITHUB_ENV}"
         DEVELOPER_DIR="${developer_dir}" xcodebuild -version
+    - name: Reject unsupported runner provider
+      if: inputs.runner != 'github-hosted' && inputs.runner != 'self-hosted'
+      shell: bash
+      env:
+        RUNNER_PROVIDER: ${{ inputs.runner }}
+      run: |
+        echo "Unsupported runner provider: ${RUNNER_PROVIDER}" >&2
+        exit 1

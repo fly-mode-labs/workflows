@@ -5,6 +5,7 @@ inputs:
   stage: {required: true, description: beta or production}
   artifact-run-id: {required: false, default: '', description: Workflow run containing the IPA}
   working-directory: {required: true, description: Flutter application directory}
+  runner: {required: false, default: self-hosted, description: Runner provider; self-hosted or github-hosted}
   app-version: {required: true, description: Semantic application version}
   build-number: {required: true, description: Store build number}
   full-version: {required: true, description: Complete Flutter version}
@@ -107,7 +108,14 @@ runs:
         fi
 
         echo "ipa-path=${PWD}/${ipa_path#./}" >> "${GITHUB_OUTPUT}"
-    - name: Install iOS release dependencies
+    - name: Setup hosted Ruby, Bundler and gem cache
+      if: inputs.runner == 'github-hosted'
+      uses: ruby/setup-ruby@v1
+      with:
+        working-directory: ${{ inputs.working-directory }}
+        bundler-cache: true
+    - name: Install iOS release dependencies on the self-hosted runner
+      if: inputs.runner == 'self-hosted'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: bundle install

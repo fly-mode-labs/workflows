@@ -182,6 +182,7 @@ jobs:
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
       xcode-version: ${{ inputs.xcode-version }}
+      runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels }}
     secrets: inherit
 

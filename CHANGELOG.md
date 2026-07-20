@@ -7,6 +7,8 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Validación de los workflows con `raven-actions/actionlint@v2` en cada PR y
+  push a `main`.
 - Creación automática de certificados y perfiles iOS ausentes en el repositorio
   privado de Match. Los builds primero intentan sincronizar en modo `readonly` y
   solo permiten escritura cuando falta la identidad o el provisioning profile
@@ -18,6 +20,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Los runners GitHub-hosted delegan la selección de Xcode a
+  `maxim-lobanov/setup-xcode@v1` y la preparación de Ruby, Bundler y la caché de
+  gems a `ruby/setup-ruby@v1`. Los runners self-hosted conservan la selección
+  aislada mediante `DEVELOPER_DIR` y el Ruby instalado en el Mac.
 - Google Play beta descarga el AAB con `actions/download-artifact@v8` y lo publica
   directamente con `r0adkll/upload-google-play@v1.1.5`, usando los inputs documentados
   `serviceAccountJsonPlainText`, `packageName`, `releaseFiles`, `tracks` y
