@@ -109,7 +109,7 @@ Los tags SemVer exactos son inmutables. Únicamente los alias mayores (`v1`,
 es flotante por diseño.
 
 Las distribuciones beta y production se serializan por repositorio para impedir
-que dos promociones compitan. Los builds anteriores sí se cancelan cuando llega
+que dos publicaciones compitan. Los builds anteriores sí se cancelan cuando llega
 un commit nuevo a la misma PR.
 
 ## Organización

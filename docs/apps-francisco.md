@@ -64,9 +64,9 @@ sin duplicarla en las apps.
 
 Las apps necesitan Fastlane para iOS, un `fastlane/Matchfile`, los Repository
 Secrets `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION`, y las credenciales
-de cada tienda en los environments `beta`/`production`. Android beta sube el
-AAB precompilado directamente con `r0adkll/upload-google-play`; no requiere
-Flutter ni Gradle durante la distribución. La promoción Android a producción
-conserva temporalmente Gradle Play Publisher, que la acción carga sin exigir
-configuración adicional permanente en el proyecto Android. Si se elige
-`self-hosted`, cada repositorio también necesita su propio runner registrado.
+de cada tienda en los environments `beta`/`production`. Android beta y
+producción descargan el AAB firmado del build previo y lo suben directamente
+con `r0adkll/upload-google-play`: beta usa el track configurado (`internal` por
+defecto) y producción fuerza el track `production`. Ninguna distribución
+requiere Flutter ni Gradle. Si se elige `self-hosted`, cada repositorio también
+necesita su propio runner registrado.

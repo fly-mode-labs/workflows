@@ -321,9 +321,9 @@ anteriores. Ambos archivos se eliminan siempre al terminar el job. La aplicació
 debe ignorar `android/key.properties`, `android/keystore.properties`, `*.jks` y
 `*.keystore`; no debe guardar placeholders de secrets en esos archivos.
 
-El app bundle firmado se construye en el build previo. En **Ready for review** se
-reutiliza el artefacto del draft del mismo commit; los otros disparadores beta
-pueden producirlo en su propia ejecución. La fase de distribución usa
+El app bundle firmado se construye en el build previo. En **Ready for review** y
+producción se reutiliza el artefacto del mismo commit; los otros disparadores
+beta pueden producirlo en su propia ejecución. La fase de distribución usa
 [`actions/download-artifact`](https://github.com/actions/download-artifact#usage)
 para descargar el AAB y
 [`r0adkll/upload-google-play`](https://github.com/r0adkll/upload-google-play#inputs)
@@ -347,28 +347,17 @@ La acción recibe exactamente los inputs documentados por su autor:
 `status`. `packageName` recibe el application ID extraído por Android Gradle
 Plugin durante el build; si `APP_IDENTIFIER` está disponible, el pipeline exige
 que ambos valores coincidan. `releaseFiles` usa el glob soportado oficialmente
-para seleccionar el único `.aab` dentro del artefacto descargado. La
-distribución beta no hace checkout, no instala Flutter y no ejecuta Gradle,
-Android SDK ni NDK. Tampoco recompila ni vuelve a firmar el AAB.
-
-La promoción ejecuta:
-
-```bash
-./gradlew promoteArtifact --from-track internal --promote-track production
-```
-
-La promoción a producción conserva temporalmente Gradle Play Publisher porque
-`upload-google-play` no documenta una operación de promoción sin volver a subir
-el artefacto. Cuando la app no declara `com.github.triplet.play`, la acción
-inyecta temporalmente la versión `3.13.0` en el bloque `plugins` del módulo
-Android. Esa versión es compatible con el wrapper Gradle 8.11.1 generado por
-Flutter; Gradle Play Publisher 4 requiere Gradle 9.1 o posterior. El archivo
-original se restaura al terminar, incluso si la promoción falla.
+para seleccionar el único `.aab` dentro del artefacto descargado. Ninguna
+distribución Android hace checkout, instala Flutter o ejecuta Gradle, Android
+SDK o NDK. Tampoco recompila ni vuelve a firmar el AAB. Beta envía `tracks` al
+valor de `android-track`; producción usa la misma acción y fuerza
+`tracks: production`.
 
 Cada environment de GitHub (`beta` y `production`) debe definir
 `ANDROID_PUBLISHER_CREDENTIALS` con el contenido completo del JSON de la cuenta
-de servicio. En beta se entrega al input `serviceAccountJsonPlainText` de la
-acción; en producción se expone a Gradle Play Publisher con su nombre estándar.
+de servicio. En ambos stages se entrega al input
+`serviceAccountJsonPlainText`; beta usa el track configurado y producción usa
+el track `production`.
 
 ## Secrets y environments
 
@@ -399,7 +388,7 @@ FULL_VERSION=2.3.0+47
 Flutter usa esos mismos valores al construir. Los artefactos de build incluyen
 la versión completa en el nombre. Las lanes/tareas no deben generar otra versión;
 deben usar estas variables y asegurar que el build number no haya sido publicado
-antes. Una promoción no recompila: promueve el binario que ya pasó por beta.
+antes. La publicación no recompila: reutiliza el AAB firmado del build previo.
 
 Este número es independiente de la versión mayor del pipeline central (`@v3`). La
 primera versiona la aplicación; la segunda versiona las reglas de CI/CD.

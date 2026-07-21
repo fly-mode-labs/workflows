@@ -20,6 +20,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Android producción usa ahora la misma publicación directa que beta mediante
+  `r0adkll/upload-google-play@v1.1.5`, pero fuerza `tracks: production`. El job
+  resuelve y descarga el AAB firmado del mismo commit y deja de instalar
+  Flutter, ejecutar Gradle o depender de `promoteArtifact`.
 - Los runners GitHub-hosted delegan la selección de Xcode a
   `maxim-lobanov/setup-xcode@v1` y la preparación de Ruby, Bundler y la caché de
   gems a `ruby/setup-ruby@v1`. Los runners self-hosted conservan la selección
@@ -39,18 +43,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- Las referencias internas a composite actions usan ahora el tag completo e
-  inmutable `v3.4.11`. Esto cambia la clave de caché de los runners self-hosted
-  y evita que el alias móvil `v3` reutilice una implementación anterior de la
-  acción, como la que ejecutaba `promoteArtifact` sin aplicar el plugin.
 - La firma Android detecta si el módulo Gradle consume `key.properties` o la
   convención anterior `keystore.properties`. Esto evita crear el archivo con un
   nombre que la aplicación no lee y que `signReleaseBundle` falle después con
   una configuración de firma nula.
-- La promoción Android inyecta temporalmente Gradle Play Publisher `3.13.0` en
-  el módulo de aplicación cuando el proyecto no lo declara. `promoteArtifact`
-  queda disponible con Gradle 8.11.1 y el archivo de build original se restaura
-  al terminar.
 - Los workflows reutilizables de `v3` ya no retroceden internamente a acciones
   y workflows de `v2`. La promoción de App Store ejecuta ahora la acción iOS de
   la misma versión mayor, que propaga `description`, `keywords`, `supportUrl` y
