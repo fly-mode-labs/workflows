@@ -58,7 +58,7 @@ jobs:
       - name: Checkout application
         uses: actions/checkout@v4
       - name: Setup Flutter SDK and dependencies
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -104,17 +104,17 @@ jobs:
           echo "Gradle JDK: ${JAVA_HOME}"
           java -version
       - name: Setup Flutter SDK and dependencies
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
       - name: Read and validate application version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build Android artifacts
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-android@v3
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
@@ -133,22 +133,22 @@ jobs:
       - name: Checkout application
         uses: actions/checkout@v4
       - name: Select Xcode version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-xcode@v3
         with:
           xcode-version: ${{ inputs.xcode-version }}
           runner: ${{ inputs.runner }}
       - name: Setup Flutter SDK and dependencies
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
       - name: Read and validate application version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build iOS artifacts
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-ios@v3
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
@@ -168,17 +168,17 @@ jobs:
       - name: Checkout application
         uses: actions/checkout@v4
       - name: Setup Flutter SDK and dependencies
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
       - name: Read and validate application version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build Web artifacts
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-web@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/build-web@v3
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}

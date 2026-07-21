@@ -3,17 +3,16 @@
 set -euo pipefail
 
 repository='Juanpabedoyav/workflows'
-version="v$(tr -d '[:space:]' < VERSION)"
-major="${version%%.*}"
+major="v$(cut -d. -f1 VERSION)"
 
 references="$({
-  grep -RInE "uses:[[:space:]]+${repository}/\.github/actions/.+@[^[:space:]]+" \
+  grep -RInE "uses:[[:space:]]+${repository}/.+@v[0-9]+([[:space:]]|$)" \
     .github/actions .github/workflows || true
 })"
 
-mismatches="$(printf '%s\n' "${references}" | grep -vE "@${version}([[:space:]]|$)" || true)"
+mismatches="$(printf '%s\n' "${references}" | grep -vE "@${major}([[:space:]]|$)" || true)"
 if [[ -n "${mismatches}" ]]; then
-  echo "First-party composite action references must use immutable @${version}:" >&2
+  echo "First-party workflow references must use @${major}:" >&2
   printf '%s\n' "${mismatches}" >&2
   exit 1
 fi
@@ -29,4 +28,4 @@ if ! grep -Fq "main.yml@${major}" templates/flutter/.github/workflows/main.yml; 
   exit 1
 fi
 
-echo "First-party composite actions use ${version}; the caller template uses ${major}."
+echo "All first-party workflow references are aligned with ${major}."

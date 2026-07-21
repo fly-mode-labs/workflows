@@ -1,19 +1,18 @@
 name: Release Flutter Android
-description: Uploads a built App Bundle to Google Play or promotes it to production.
+description: Uploads a signed App Bundle to the selected Google Play track.
 
 inputs:
   stage: {required: true, description: beta or production}
   artifact-run-id: {required: false, default: '', description: Workflow run containing the App Bundle}
-  working-directory: {required: true, description: Flutter application directory used only for production promotion}
+  working-directory: {required: true, description: Flutter application directory retained for caller compatibility}
   track: {required: false, default: internal, description: Google Play testing track receiving the beta release}
-  identifier: {required: false, default: '', description: Application identifier used for Google Play beta uploads}
+  identifier: {required: false, default: '', description: Application identifier used for Google Play uploads}
   service-account-json: {required: true, description: Google Play service account JSON}
 
 runs:
   using: composite
   steps:
     - name: Download signed Android artifact
-      if: inputs.stage == 'beta'
       id: artifact
       uses: actions/download-artifact@v8
       with:
@@ -23,7 +22,6 @@ runs:
         github-token: ${{ github.token }}
         run-id: ${{ inputs.artifact-run-id }}
     - name: Resolve Android application identifier
-      if: inputs.stage == 'beta'
       id: metadata
       shell: bash
       working-directory: ${{ steps.artifact.outputs.download-path }}
@@ -74,117 +72,11 @@ runs:
         fi
 
         echo "package-name=${package_name}" >> "${GITHUB_OUTPUT}"
-    - name: Upload beta to Google Play
-      if: inputs.stage == 'beta'
+    - name: Upload Android release to Google Play
       uses: r0adkll/upload-google-play@v1.1.5
       with:
         serviceAccountJsonPlainText: ${{ inputs.service-account-json }}
         packageName: ${{ steps.metadata.outputs.package-name }}
         releaseFiles: ${{ steps.artifact.outputs.download-path }}/**/*.aab
-        tracks: ${{ inputs.track }}
+        tracks: ${{ inputs.stage == 'production' && 'production' || inputs.track }}
         status: completed
-    - name: Prepare Android Gradle project for production promotion
-      if: inputs.stage == 'production'
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-      run: |
-        set -euo pipefail
-
-        # Production still uses Gradle Play Publisher's promoteArtifact task.
-        # Flutter exposes --config-only through the apk subcommand only.
-        flutter build apk --config-only --release --no-pub
-
-        wrapper_files=(
-          gradlew
-          gradle/wrapper/gradle-wrapper.jar
-          gradle/wrapper/gradle-wrapper.properties
-        )
-        needs_wrapper_seed=false
-        for wrapper_file in "${wrapper_files[@]}"; do
-          if [[ ! -f "android/${wrapper_file}" ]]; then
-            needs_wrapper_seed=true
-            break
-          fi
-        done
-
-        if [[ "${needs_wrapper_seed}" == 'true' ]]; then
-          wrapper_seed="$(mktemp -d "${RUNNER_TEMP}/flutter-gradle-wrapper.XXXXXX")"
-          cleanup_wrapper_seed() {
-            rm -rf -- "${wrapper_seed}"
-          }
-          trap cleanup_wrapper_seed EXIT
-
-          flutter create \
-            --no-pub \
-            --platforms=android \
-            --project-name=gradle_wrapper_seed \
-            "${wrapper_seed}"
-
-          seed_files=(
-            gradlew
-            gradlew.bat
-            gradle/wrapper/gradle-wrapper.jar
-            gradle/wrapper/gradle-wrapper.properties
-          )
-          for wrapper_file in "${seed_files[@]}"; do
-            if [[ ! -f "android/${wrapper_file}" ]]; then
-              mkdir -p "android/$(dirname "${wrapper_file}")"
-              cp "${wrapper_seed}/android/${wrapper_file}" "android/${wrapper_file}"
-            fi
-          done
-        fi
-
-        chmod +x android/gradlew
-    - name: Promote to Google Play production
-      if: inputs.stage == 'production'
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}/android
-      env:
-        ANDROID_PUBLISHER_CREDENTIALS: ${{ inputs.service-account-json }}
-        GOOGLE_PLAY_SOURCE_TRACK: ${{ inputs.track }}
-      run: |
-        set -euo pipefail
-
-        if [[ -f app/build.gradle.kts ]]; then
-          app_build_file='app/build.gradle.kts'
-          play_plugin_declaration='id("com.github.triplet.play") version "3.13.0"'
-        elif [[ -f app/build.gradle ]]; then
-          app_build_file='app/build.gradle'
-          play_plugin_declaration='id "com.github.triplet.play" version "3.13.0"'
-        else
-          echo 'The Android application module has no app/build.gradle or app/build.gradle.kts.' >&2
-          exit 1
-        fi
-
-        if ! grep -Fq 'com.github.triplet.play' "${app_build_file}"; then
-          app_build_backup="$(mktemp "${RUNNER_TEMP}/android-app-build.XXXXXX")"
-          modified_app_build="$(mktemp "${RUNNER_TEMP}/android-app-build-modified.XXXXXX")"
-          cp "${app_build_file}" "${app_build_backup}"
-
-          restore_app_build() {
-            cp "${app_build_backup}" "${app_build_file}"
-            rm -f -- "${app_build_backup}" "${modified_app_build}"
-          }
-          trap restore_app_build EXIT
-
-          if ! awk -v declaration="${play_plugin_declaration}" '
-            !inserted && /^[[:space:]]*plugins[[:space:]]*\{/ {
-              print
-              print "    " declaration
-              inserted = 1
-              next
-            }
-            { print }
-            END { if (!inserted) exit 1 }
-          ' "${app_build_file}" > "${modified_app_build}"; then
-            echo "Could not find a plugins block in ${app_build_file}." >&2
-            exit 1
-          fi
-
-          mv "${modified_app_build}" "${app_build_file}"
-        fi
-
-        ./gradlew \
-          promoteArtifact \
-          --from-track "${GOOGLE_PLAY_SOURCE_TRACK}" \
-          --promote-track production

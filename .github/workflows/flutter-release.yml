@@ -7,7 +7,7 @@ on:
         required: true
         type: string
       artifact-run-id:
-        description: Workflow run containing beta build artifacts; falls back to a previous successful build when omitted
+        description: Workflow run containing build artifacts; falls back to a previous successful build when omitted
         type: string
         default: ''
       working-directory:
@@ -54,8 +54,9 @@ jobs:
   resolve-build-artifacts:
     name: Resolve previous build artifacts
     if: >-
-      inputs.stage == 'beta' && inputs.artifact-run-id == '' &&
-      (inputs.release-android || inputs.release-ios)
+      inputs.artifact-run-id == '' &&
+      ((inputs.stage == 'beta' && (inputs.release-android || inputs.release-ios)) ||
+      (inputs.stage == 'production' && inputs.release-android))
     runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 45
     outputs:
@@ -63,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Read application version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3.4.11
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
@@ -74,7 +75,7 @@ jobs:
           FULL_VERSION: ${{ steps.version.outputs.full-version }}
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           REQUIRE_ANDROID: ${{ inputs.release-android }}
-          REQUIRE_IOS: ${{ inputs.release-ios }}
+          REQUIRE_IOS: ${{ inputs.stage == 'beta' && inputs.release-ios }}
         with:
           github-token: ${{ github.token }}
           result-encoding: string
@@ -191,8 +192,7 @@ jobs:
     needs: resolve-build-artifacts
     if: >-
       always() && !cancelled() && inputs.release-android &&
-      (inputs.stage != 'beta' || inputs.artifact-run-id != '' ||
-      needs.resolve-build-artifacts.result == 'success')
+      (inputs.artifact-run-id != '' || needs.resolve-build-artifacts.result == 'success')
     uses: ./.github/workflows/release-integration-google-play.yml
     with:
       stage: ${{ inputs.stage }}
