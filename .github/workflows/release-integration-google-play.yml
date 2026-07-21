@@ -26,13 +26,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Prepare Flutter SDK for Gradle publishing
         if: inputs.stage == 'production'
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/setup@v3.4.11
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
           resolve-dependencies: false
       - name: Release Android application
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/release-android@v3
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/release-android@v3.4.11
         with:
           stage: ${{ inputs.stage }}
           artifact-run-id: ${{ inputs.artifact-run-id }}

@@ -143,6 +143,11 @@ docs/                     # Contratos por tecnología
 directamente en `.github/workflows`; las operaciones repetidas a nivel de steps
 se organizan como composite actions bajo `.github/actions`.
 
+Las aplicaciones consumen el reusable workflow mediante el alias mayor `@v3`.
+Dentro del pipeline, las composite actions propias usan el tag completo de la
+versión para que los runners self-hosted no reutilicen una copia anterior
+guardada bajo el alias móvil.
+
 Cuando una integración dispone de una GitHub Action mantenida, el pipeline usa
 esa acción y los inputs publicados en su documentación upstream. Los scripts o
 composite actions propios se reservan para orquestación o capacidades que la

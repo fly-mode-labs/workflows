@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Read application version
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3
+        uses: Juanpabedoyav/workflows/.github/actions/flutter/read-version@v3.4.11
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}

@@ -17,7 +17,7 @@ runs:
   steps:
     - name: Setup iOS signing with Match
       id: ios_signing
-      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-ios-signing@v3
+      uses: Juanpabedoyav/workflows/.github/actions/flutter/setup-ios-signing@v3.4.11
       with:
         working-directory: ${{ inputs.working-directory }}
         runner: ${{ inputs.runner }}

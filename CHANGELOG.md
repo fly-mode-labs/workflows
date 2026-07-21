@@ -39,6 +39,10 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Las referencias internas a composite actions usan ahora el tag completo e
+  inmutable `v3.4.11`. Esto cambia la clave de caché de los runners self-hosted
+  y evita que el alias móvil `v3` reutilice una implementación anterior de la
+  acción, como la que ejecutaba `promoteArtifact` sin aplicar el plugin.
 - La firma Android detecta si el módulo Gradle consume `key.properties` o la
   convención anterior `keystore.properties`. Esto evita crear el archivo con un
   nombre que la aplicación no lee y que `signReleaseBundle` falle después con
