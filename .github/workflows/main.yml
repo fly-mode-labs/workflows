@@ -7,6 +7,10 @@ on:
         description: Application technology handled by the pipeline
         required: true
         type: string
+      pipeline:
+        description: Pipeline scope; all, ci or cd
+        type: string
+        default: all
       platforms:
         description: Comma-separated platforms or auto
         type: string
@@ -61,6 +65,7 @@ jobs:
         shell: bash
         env:
           TECHNOLOGY: ${{ inputs.technology }}
+          CONFIGURED_PIPELINE: ${{ inputs.pipeline }}
           CONFIGURED_STAGE: ${{ inputs.stage }}
           EVENT_STAGE: ${{ github.event.inputs.stage }}
           CONFIGURED_DIRECTORY: ${{ inputs.working-directory }}
@@ -75,6 +80,11 @@ jobs:
             echo "Unsupported technology: ${TECHNOLOGY}"
             exit 1
           fi
+
+          case "${CONFIGURED_PIPELINE}" in
+            all|ci|cd) ;;
+            *) echo "Unsupported pipeline scope: ${CONFIGURED_PIPELINE}"; exit 1 ;;
+          esac
 
           case "${CONFIGURED_RUNNER}" in
             self-hosted|github-hosted) ;;
@@ -155,11 +165,12 @@ jobs:
     name: Flutter / Build
     needs: validate
     if: >-
-      (needs.validate.outputs.stage == 'draft') || (needs.validate.outputs.stage == 'beta') ||
+      inputs.pipeline != 'cd' &&
+      ((needs.validate.outputs.stage == 'draft') || (needs.validate.outputs.stage == 'beta') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       ((github.event.pull_request.draft == true && github.event.action != 'closed') ||
       (github.event.pull_request.draft == false &&
-      (github.event.action == 'opened' || github.event.action == 'reopened'))))
+      (github.event.action == 'opened' || github.event.action == 'reopened')))))
     uses: ./.github/workflows/flutter-build.yml
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
@@ -179,13 +190,16 @@ jobs:
     needs: [validate, flutter-build]
     if: >-
       always() && !cancelled() &&
+      inputs.pipeline != 'ci' &&
       needs.validate.result == 'success' &&
       ((needs.validate.outputs.stage == 'beta') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       (github.event.action == 'ready_for_review' ||
       (github.event.pull_request.draft == false &&
       (github.event.action == 'opened' || github.event.action == 'reopened'))))) &&
-      (github.event.action == 'ready_for_review' || needs.flutter-build.result == 'success')
+      (github.event.action == 'ready_for_review' ||
+      inputs.pipeline == 'cd' ||
+      needs.flutter-build.result == 'success')
     uses: ./.github/workflows/flutter-release.yml
     with:
       stage: beta
@@ -205,9 +219,10 @@ jobs:
     name: Flutter / Production release
     needs: validate
     if: >-
-      (needs.validate.outputs.stage == 'production') ||
+      inputs.pipeline != 'ci' &&
+      ((needs.validate.outputs.stage == 'production') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
-      github.event.action == 'closed' && github.event.pull_request.merged == true)
+      github.event.action == 'closed' && github.event.pull_request.merged == true))
     uses: ./.github/workflows/flutter-release.yml
     with:
       stage: production

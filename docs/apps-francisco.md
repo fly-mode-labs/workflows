@@ -31,10 +31,20 @@ permissions:
   contents: read
 
 jobs:
-  pipeline:
+  ci:
     uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v3
     with:
       technology: flutter
+      pipeline: ci
+      runner: ${{ inputs.runner || 'self-hosted' }}
+    secrets: inherit
+
+  cd:
+    needs: ci
+    uses: Juanpabedoyav/workflows/.github/workflows/main.yml@v3
+    with:
+      technology: flutter
+      pipeline: cd
       runner: ${{ inputs.runner || 'self-hosted' }}
     secrets: inherit
 ```
@@ -45,6 +55,11 @@ Actions, incluso en eventos de PR, se puede reemplazar la expresión anterior po
 `runner: github-hosted`. El permiso `actions: read` permite que beta descargue
 los artefactos producidos por su propio build o por el build draft previo cuando
 la PR pasa a **Ready for review**.
+
+El job `ci` valida y compila. El job `cd` espera a que CI termine correctamente
+y se encarga únicamente de las publicaciones beta o production. Ambos llaman al
+mismo workflow reutilizable con `pipeline: ci` o `pipeline: cd`; los callers
+anteriores que no envían este input conservan el comportamiento combinado.
 
 ## Valores instalados
 

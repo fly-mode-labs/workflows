@@ -28,7 +28,9 @@ de nuevo desde `workflow_dispatch`.
 
 ## Uso desde una app
 
-1. Copiar `templates/flutter/.github/workflows/main.yml` a la app.
+1. Copiar `templates/flutter/.github/workflows/main.yml` a la app. El template
+   expone dos jobs independientes: `ci` para validación/build y `cd` para
+   distribución.
 2. Sustituir `YOUR_GITHUB_USER/workflows` por tu usuario y el nombre real de
    este repositorio. El template consume el alias compatible `@v3`, nunca
    `@main`.
@@ -180,9 +182,13 @@ tiene un job propio; las no seleccionadas quedan omitidas y no consumen runner.
 Los nombres comparten el prefijo `Flutter build /` para mantenerlos agrupados en
 la interfaz de Actions.
 
-Las apps llaman únicamente a `.github/workflows/main.yml`. El input
-`technology` selecciona la implementación (`flutter` actualmente); agregar otra
-tecnología no requiere ampliar el caller de cada proyecto.
+Las apps llaman únicamente a `.github/workflows/main.yml`. Cada caller lo invoca
+dos veces: `pipeline: ci` ejecuta validación y build, mientras `pipeline: cd`
+ejecuta las publicaciones después de que CI termina correctamente. El valor
+predeterminado `pipeline: all` conserva la compatibilidad con callers anteriores
+que ejecutan todo en un único job. El input `technology` selecciona la
+implementación (`flutter` actualmente); agregar otra tecnología no requiere
+ampliar el caller de cada proyecto.
 
 El input `runner` acepta `self-hosted` (predeterminado) o `github-hosted`. Con
 `github-hosted`, iOS y App Store usan `macos-latest`; validación, checks,

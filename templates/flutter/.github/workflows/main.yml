@@ -23,10 +23,22 @@ permissions:
   contents: read
 
 jobs:
-  pipeline:
+  ci:
     uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v3
     with:
       technology: flutter
+      pipeline: ci
+      platforms: android,ios
+      android-build-format: appbundle
+      runner: ${{ inputs.runner || 'self-hosted' }}
+    secrets: inherit
+
+  cd:
+    needs: ci
+    uses: YOUR_GITHUB_USER/workflows/.github/workflows/main.yml@v3
+    with:
+      technology: flutter
+      pipeline: cd
       platforms: android,ios
       android-build-format: appbundle
       runner: ${{ inputs.runner || 'self-hosted' }}

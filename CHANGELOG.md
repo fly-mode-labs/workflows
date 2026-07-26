@@ -7,6 +7,9 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Separación visible del caller en jobs `ci` y `cd`. El workflow central acepta
+  `pipeline: ci`, `pipeline: cd` o el valor compatible `all`; CD depende de CI y
+  no vuelve a compilar los artefactos.
 - Validación de los workflows con `raven-actions/actionlint@v2` en cada PR y
   push a `main`.
 - Creación automática de certificados y perfiles iOS ausentes en el repositorio
