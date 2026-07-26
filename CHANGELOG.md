@@ -5,6 +5,8 @@ usa [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+## [3.4.13] - 2026-07-26
+
 ### Added
 
 - Separación visible del caller en jobs `ci` y `cd`. El workflow central acepta
