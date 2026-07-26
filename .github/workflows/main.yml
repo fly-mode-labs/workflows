@@ -99,14 +99,10 @@ jobs:
             auto|draft|beta|production) ;;
             *) echo "Unsupported stage: ${effective_stage}"; exit 1 ;;
           esac
-          echo "stage=${effective_stage}" >> "${GITHUB_OUTPUT}"
 
           effective_flutter_version="${REPOSITORY_FLUTTER_VERSION:-stable}"
           effective_java_version="${REPOSITORY_JAVA_VERSION:-17}"
           effective_xcode_version="${REPOSITORY_XCODE_VERSION:-default}"
-          echo "flutter-version=${effective_flutter_version}" >> "${GITHUB_OUTPUT}"
-          echo "java-version=${effective_java_version}" >> "${GITHUB_OUTPUT}"
-          echo "xcode-version=${effective_xcode_version}" >> "${GITHUB_OUTPUT}"
 
           app_directory="${CONFIGURED_DIRECTORY}"
           if [[ "${app_directory}" == "auto" ]]; then
@@ -123,7 +119,6 @@ jobs:
             echo "pubspec.yaml not found in ${app_directory}"
             exit 1
           fi
-          echo "working-directory=${app_directory}" >> "${GITHUB_OUTPUT}"
           case "${ANDROID_BUILD_FORMAT}" in
             apk|appbundle|both) ;;
             *) echo "Unsupported Android build format: ${ANDROID_BUILD_FORMAT}"; exit 1 ;;
@@ -140,6 +135,9 @@ jobs:
           fi
 
           platform_count=0
+          android=false
+          ios=false
+          web=false
           for platform in android ios web; do
             enabled=false
             if [[ "${normalized_platforms}" == "auto" && -d "${app_directory}/${platform}" ]]; then
@@ -151,7 +149,7 @@ jobs:
               echo "Platform ${platform} was requested but ${app_directory}/${platform} does not exist."
               exit 1
             fi
-            echo "${platform}=${enabled}" >> "${GITHUB_OUTPUT}"
+            printf -v "${platform}" '%s' "${enabled}"
             if [[ "${enabled}" == "true" ]]; then
               platform_count=$((platform_count + 1))
             fi
@@ -160,6 +158,17 @@ jobs:
             echo "No build platforms were selected."
             exit 1
           fi
+
+          {
+            echo "stage=${effective_stage}"
+            echo "flutter-version=${effective_flutter_version}"
+            echo "java-version=${effective_java_version}"
+            echo "xcode-version=${effective_xcode_version}"
+            echo "working-directory=${app_directory}"
+            echo "android=${android}"
+            echo "ios=${ios}"
+            echo "web=${web}"
+          } >> "${GITHUB_OUTPUT}"
 
   flutter-build:
     name: Flutter / Build
