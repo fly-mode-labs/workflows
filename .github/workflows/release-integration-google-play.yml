@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Release Android application
-        uses: Juanpabedoyav/workflows/.github/actions/flutter/release-android@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/release-android@v3
         with:
           stage: ${{ inputs.stage }}
           artifact-run-id: ${{ inputs.artifact-run-id }}

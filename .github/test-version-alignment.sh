@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-repository='Juanpabedoyav/workflows'
+repository='fly-mode-labs/workflows'
 major="v$(cut -d. -f1 VERSION)"
 
 references="$({
@@ -17,7 +17,7 @@ if [[ -n "${mismatches}" ]]; then
   exit 1
 fi
 
-if grep -RInE 'uses:[[:space:]]+Juanpabedoyav/workflows/.github/workflows/' \
+if grep -RInE 'uses:[[:space:]]+fly-mode-labs/workflows/.github/workflows/' \
   .github/workflows; then
   echo 'Reusable workflows in this repository must use local paths so they stay on the caller commit.' >&2
   exit 1
