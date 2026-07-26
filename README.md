@@ -1,7 +1,7 @@
 # Centralized CI/CD workflows
 
 Repositorio privado central de workflows reutilizables para aplicaciones
-guardadas bajo una misma cuenta personal de GitHub. Los pipelines pueden
+de la organización `fly-mode-labs`. Los pipelines pueden
 ejecutarse en runners macOS self-hosted o en runners administrados por GitHub
 Actions.
 
@@ -31,9 +31,8 @@ de nuevo desde `workflow_dispatch`.
 1. Copiar `templates/flutter/.github/workflows/main.yml` a la app. El template
    expone dos jobs independientes: `ci` para validación/build y `cd` para
    distribución.
-2. Sustituir `YOUR_GITHUB_USER/workflows` por tu usuario y el nombre real de
-   este repositorio. El template consume el alias compatible `@v3`, nunca
-   `@main`.
+2. El template referencia `fly-mode-labs/workflows` y consume el alias
+   compatible `@v3`, nunca `@main`.
 3. Conservar `actions: read` y `contents: read` en los permisos del caller; beta
    descarga los artefactos producidos por el build actual o por el draft previo.
 4. Crear en GitHub el environment `beta` y el environment `production`, con sus
@@ -64,26 +63,21 @@ de nuevo desde `workflow_dispatch`.
 Los callers concretos para `ride-your-soul`, `artistic` y `estudio-sybellafit`
 están en [docs/apps-francisco.md](docs/apps-francisco.md).
 
-## Acceso entre repositorios privados personales
+## Acceso desde los repositorios de Fly Mode Labs
 
-No hace falta una organización. En el repositorio privado central `workflows`,
-abrir **Settings → Actions → General → Access**, seleccionar **Accessible from
-repositories owned by TU_USUARIO user** y guardar. Las aplicaciones consumidoras
-también deben ser privadas y pertenecer a esa misma cuenta.
+En el repositorio privado central `fly-mode-labs/workflows`, abrir
+**Settings → Actions → General → Access** y habilitar el acceso para los
+repositorios de la organización que consumirán los workflows.
 
-Por ejemplo, si el usuario es `juanpbedoya`, la referencia será:
+La referencia canónica es:
 
 ```yaml
-uses: juanpbedoya/workflows/.github/workflows/main.yml@v3
+uses: fly-mode-labs/workflows/.github/workflows/main.yml@v3
 ```
 
-Hay una limitación importante para los runners self-hosted: en una cuenta
-personal cada runner registrado a nivel de repositorio queda dedicado a ese
-repositorio. El workflow central sí es compartido, pero cada app que use esa
-modalidad necesita al menos un runner registrado en **Settings → Actions →
-Runners**. Para compartir automáticamente un mismo pool de Macs entre muchos
-repositorios sería necesario moverlos a una organización y registrar runners a
-nivel de organización. La modalidad `github-hosted` no tiene ese requisito.
+Los runners compartidos se registran a nivel de la organización y se asignan a
+los repositorios mediante runner groups. La modalidad `github-hosted` no
+requiere registrar runners.
 
 ## Versionado del pipeline
 

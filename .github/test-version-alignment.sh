@@ -5,6 +5,15 @@ set -euo pipefail
 repository='fly-mode-labs/workflows'
 major="v$(cut -d. -f1 VERSION)"
 
+legacy_references="$(grep -RInE \
+  '(Juanpabedoyav|juanpbedoya|YOUR_GITHUB_USER)/workflows' \
+  .github templates README.md || true)"
+if [[ -n "${legacy_references}" ]]; then
+  echo "First-party workflow references must use ${repository}:" >&2
+  printf '%s\n' "${legacy_references}" >&2
+  exit 1
+fi
+
 references="$({
   grep -RInE "uses:[[:space:]]+${repository}/.+@v[0-9]+([[:space:]]|$)" \
     .github/actions .github/workflows || true
