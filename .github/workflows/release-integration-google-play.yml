@@ -4,9 +4,13 @@ on:
   workflow_call:
     inputs:
       stage: {required: true, type: string}
+      delivery-mode: {type: string, default: artifact}
+      source-sha: {required: true, type: string}
       artifact-run-id: {type: string, default: ''}
       working-directory: {required: true, type: string}
       flutter-version: {type: string, default: stable}
+      java-version: {type: string, default: '17'}
+      runner: {type: string, default: self-hosted}
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
       track: {type: string, default: internal}
       app-identifier: {type: string, default: ''}
@@ -20,14 +24,69 @@ jobs:
     name: ${{ inputs.stage == 'beta' && 'Google Play beta' || 'Google Play production' }}
     environment: ${{ inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
-    timeout-minutes: 45
+    timeout-minutes: ${{ inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && 75 || 45 }}
     steps:
+      - name: Checkout application
+        if: inputs.delivery-mode == 'direct'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup hosted Android JDK
+        if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && inputs.runner == 'github-hosted'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+      - name: Select hosted JDK for Gradle
+        if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && inputs.runner == 'github-hosted'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${JAVA_HOME:-}" || ! -x "${JAVA_HOME}/bin/java" ]]; then
+            echo "The hosted JDK was not installed correctly: JAVA_HOME=${JAVA_HOME:-<unset>}" >&2
+            exit 1
+          fi
+          echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.java.home=${JAVA_HOME}" >> "${GITHUB_ENV}"
+      - name: Setup Flutter SDK and dependencies
+        if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+      - name: Read application version for direct delivery
+        if: inputs.delivery-mode == 'direct'
+        id: version
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
+        with:
+          working-directory: ${{ inputs.working-directory }}
+      - name: Build App Bundle for direct beta delivery
+        if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
+        id: build
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v3
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          full-version: ${{ steps.version.outputs.full-version }}
+          build-format: appbundle
+          upload-artifact: 'false'
+          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          key-alias: ${{ secrets.KEYALIAS }}
+          store-password: ${{ secrets.STOREPASSWORD }}
+          key-password: ${{ secrets.KEYPASSWORD }}
       - name: Release Android application
         uses: fly-mode-labs/workflows/.github/actions/flutter/release-android@v3
         with:
           stage: ${{ inputs.stage }}
+          delivery-mode: ${{ inputs.delivery-mode }}
+          source-sha: ${{ inputs.source-sha }}
           artifact-run-id: ${{ inputs.artifact-run-id }}
           working-directory: ${{ inputs.working-directory }}
           track: ${{ inputs.track }}
           identifier: ${{ inputs.app-identifier || vars.APP_IDENTIFIER }}
+          local-aab-path: ${{ steps.build.outputs.aab-path }}
+          local-package-name: ${{ steps.build.outputs.package-name }}
+          version-code: ${{ steps.version.outputs.build-number }}
           service-account-json: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
+      - name: Remove direct Android beta binaries
+        if: always() && inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
+        shell: bash
+        run: rm -rf -- "${{ inputs.working-directory }}/build/app/outputs/bundle" "${{ inputs.working-directory }}/build/app/outputs/pipeline-metadata"

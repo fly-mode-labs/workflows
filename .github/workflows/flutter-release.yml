@@ -6,6 +6,13 @@ on:
       stage:
         required: true
         type: string
+      delivery-mode:
+        description: Mobile binary delivery; artifact or direct
+        type: string
+        default: artifact
+      source-sha:
+        required: true
+        type: string
       artifact-run-id:
         description: Workflow run containing build artifacts; falls back to a previous successful build when omitted
         type: string
@@ -16,6 +23,9 @@ on:
       flutter-version:
         type: string
         default: stable
+      java-version:
+        type: string
+        default: '17'
       xcode-version:
         type: string
         default: default
@@ -47,13 +57,14 @@ permissions:
   contents: read
 
 concurrency:
-  group: flutter-release-${{ inputs.stage }}-${{ github.repository }}
+  group: flutter-release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
   resolve-build-artifacts:
     name: Resolve previous build artifacts
     if: >-
+      inputs.delivery-mode == 'artifact' &&
       inputs.artifact-run-id == '' &&
       ((inputs.stage == 'beta' && (inputs.release-android || inputs.release-ios)) ||
       (inputs.stage == 'production' && inputs.release-android))
@@ -174,11 +185,13 @@ jobs:
     needs: resolve-build-artifacts
     if: >-
       always() && !cancelled() && inputs.release-ios &&
-      (inputs.stage != 'beta' || inputs.artifact-run-id != '' ||
+      (inputs.delivery-mode == 'direct' || inputs.stage != 'beta' || inputs.artifact-run-id != '' ||
       needs.resolve-build-artifacts.result == 'success')
     uses: ./.github/workflows/release-integration-app-store.yml
     with:
       stage: ${{ inputs.stage }}
+      delivery-mode: ${{ inputs.delivery-mode }}
+      source-sha: ${{ inputs.source-sha }}
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
@@ -192,14 +205,19 @@ jobs:
     needs: resolve-build-artifacts
     if: >-
       always() && !cancelled() && inputs.release-android &&
-      (inputs.artifact-run-id != '' || needs.resolve-build-artifacts.result == 'success')
+      (inputs.delivery-mode == 'direct' || inputs.artifact-run-id != '' ||
+      needs.resolve-build-artifacts.result == 'success')
     uses: ./.github/workflows/release-integration-google-play.yml
     with:
       stage: ${{ inputs.stage }}
+      delivery-mode: ${{ inputs.delivery-mode }}
+      source-sha: ${{ inputs.source-sha }}
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}
       working-directory: ${{ inputs.working-directory }}
       flutter-version: ${{ inputs.flutter-version }}
+      java-version: ${{ inputs.java-version }}
       track: ${{ inputs.android-track }}
       app-identifier: ${{ inputs.app-identifier }}
+      runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels }}
     secrets: inherit

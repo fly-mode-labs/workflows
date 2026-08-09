@@ -22,12 +22,11 @@ on:
       runner:
         description: Runner used for this manual execution
         required: true
-        default: self-hosted
+        default: github-hosted
         type: choice
         options: [self-hosted, github-hosted]
 
 permissions:
-  actions: read
   contents: read
 
 jobs:
@@ -36,7 +35,8 @@ jobs:
     with:
       technology: flutter
       pipeline: ci
-      runner: ${{ inputs.runner || 'self-hosted' }}
+      delivery-mode: direct
+      runner: ${{ inputs.runner || 'github-hosted' }}
     secrets: inherit
 
   cd:
@@ -45,16 +45,15 @@ jobs:
     with:
       technology: flutter
       pipeline: cd
-      runner: ${{ inputs.runner || 'self-hosted' }}
+      delivery-mode: direct
+      runner: ${{ inputs.runner || 'github-hosted' }}
     secrets: inherit
 ```
 
-El selector `runner` aparece al lanzar el workflow manualmente. Las ejecuciones
-automáticas de PR siguen usando `self-hosted`. Para ejecutar siempre en GitHub
-Actions, incluso en eventos de PR, se puede reemplazar la expresión anterior por
-`runner: github-hosted`. El permiso `actions: read` permite que beta descargue
-los artefactos producidos por su propio build o por el build draft previo cuando
-la PR pasa a **Ready for review**.
+The runner selector appears for manual runs. Automatic PR delivery defaults to
+`github-hosted`; choosing `self-hosted` is an explicit persistent-runner choice.
+Direct delivery only needs `contents: read`; callers
+that intentionally keep the default artifact mode must also grant `actions: read`.
 
 El job `ci` valida y compila. El job `cd` espera a que CI termine correctamente
 y se encarga únicamente de las publicaciones beta o production. Ambos llaman al
@@ -79,9 +78,11 @@ sin duplicarla en las apps.
 
 Las apps necesitan Fastlane para iOS, un `fastlane/Matchfile`, los Repository
 Secrets `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION`, y las credenciales
-de cada tienda en los environments `beta`/`production`. Android beta y
-producción descargan el AAB firmado del build previo y lo suben directamente
-con `r0adkll/upload-google-play`: beta usa el track configurado (`internal` por
-defecto) y producción fuerza el track `production`. Ninguna distribución
-requiere Flutter ni Gradle. Si se elige `self-hosted`, cada repositorio también
-necesita su propio runner registrado.
+de cada tienda en los environments `beta`/`production`. Android direct beta
+builds and uploads the signed AAB in the same `beta` job. Direct production
+promotes the exact `pubspec.yaml` build number from the configured testing track
+to `production` without transferring or rebuilding an AAB. If `self-hosted` is
+selected, each repository still needs its own registered runner.
+Both `beta` and `production` environments require reviewers. iOS callers must
+not set `IOS_SOURCE_PROVENANCE_SUPPORTED=true` until their Fastlane lanes enforce
+the documented `SOURCE_SHA` TestFlight metadata contract.

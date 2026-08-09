@@ -1,18 +1,24 @@
 name: Release Flutter Android
-description: Uploads a signed App Bundle to the selected Google Play track.
+description: Uploads a local or artifact App Bundle, or promotes an exact tested version to production.
 
 inputs:
   stage: {required: true, description: beta or production}
+  delivery-mode: {required: false, default: artifact, description: artifact or direct}
+  source-sha: {required: false, default: '', description: Exact source commit represented by the Google Play release}
   artifact-run-id: {required: false, default: '', description: Workflow run containing the App Bundle}
   working-directory: {required: true, description: Flutter application directory retained for caller compatibility}
   track: {required: false, default: internal, description: Google Play testing track receiving the beta release}
   identifier: {required: false, default: '', description: Application identifier used for Google Play uploads}
+  local-aab-path: {required: false, default: '', description: Local App Bundle path used for direct beta delivery}
+  local-package-name: {required: false, default: '', description: Package name resolved by the direct Android build}
+  version-code: {required: false, default: '', description: Exact Flutter build number promoted in direct production delivery}
   service-account-json: {required: true, description: Google Play service account JSON}
 
 runs:
   using: composite
   steps:
     - name: Download signed Android artifact
+      if: inputs.delivery-mode == 'artifact'
       id: artifact
       uses: actions/download-artifact@v8
       with:
@@ -24,9 +30,11 @@ runs:
     - name: Resolve Android application identifier
       id: metadata
       shell: bash
-      working-directory: ${{ steps.artifact.outputs.download-path }}
       env:
         APP_IDENTIFIER: ${{ inputs.identifier }}
+        ARTIFACT_DIRECTORY: ${{ steps.artifact.outputs.download-path }}
+        DELIVERY_MODE: ${{ inputs.delivery-mode }}
+        LOCAL_PACKAGE_NAME: ${{ inputs.local-package-name }}
       run: |
         set -euo pipefail
 
@@ -37,25 +45,28 @@ runs:
           exit 1
         fi
 
-        package_name_file=''
-        package_name_file_count=0
-        while IFS= read -r candidate; do
-          package_name_file="${candidate}"
-          package_name_file_count=$((package_name_file_count + 1))
-        done < <(find . -type f -name android-package-name.txt -print)
+        artifact_package_name="${LOCAL_PACKAGE_NAME}"
+        if [[ "${DELIVERY_MODE}" == 'artifact' ]]; then
+          package_name_file=''
+          package_name_file_count=0
+          while IFS= read -r candidate; do
+            package_name_file="${candidate}"
+            package_name_file_count=$((package_name_file_count + 1))
+          done < <(find "${ARTIFACT_DIRECTORY}" -type f -name android-package-name.txt -print)
 
-        if [[ "${package_name_file_count}" -gt 1 ]]; then
-          echo "Expected at most one Android application identifier file, found ${package_name_file_count}." >&2
-          exit 1
-        fi
-
-        artifact_package_name=''
-        if [[ "${package_name_file_count}" -eq 1 ]]; then
-          artifact_package_name="$(tr -d '\r\n' < "${package_name_file}")"
-          if [[ ! "${artifact_package_name}" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
-            echo "The Android artifact contains an invalid application identifier." >&2
+          if [[ "${package_name_file_count}" -gt 1 ]]; then
+            echo "Expected at most one Android application identifier file, found ${package_name_file_count}." >&2
             exit 1
           fi
+          if [[ "${package_name_file_count}" -eq 1 ]]; then
+            artifact_package_name="$(tr -d '\r\n' < "${package_name_file}")"
+          fi
+        fi
+
+        if [[ -n "${artifact_package_name}" ]] &&
+          [[ ! "${artifact_package_name}" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]]; then
+          echo "The Android build contains an invalid application identifier." >&2
+          exit 1
         fi
 
         if [[ -n "${configured_package_name}" && -n "${artifact_package_name}" &&
@@ -67,16 +78,86 @@ runs:
         package_name="${artifact_package_name:-${configured_package_name}}"
         if [[ -z "${package_name}" ]]; then
           echo "No Android application identifier was passed or included in the artifact." >&2
-          echo "Re-run all jobs with the latest v2 workflow." >&2
+          echo "Set APP_IDENTIFIER or rebuild with package metadata." >&2
           exit 1
         fi
 
         echo "package-name=${package_name}" >> "${GITHUB_OUTPUT}"
+    - name: Resolve Android App Bundle
+      if: inputs.stage == 'beta' || inputs.delivery-mode == 'artifact'
+      id: bundle
+      shell: bash
+      env:
+        ARTIFACT_DIRECTORY: ${{ steps.artifact.outputs.download-path }}
+        DELIVERY_MODE: ${{ inputs.delivery-mode }}
+        LOCAL_AAB_PATH: ${{ inputs.local-aab-path }}
+      run: |
+        set -euo pipefail
+
+        if [[ "${DELIVERY_MODE}" == 'direct' ]]; then
+          if [[ -z "${LOCAL_AAB_PATH}" || ! -f "${LOCAL_AAB_PATH}" ]]; then
+            echo "Direct Android beta delivery requires an existing local App Bundle path." >&2
+            exit 1
+          fi
+          if [[ "${LOCAL_AAB_PATH}" != *.aab ]]; then
+            echo "Direct Android beta delivery received a non-AAB path: ${LOCAL_AAB_PATH}" >&2
+            exit 1
+          fi
+          echo "aab-path=${LOCAL_AAB_PATH}" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        aab_path=''
+        aab_count=0
+        while IFS= read -r candidate; do
+          aab_path="${candidate}"
+          aab_count=$((aab_count + 1))
+        done < <(find "${ARTIFACT_DIRECTORY}" -type f -name '*.aab' -print)
+        if [[ "${aab_count}" -ne 1 ]]; then
+          echo "Expected exactly one Android App Bundle in the build artifact, found ${aab_count}." >&2
+          exit 1
+        fi
+        echo "aab-path=${aab_path}" >> "${GITHUB_OUTPUT}"
     - name: Upload Android release to Google Play
+      if: inputs.delivery-mode == 'artifact'
       uses: r0adkll/upload-google-play@v1.1.5
       with:
         serviceAccountJsonPlainText: ${{ inputs.service-account-json }}
         packageName: ${{ steps.metadata.outputs.package-name }}
-        releaseFiles: ${{ steps.artifact.outputs.download-path }}/**/*.aab
+        releaseFiles: ${{ steps.bundle.outputs.aab-path }}
         tracks: ${{ inputs.stage == 'production' && 'production' || inputs.track }}
         status: completed
+    - name: Authenticate exact Google Play promotion
+      if: inputs.delivery-mode == 'direct'
+      id: google_auth
+      # v3
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+      with:
+        credentials_json: ${{ inputs.service-account-json }}
+        token_format: access_token
+        access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+        create_credentials_file: false
+        export_environment_variables: false
+    - name: Publish provenance-bound beta to Google Play
+      if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
+      shell: bash
+      env:
+        GOOGLE_PLAY_ACCESS_TOKEN: ${{ steps.google_auth.outputs.access_token }}
+        PACKAGE_NAME: ${{ steps.metadata.outputs.package-name }}
+        SOURCE_TRACK: ${{ inputs.track }}
+        SOURCE_SHA: ${{ inputs.source-sha }}
+        VERSION_CODE: ${{ inputs.version-code }}
+        AAB_PATH: ${{ steps.bundle.outputs.aab-path }}
+        BETA_SCRIPT: ${{ github.action_path }}/publish-beta.sh
+      run: bash "${BETA_SCRIPT}"
+    - name: Promote exact tested version to Google Play production
+      if: inputs.stage == 'production' && inputs.delivery-mode == 'direct'
+      shell: bash
+      env:
+        GOOGLE_PLAY_ACCESS_TOKEN: ${{ steps.google_auth.outputs.access_token }}
+        PACKAGE_NAME: ${{ steps.metadata.outputs.package-name }}
+        SOURCE_TRACK: ${{ inputs.track }}
+        SOURCE_SHA: ${{ inputs.source-sha }}
+        VERSION_CODE: ${{ inputs.version-code }}
+        PROMOTION_SCRIPT: ${{ github.action_path }}/promote-track.sh
+      run: bash "${PROMOTION_SCRIPT}"

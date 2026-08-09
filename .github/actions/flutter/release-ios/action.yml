@@ -3,7 +3,11 @@ description: Distributes a built IPA to TestFlight or promotes it to App Store p
 
 inputs:
   stage: {required: true, description: beta or production}
+  delivery-mode: {required: false, default: artifact, description: artifact or direct}
+  source-sha: {required: false, default: '', description: Exact source commit represented by the store build}
+  source-provenance-supported: {required: false, default: '', description: Consumer attestation that iOS lanes enforce SOURCE_SHA provenance}
   artifact-run-id: {required: false, default: '', description: Workflow run containing the IPA}
+  ipa-path: {required: false, default: '', description: Local IPA path used for direct beta delivery}
   working-directory: {required: true, description: Flutter application directory}
   runner: {required: false, default: self-hosted, description: Runner provider; self-hosted or github-hosted}
   app-version: {required: true, description: Semantic application version}
@@ -23,6 +27,23 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Validate direct iOS source provenance contract
+      if: inputs.delivery-mode == 'direct'
+      shell: bash
+      env:
+        SOURCE_SHA: ${{ inputs.source-sha }}
+        SOURCE_PROVENANCE_SUPPORTED: ${{ inputs.source-provenance-supported }}
+      run: |
+        set -euo pipefail
+        if [[ ! "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "Direct iOS delivery requires the exact 40-character source SHA." >&2
+          exit 1
+        fi
+        if [[ "${SOURCE_PROVENANCE_SUPPORTED}" != 'true' ]]; then
+          echo "Direct iOS delivery requires IOS_SOURCE_PROVENANCE_SUPPORTED=true after both Fastlane lanes implement the SOURCE_SHA contract." >&2
+          exit 1
+        fi
+
     - name: Validate App Store Connect API credentials
       shell: bash
       env:
@@ -80,34 +101,50 @@ runs:
       run: bash "${METADATA_SCRIPT}"
 
     - name: Download signed iOS artifact
-      if: inputs.stage == 'beta'
+      if: inputs.stage == 'beta' && inputs.delivery-mode == 'artifact'
       uses: actions/download-artifact@v4
       with:
         name: ios-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
         path: ${{ runner.temp }}/ios-${{ github.run_id }}
         github-token: ${{ github.token }}
         run-id: ${{ inputs.artifact-run-id }}
-    - name: Locate downloaded IPA
+    - name: Resolve beta IPA
       if: inputs.stage == 'beta'
       id: artifact
       shell: bash
-      working-directory: ${{ runner.temp }}/ios-${{ github.run_id }}
+      env:
+        DELIVERY_MODE: ${{ inputs.delivery-mode }}
+        LOCAL_IPA_PATH: ${{ inputs.ipa-path }}
+        ARTIFACT_DIRECTORY: ${{ runner.temp }}/ios-${{ github.run_id }}
       run: |
         set -euo pipefail
+
+        if [[ "${DELIVERY_MODE}" == 'direct' ]]; then
+          if [[ -z "${LOCAL_IPA_PATH}" || ! -f "${LOCAL_IPA_PATH}" ]]; then
+            echo "Direct iOS delivery requires an existing local IPA path." >&2
+            exit 1
+          fi
+          if [[ "${LOCAL_IPA_PATH}" != *.ipa ]]; then
+            echo "Direct iOS delivery received a non-IPA path: ${LOCAL_IPA_PATH}" >&2
+            exit 1
+          fi
+          echo "ipa-path=${LOCAL_IPA_PATH}" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
 
         ipa_path=''
         ipa_count=0
         while IFS= read -r candidate; do
           ipa_path="${candidate}"
           ipa_count=$((ipa_count + 1))
-        done < <(find . -type f -name '*.ipa' -print)
+        done < <(find "${ARTIFACT_DIRECTORY}" -type f -name '*.ipa' -print)
 
         if [[ "${ipa_count}" -ne 1 ]]; then
           echo "Expected exactly one IPA in the build artifact, found ${ipa_count}." >&2
           exit 1
         fi
 
-        echo "ipa-path=${PWD}/${ipa_path#./}" >> "${GITHUB_OUTPUT}"
+        echo "ipa-path=${ipa_path}" >> "${GITHUB_OUTPUT}"
     - name: Setup hosted Ruby, Bundler and gem cache
       if: inputs.runner == 'github-hosted'
       uses: ruby/setup-ruby@v1
@@ -130,6 +167,7 @@ runs:
         APP_VERSION: ${{ inputs.app-version }}
         BUILD_NUMBER: ${{ inputs.build-number }}
         FULL_VERSION: ${{ inputs.full-version }}
+        SOURCE_SHA: ${{ inputs.source-sha }}
         IPA_PATH: ${{ steps.artifact.outputs.ipa-path }}
         FASTLANE_SKIP_UPDATE_CHECK: '1'
       run: ${{ inputs.beta-command }}
@@ -150,5 +188,6 @@ runs:
         APP_VERSION: ${{ inputs.app-version }}
         BUILD_NUMBER: ${{ inputs.build-number }}
         FULL_VERSION: ${{ inputs.full-version }}
+        SOURCE_SHA: ${{ inputs.source-sha }}
         FASTLANE_SKIP_UPDATE_CHECK: '1'
       run: ${{ inputs.production-command }}

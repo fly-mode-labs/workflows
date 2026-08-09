@@ -30,3 +30,12 @@ jobs:
       - name: Run App Store metadata staging tests
         shell: bash
         run: bash .github/actions/flutter/release-ios/test-stage-metadata.sh
+      - name: Validate direct and artifact delivery contracts
+        shell: bash
+        run: bash .github/test-direct-delivery.sh
+      - name: Run Google Play exact-version promotion tests
+        shell: bash
+        run: bash .github/actions/flutter/release-android/test-promote-track.sh
+      - name: Run Google Play beta provenance tests
+        shell: bash
+        run: bash .github/actions/flutter/release-android/test-publish-beta.sh

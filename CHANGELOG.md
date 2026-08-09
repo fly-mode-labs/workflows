@@ -5,6 +5,34 @@ usa [Semantic Versioning](https://semver.org/).
 
 ## Unreleased
 
+### Added
+
+- Added `delivery-mode: direct|artifact` to the public Flutter pipeline. The
+  default remains `artifact` for existing external callers, while the supplied
+  Flutter template explicitly selects `direct` for CI and CD.
+- Direct iOS and Android beta releases now build and upload inside their existing
+  `beta` environment jobs using validated local IPA/AAB paths. Draft validation
+  builds discard binaries instead of uploading workflow artifacts.
+- Direct Android production now promotes the exact Flutter build number from the
+  configured testing track through the Android Publisher API. It fails when the
+  tested release is missing or ambiguous and never downloads, rebuilds, or
+  re-uploads an AAB.
+
+### Changed
+
+- Release concurrency is serialized per repository across beta and production.
+- The direct Flutter caller no longer requests `actions: read`; artifact-mode
+  callers retain artifact resolution, download, upload, and naming compatibility.
+- Direct beta now runs for every non-draft PR synchronization and binds Android
+  releases to the exact source SHA. Android API edits preserve completed
+  production releases, reject active rollouts, reconcile uncertain commits, and
+  use short-lived tokens without credential files.
+- Direct iOS passes `SOURCE_SHA` to both Fastlane lanes and requires the explicit
+  `IOS_SOURCE_PROVENANCE_SUPPORTED=true` consumer attestation. The template now
+  defaults to GitHub-hosted runners, release checkouts do not persist Git
+  credentials, and direct signed outputs are always removed.
+- Artifact-mode iOS uploads continue to include the XCArchive and IPA.
+
 ## [3.4.13] - 2026-07-26
 
 ### Added

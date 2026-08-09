@@ -41,6 +41,10 @@ on:
         description: Android artifact format; apk, appbundle or both
         type: string
         default: both
+      delivery-mode:
+        description: Mobile binary delivery; artifact or direct
+        type: string
+        default: artifact
 
 permissions:
   contents: read
@@ -123,6 +127,8 @@ jobs:
           key-alias: ${{ secrets.KEYALIAS }}
           store-password: ${{ secrets.STOREPASSWORD }}
           key-password: ${{ secrets.KEYPASSWORD }}
+          upload-artifact: ${{ inputs.delivery-mode == 'artifact' }}
+          cleanup-output: ${{ inputs.delivery-mode == 'direct' }}
 
   ios:
     name: Flutter build / iOS
@@ -158,6 +164,8 @@ jobs:
           app-store-connect-api-key-base64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          upload-artifact: ${{ inputs.delivery-mode == 'artifact' }}
+          cleanup-output: ${{ inputs.delivery-mode == 'direct' }}
 
   web:
     name: Flutter build / Web
@@ -182,3 +190,4 @@ jobs:
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
+          upload-artifact: ${{ inputs.delivery-mode == 'artifact' }}

@@ -184,9 +184,9 @@ app_identifier([
 ])
 ```
 
-La aplicación necesita estos **Repository Secrets**, porque la firma sucede en
-los jobs de build antes de publicar; **Ready for review** reutiliza el build
-firmado del draft del mismo commit:
+The application needs these **Repository Secrets** because signing happens in
+both validation builds and direct beta jobs. A direct **Ready for review** run
+rebuilds the same source inside the `beta` environment job:
 
 ```text
 MATCH_PASSWORD
@@ -210,15 +210,33 @@ uno está configurado, el job falla antes de compilar para evitar una firma
 parcial. No se deben guardar `.p12`, `.cer` o `.mobileprovision` dentro del
 repositorio de la aplicación ni del repositorio central de workflows.
 
-El build previo produce el IPA firmado. En **Ready for review** se reutiliza el
-artefacto del draft del mismo commit; una beta manual o una PR creada directamente
-como open puede producirlo en su propia ejecución. `ios beta` recibe su ruta
-absoluta en `IPA_PATH` y debe limitarse a subir ese archivo, por ejemplo con
+In direct mode, the TestFlight job builds one signed IPA and uploads it without
+leaving the job. `ios beta` receives the validated absolute local path in
+`IPA_PATH` and must only upload that file, for example with
 `upload_to_testflight(api_key: app_store_connect_key, ipa:
 ENV.fetch("IPA_PATH"))`; no debe ejecutar `build_app` ni volver a firmar. También
 recibe `APP_VERSION` y `BUILD_NUMBER`.
 `ios release` debe localizar ese mismo build beta y enviarlo o promoverlo a App
 Store según la política del equipo.
+
+Artifact mode remains available for existing callers. It uploads the IPA during
+build and downloads that exact artifact before invoking the same beta lane.
+
+### iOS source provenance contract
+
+Direct iOS jobs pass the exact PR head commit as `SOURCE_SHA` and fail before
+Fastlane unless `IOS_SOURCE_PROVENANCE_SUPPORTED=true` is configured as a
+Repository Variable. Set this attestation only after both consumer lanes enforce
+the contract.
+
+`ios beta` must look up the exact `APP_VERSION` and `BUILD_NUMBER`. If TestFlight
+**What to Test** metadata already contains `Source SHA: <SOURCE_SHA>`, it must
+return success without uploading again. Otherwise it must upload `IPA_PATH` and
+attach that marker through `changelog` or
+`localized_build_info.default.whats_new`. `ios release` must fetch the same
+TestFlight build and fail unless its metadata contains that exact marker before
+selecting or submitting it. Merely accepting `SOURCE_SHA` does not satisfy the
+contract.
 
 ### Metadata de App Store
 
@@ -321,13 +339,11 @@ anteriores. Ambos archivos se eliminan siempre al terminar el job. La aplicació
 debe ignorar `android/key.properties`, `android/keystore.properties`, `*.jks` y
 `*.keystore`; no debe guardar placeholders de secrets en esos archivos.
 
-El app bundle firmado se construye en el build previo. En **Ready for review** y
-producción se reutiliza el artefacto del mismo commit; los otros disparadores
-beta pueden producirlo en su propia ejecución. La fase de distribución usa
-[`actions/download-artifact`](https://github.com/actions/download-artifact#usage)
-para descargar el AAB y
-[`r0adkll/upload-google-play`](https://github.com/r0adkll/upload-google-play#inputs)
-para enviarlo directamente a Google Play mediante la Android Publisher API.
+Direct beta delivery forces `appbundle`, builds one signed AAB inside the
+`beta` environment job, validates its exact local path and AGP package metadata,
+then passes both values to
+[`r0adkll/upload-google-play`](https://github.com/r0adkll/upload-google-play#inputs).
+It does not use `actions/upload-artifact` or `actions/download-artifact`.
 
 La aplicación puede declarar únicamente un track diferente al predeterminado:
 
@@ -342,22 +358,30 @@ with:
 `android-track` usa `internal` por defecto, así que también puede omitirse. Se
 puede cambiar a `beta` o a un track personalizado existente en Play Console.
 
-La acción recibe exactamente los inputs documentados por su autor:
-`serviceAccountJsonPlainText`, `packageName`, `releaseFiles`, `tracks` y
-`status`. `packageName` recibe el application ID extraído por Android Gradle
-Plugin durante el build; si `APP_IDENTIFIER` está disponible, el pipeline exige
-que ambos valores coincidan. `releaseFiles` usa el glob soportado oficialmente
-para seleccionar el único `.aab` dentro del artefacto descargado. Ninguna
-distribución Android hace checkout, instala Flutter o ejecuta Gradle, Android
-SDK o NDK. Tampoco recompila ni vuelve a firmar el AAB. Beta envía `tracks` al
-valor de `android-track`; producción usa la misma acción y fuerza
-`tracks: production`.
+Direct beta uses a short-lived Android Publisher access token, uploads the exact
+validated local `.aab`, and never writes the service-account JSON to disk.
+`packageName` comes from Android Gradle Plugin metadata and must match
+`APP_IDENTIFIER` when configured. Artifact mode continues to use the pinned
+upload action with its existing inputs.
 
-Cada environment de GitHub (`beta` y `production`) debe definir
-`ANDROID_PUBLISHER_CREDENTIALS` con el contenido completo del JSON de la cuenta
-de servicio. En ambos stages se entrega al input
-`serviceAccountJsonPlainText`; beta usa el track configurado y producción usa
-el track `production`.
+Direct production does not download, rebuild, or upload an AAB. It reads the
+Flutter build number from `pubspec.yaml`, opens an Android Publisher edit, and
+requires exactly one release on `android-track` containing that version code.
+Only that exact version code is written to a completed `production` release and
+the edit is committed. Missing or ambiguous tested versions fail before the
+production track is changed. iOS production continues to submit or promote the
+existing TestFlight build through `ios release`.
+
+Artifact mode preserves the previous integration for external callers: it
+downloads the signed AAB and uses the pinned upload action for beta or production.
+Direct Android beta names the release with the exact source SHA and is idempotent
+only when both version code and name match. Production requires that same pair,
+preserves completed production releases, and refuses to replace draft, halted,
+or staged rollouts.
+
+Each GitHub environment must define `ANDROID_PUBLISHER_CREDENTIALS` with the
+complete service-account JSON. Direct mode exchanges it for an in-memory,
+short-lived access token without creating a credentials file.
 
 ## Secrets y environments
 
@@ -365,8 +389,13 @@ El template usa `secrets: inherit`: los secretos permanecen en el repo de cada
 app y no pasan a este repositorio central. Los secrets de Match son Repository
 Secrets porque se consumen durante los builds draft y beta. Configure las
 credenciales de subida que consuman Fastlane y Google Play dentro de los
-environments `beta` y `production`. Proteja `production` con reviewers si se requiere
-aprobación humana.
+environments `beta` y `production`.
+
+Direct mode requires reviewers on both environments because these jobs execute
+consumer build and Fastlane code while signing and store credentials are in
+scope. The supplied template defaults to ephemeral GitHub-hosted runners.
+Explicit self-hosted callers accept the additional workspace isolation risk.
+Artifact mode retains its pre-existing signed CI behavior for compatibility.
 
 ## Versionado
 
@@ -385,10 +414,10 @@ BUILD_NUMBER=47
 FULL_VERSION=2.3.0+47
 ```
 
-Flutter usa esos mismos valores al construir. Los artefactos de build incluyen
-la versión completa en el nombre. Las lanes/tareas no deben generar otra versión;
-deben usar estas variables y asegurar que el build number no haya sido publicado
-antes. La publicación no recompila: reutiliza el AAB firmado del build previo.
+Flutter uses these same values while building. Artifact-mode build names include
+the full version. Direct release lanes and tasks must not generate another
+version. Android direct production uses `BUILD_NUMBER` as the exact existing
+Google Play version code to promote.
 
 Este número es independiente de la versión mayor del pipeline central (`@v3`). La
 primera versiona la aplicación; la segunda versiona las reglas de CI/CD.

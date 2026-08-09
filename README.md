@@ -9,19 +9,21 @@ Actions.
 
 | Estado de la PR | Acción |
 | --- | --- |
-| Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Compila Android e iOS sin publicar y conserva los artefactos. |
-| Open directo (`opened`, `reopened`) | Compila el commit actual y publica la beta de iOS en TestFlight y la de Android en el track configurado. |
-| Ready for review (`ready_for_review`) | Reutiliza los artefactos del build draft exitoso del mismo commit y los publica en TestFlight y Google Play, sin recompilar. |
-| Merge a `main` (`closed` + `merged`) | Promueve ambas betas a producción. |
+| Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Builds Android and iOS for validation, then discards local binaries. |
+| Open directly (`opened`, `reopened`) | Builds and uploads each mobile beta inside its store environment job. |
+| Ready for review (`ready_for_review`) | Rebuilds the same source and uploads each beta directly; no GitHub artifact transfer is used. |
+| Merge to `main` (`closed` + `merged`) | Submits the existing TestFlight build and promotes the exact tested Android version code to production. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
 2.3.0+47`). Es independiente del tag mayor del pipeline (`@v3`).
 
-Una PR creada directamente como open ejecuta un build antes de beta porque no
-tiene artefactos draft. En cambio, **Ready for review** localiza el build exitoso
-del mismo commit y pasa directamente a beta. Si ese build todavía está en cola o
-en ejecución, espera hasta 40 minutos por sus artefactos; si termina sin todos
-los artefactos requeridos, falla antes de contactar TestFlight o Google Play.
+The supplied Flutter template selects `delivery-mode: direct`. Direct beta jobs
+build and publish on the same runner, so **Ready for review** may rebuild the
+same source and never waits for GitHub artifacts. Existing external callers keep
+`delivery-mode: artifact` by default; that compatibility mode continues to
+resolve and transfer binaries through workflow artifacts.
+Non-draft `synchronize` events also run direct beta so every new PR head SHA is
+published or fails before merge.
 Nuevos commits en una PR que ya está abierta no vuelven a distribuir una beta
 automáticamente; esto evita publicar una versión por cada push. Se puede ejecutar
 de nuevo desde `workflow_dispatch`.
@@ -33,8 +35,8 @@ de nuevo desde `workflow_dispatch`.
    distribución.
 2. El template referencia `fly-mode-labs/workflows` y consume el alias
    compatible `@v3`, nunca `@main`.
-3. Conservar `actions: read` y `contents: read` en los permisos del caller; beta
-   descarga los artefactos producidos por el build actual o por el draft previo.
+3. Keep `contents: read` in direct callers. Artifact-mode callers must also grant
+   `actions: read` so releases can resolve and download build artifacts.
 4. Crear en GitHub el environment `beta` y el environment `production`, con sus
    secretos y protecciones.
 5. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con
@@ -160,10 +162,8 @@ workflows en cada PR y push a `main`.
 - `flutter-build.yml`: agrupa jobs explícitos e independientes para checks,
   Android, iOS y Web; todos los seleccionados comienzan en paralelo y cada uno
   se puede reejecutar individualmente.
-- `flutter-release.yml`: recibe los artefactos producidos por el build de la
-  ejecución actual o resuelve el build exitoso anterior del mismo commit al usar
-  **Ready for review**, y coordina los adaptadores `release-integration-*` para
-  App Store y Google Play.
+- `flutter-release.yml`: selects direct local delivery or the compatible artifact
+  resolver, and coordinates the `release-integration-*` store adapters.
 - `release-integration-*`: prepara cada job de distribución y delega la
   publicación a las composite actions `release-ios` y `release-android`.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.
@@ -183,6 +183,24 @@ predeterminado `pipeline: all` conserva la compatibilidad con callers anteriores
 que ejecutan todo en un único job. El input `technology` selecciona la
 implementación (`flutter` actualmente); agregar otra tecnología no requiere
 ampliar el caller de cada proyecto.
+
+`delivery-mode` accepts `direct` or `artifact`. The default remains `artifact`
+for external caller compatibility. In `direct`, CI never uploads build artifacts,
+beta builds and uploads in one environment job, iOS production remains
+artifactless, and Android production promotes the exact `pubspec.yaml` build
+number from `android-track` to `production` without rebuilding or downloading an
+AAB.
+
+The direct template defaults to GitHub-hosted runners. Both `beta` and
+`production` environments must require reviewers because these jobs execute
+consumer code while signing and store credentials are available. iOS direct mode
+also requires `IOS_SOURCE_PROVENANCE_SUPPORTED=true`; set it only after both
+Fastlane lanes implement the `SOURCE_SHA` contract documented in
+[docs/flutter.md](docs/flutter.md).
+
+Artifact mode remains intentionally compatible and can execute signed build code
+outside protected release environments. That pre-existing risk is not expanded
+or redesigned by direct mode.
 
 El input `runner` acepta `self-hosted` (predeterminado) o `github-hosted`. Con
 `github-hosted`, iOS y App Store usan `macos-latest`; validación, checks,

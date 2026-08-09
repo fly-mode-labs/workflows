@@ -1,9 +1,11 @@
 name: Build Flutter iOS
-description: Builds and uploads a signed XCArchive and IPA.
+description: Builds a signed IPA and optionally uploads it as an artifact.
 
 inputs:
   working-directory: {required: true, description: Flutter application directory}
   full-version: {required: true, description: Full pubspec version}
+  upload-artifact: {required: false, default: 'true', description: Whether to upload the IPA as a GitHub artifact}
+  cleanup-output: {required: false, default: 'false', description: Whether to remove local signed outputs before the action exits}
   runner: {required: false, default: self-hosted, description: Runner provider; self-hosted or github-hosted}
   match-password: {required: false, description: Match repository encryption password}
   match-git-basic-authorization: {required: false, description: Base64 Git authorization for Match}
@@ -11,6 +13,11 @@ inputs:
   app-store-connect-api-key-base64: {required: false, description: Base64 App Store Connect API key for first-time Match initialization}
   app-store-connect-issuer-id: {required: false, description: App Store Connect API issuer ID for first-time Match initialization}
   app-store-connect-key-id: {required: false, description: App Store Connect API key ID for first-time Match initialization}
+
+outputs:
+  ipa-path:
+    description: Absolute path to the single generated IPA
+    value: ${{ steps.ipa.outputs.ipa-path }}
 
 runs:
   using: composite
@@ -94,7 +101,28 @@ runs:
         flutter build ipa \
           --release \
           --export-options-plist="${export_options_plist}"
+    - name: Resolve signed IPA
+      id: ipa
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+
+        ipa_path=''
+        ipa_count=0
+        while IFS= read -r candidate; do
+          ipa_path="${candidate}"
+          ipa_count=$((ipa_count + 1))
+        done < <(find build/ios/ipa -type f -name '*.ipa' -print)
+
+        if [[ "${ipa_count}" -ne 1 ]]; then
+          echo "Expected exactly one signed IPA, found ${ipa_count}." >&2
+          exit 1
+        fi
+
+        echo "ipa-path=${PWD}/${ipa_path}" >> "${GITHUB_OUTPUT}"
     - name: Upload iOS artifacts
+      if: inputs.upload-artifact == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: ios-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
@@ -135,3 +163,7 @@ runs:
         fi
 
         rm -f -- "${PROFILES_BEFORE_LIST}" "${PROFILES_CLEANUP_LIST}"
+    - name: Remove local iOS build outputs
+      if: always() && inputs.cleanup-output == 'true'
+      shell: bash
+      run: rm -rf -- "${{ inputs.working-directory }}/build/ios/ipa" "${{ inputs.working-directory }}/build/ios/archive"

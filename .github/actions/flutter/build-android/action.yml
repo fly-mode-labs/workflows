@@ -1,14 +1,27 @@
 name: Build Flutter Android
-description: Builds and uploads the selected Android release artifacts.
+description: Builds Android release binaries and optionally uploads them as artifacts.
 
 inputs:
   working-directory: {required: true, description: Flutter application directory}
   full-version: {required: true, description: Full pubspec version}
   build-format: {required: false, default: both, description: apk, appbundle or both}
+  upload-artifact: {required: false, default: 'true', description: Whether to upload the build outputs as a GitHub artifact}
+  cleanup-output: {required: false, default: 'false', description: Whether to remove local build outputs before the action exits}
   keystore-base64: {required: false, description: Base64-encoded Android keystore}
   key-alias: {required: false, description: Android signing key alias}
   store-password: {required: false, description: Android keystore password}
   key-password: {required: false, description: Android signing key password}
+
+outputs:
+  aab-path:
+    description: Absolute path to the single generated Android App Bundle, when requested
+    value: ${{ steps.bundle.outputs.aab-path }}
+  package-name:
+    description: Android application identifier resolved from AGP metadata
+    value: ${{ steps.metadata.outputs.package-name }}
+  package-name-path:
+    description: Absolute path to the Android application identifier metadata file
+    value: ${{ steps.metadata.outputs.package-name-path }}
 
 runs:
   using: composite
@@ -87,6 +100,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       run: flutter build appbundle --release
     - name: Export Android application identifier
+      id: metadata
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
@@ -107,7 +121,31 @@ runs:
           exit 1
         fi
 
-        echo "Android application ID: $(< "${package_name_file}")"
+        package_name="$(< "${package_name_file}")"
+        echo "Android application ID: ${package_name}"
+        echo "package-name=${package_name}" >> "${GITHUB_OUTPUT}"
+        echo "package-name-path=${PWD}/${package_name_file}" >> "${GITHUB_OUTPUT}"
+    - name: Resolve Android App Bundle
+      if: inputs.build-format == 'appbundle' || inputs.build-format == 'both'
+      id: bundle
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+
+        aab_path=''
+        aab_count=0
+        while IFS= read -r candidate; do
+          aab_path="${candidate}"
+          aab_count=$((aab_count + 1))
+        done < <(find build/app/outputs/bundle -type f -name '*.aab' -print)
+
+        if [[ "${aab_count}" -ne 1 ]]; then
+          echo "Expected exactly one Android App Bundle, found ${aab_count}." >&2
+          exit 1
+        fi
+
+        echo "aab-path=${PWD}/${aab_path}" >> "${GITHUB_OUTPUT}"
     - name: Remove Gradle CI project cache
       if: always()
       shell: bash
@@ -117,6 +155,7 @@ runs:
         gradle_project_cache=".gradle/ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
         rm -rf -- "${gradle_project_cache}"
     - name: Upload Android artifacts
+      if: inputs.upload-artifact == 'true'
       uses: actions/upload-artifact@v7
       with:
         name: android-${{ inputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
@@ -135,3 +174,7 @@ runs:
         SIGNING_KEYSTORE_PATH: ${{ steps.android_signing.outputs.keystore-path }}
         SIGNING_PROPERTIES_PATH: ${{ steps.android_signing.outputs.properties-path }}
       run: rm -f -- "${SIGNING_KEYSTORE_PATH}" "${SIGNING_PROPERTIES_PATH}"
+    - name: Remove local Android build outputs
+      if: always() && inputs.cleanup-output == 'true'
+      shell: bash
+      run: rm -rf -- "${{ inputs.working-directory }}/build/app/outputs/flutter-apk" "${{ inputs.working-directory }}/build/app/outputs/bundle" "${{ inputs.working-directory }}/build/app/outputs/pipeline-metadata"

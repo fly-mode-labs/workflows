@@ -11,6 +11,10 @@ on:
         description: Pipeline scope; all, ci or cd
         type: string
         default: all
+      delivery-mode:
+        description: Mobile binary delivery; artifact or direct
+        type: string
+        default: artifact
       platforms:
         description: Comma-separated platforms or auto
         type: string
@@ -66,6 +70,7 @@ jobs:
         env:
           TECHNOLOGY: ${{ inputs.technology }}
           CONFIGURED_PIPELINE: ${{ inputs.pipeline }}
+          DELIVERY_MODE: ${{ inputs.delivery-mode }}
           CONFIGURED_STAGE: ${{ inputs.stage }}
           EVENT_STAGE: ${{ github.event.inputs.stage }}
           CONFIGURED_DIRECTORY: ${{ inputs.working-directory }}
@@ -84,6 +89,11 @@ jobs:
           case "${CONFIGURED_PIPELINE}" in
             all|ci|cd) ;;
             *) echo "Unsupported pipeline scope: ${CONFIGURED_PIPELINE}"; exit 1 ;;
+          esac
+
+          case "${DELIVERY_MODE}" in
+            artifact|direct) ;;
+            *) echo "Unsupported delivery mode: ${DELIVERY_MODE}"; exit 1 ;;
           esac
 
           case "${CONFIGURED_RUNNER}" in
@@ -179,7 +189,8 @@ jobs:
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       ((github.event.pull_request.draft == true && github.event.action != 'closed') ||
       (github.event.pull_request.draft == false &&
-      (github.event.action == 'opened' || github.event.action == 'reopened')))))
+      (github.event.action == 'opened' || github.event.action == 'reopened' ||
+      (inputs.delivery-mode == 'direct' && github.event.action == 'synchronize'))))))
     uses: ./.github/workflows/flutter-build.yml
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
@@ -192,6 +203,7 @@ jobs:
       build-ios: ${{ needs.validate.outputs.ios == 'true' }}
       build-web: ${{ needs.validate.outputs.web == 'true' }}
       android-build-format: ${{ inputs.android-build-format }}
+      delivery-mode: ${{ inputs.delivery-mode }}
     secrets: inherit
 
   flutter-beta-release:
@@ -205,16 +217,20 @@ jobs:
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       (github.event.action == 'ready_for_review' ||
       (github.event.pull_request.draft == false &&
-      (github.event.action == 'opened' || github.event.action == 'reopened'))))) &&
+      (github.event.action == 'opened' || github.event.action == 'reopened' ||
+      (inputs.delivery-mode == 'direct' && github.event.action == 'synchronize')))))) &&
       (github.event.action == 'ready_for_review' ||
       inputs.pipeline == 'cd' ||
       needs.flutter-build.result == 'success')
     uses: ./.github/workflows/flutter-release.yml
     with:
       stage: beta
+      delivery-mode: ${{ inputs.delivery-mode }}
+      source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       artifact-run-id: ${{ github.event.action != 'ready_for_review' && github.run_id || '' }}
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
+      java-version: ${{ needs.validate.outputs.java-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
@@ -235,8 +251,11 @@ jobs:
     uses: ./.github/workflows/flutter-release.yml
     with:
       stage: production
+      delivery-mode: ${{ inputs.delivery-mode }}
+      source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
+      java-version: ${{ needs.validate.outputs.java-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}

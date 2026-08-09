@@ -4,6 +4,8 @@ on:
   workflow_call:
     inputs:
       stage: {required: true, type: string}
+      delivery-mode: {type: string, default: artifact}
+      source-sha: {required: true, type: string}
       artifact-run-id: {type: string, default: ''}
       working-directory: {required: true, type: string}
       flutter-version: {type: string, default: stable}
@@ -22,23 +24,49 @@ jobs:
     name: ${{ inputs.stage == 'beta' && 'TestFlight' || 'App Store production' }}
     environment: ${{ inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
-    timeout-minutes: 45
+    timeout-minutes: ${{ inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && 75 || 45 }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Select Xcode version
         uses: fly-mode-labs/workflows/.github/actions/flutter/setup-xcode@v3
         with:
           xcode-version: ${{ inputs.xcode-version }}
           runner: ${{ inputs.runner }}
+      - name: Setup Flutter SDK and dependencies
+        if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
       - uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
+      - name: Build signed IPA for direct beta delivery
+        if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
+        id: build
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-ios@v3
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          full-version: ${{ steps.version.outputs.full-version }}
+          upload-artifact: 'false'
+          runner: ${{ inputs.runner }}
+          match-password: ${{ secrets.MATCH_PASSWORD }}
+          match-git-basic-authorization: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          app-store-connect-api-key-base64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       - name: Release iOS application
         uses: fly-mode-labs/workflows/.github/actions/flutter/release-ios@v3
         with:
           stage: ${{ inputs.stage }}
+          delivery-mode: ${{ inputs.delivery-mode }}
+          source-sha: ${{ inputs.source-sha }}
+          source-provenance-supported: ${{ vars.IOS_SOURCE_PROVENANCE_SUPPORTED }}
           artifact-run-id: ${{ inputs.artifact-run-id }}
+          ipa-path: ${{ steps.build.outputs.ipa-path }}
           working-directory: ${{ inputs.working-directory }}
           runner: ${{ inputs.runner }}
           app-version: ${{ steps.version.outputs.app-version }}
@@ -54,3 +82,7 @@ jobs:
           app-store-release-notes: ${{ vars.APP_STORE_RELEASE_NOTES }}
           beta-command: ${{ inputs.beta-command }}
           production-command: ${{ inputs.production-command }}
+      - name: Remove direct iOS beta binaries
+        if: always() && inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
+        shell: bash
+        run: rm -rf -- "${{ inputs.working-directory }}/build/ios/ipa" "${{ inputs.working-directory }}/build/ios/archive"

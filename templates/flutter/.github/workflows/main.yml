@@ -14,12 +14,11 @@ on:
       runner:
         description: Runner used for this manual execution
         required: true
-        default: self-hosted
+        default: github-hosted
         type: choice
         options: [self-hosted, github-hosted]
 
 permissions:
-  actions: read
   contents: read
 
 jobs:
@@ -28,9 +27,10 @@ jobs:
     with:
       technology: flutter
       pipeline: ci
+      delivery-mode: direct
       platforms: android,ios
       android-build-format: appbundle
-      runner: ${{ inputs.runner || 'self-hosted' }}
+      runner: ${{ inputs.runner || 'github-hosted' }}
     secrets: inherit
 
   cd:
@@ -39,7 +39,8 @@ jobs:
     with:
       technology: flutter
       pipeline: cd
+      delivery-mode: direct
       platforms: android,ios
       android-build-format: appbundle
-      runner: ${{ inputs.runner || 'self-hosted' }}
+      runner: ${{ inputs.runner || 'github-hosted' }}
     secrets: inherit
