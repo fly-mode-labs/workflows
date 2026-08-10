@@ -42,6 +42,25 @@ assert_contains "${main}" 'ANDROID_PUBLISHER_CREDENTIALS:' 'The public workflow 
 assert_not_contains "${main}" 'secrets: inherit' 'The public workflow must pass secrets explicitly to nested workflows.'
 assert_not_contains "${release}" 'secrets: inherit' 'The release workflow must pass only store-specific secrets to integrations.'
 
+beta_release_contract="$(sed -n '/^  flutter-beta-release:/,/^  flutter-production-release:/p' "${main}")"
+production_release_contract="$(sed -n '/^  flutter-production-release:/,$p' "${main}")"
+for signing_secret in \
+  ANDROID_KEYSTORE_BASE64 \
+  KEYALIAS \
+  STOREPASSWORD \
+  KEYPASSWORD \
+  MATCH_PASSWORD \
+  MATCH_GIT_BASIC_AUTHORIZATION; do
+  if ! grep -Fq "${signing_secret}:" <<< "${beta_release_contract}"; then
+    echo "Direct beta release must receive ${signing_secret} for local signed builds." >&2
+    exit 1
+  fi
+  if grep -Fq "${signing_secret}:" <<< "${production_release_contract}"; then
+    echo "Production promotion must not receive unused signing secret ${signing_secret}." >&2
+    exit 1
+  fi
+done
+
 direct_opt_ins="$(grep -Fc 'delivery-mode: direct' "${template}")"
 if [[ "${direct_opt_ins}" -ne 2 ]]; then
   echo 'The Flutter template must select direct delivery in both CI and CD calls.' >&2
