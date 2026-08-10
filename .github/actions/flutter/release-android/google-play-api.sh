@@ -65,6 +65,12 @@ play_get_track() {
   play_api_request GET "${PLAY_API_BASE}/edits/${edit_id}/tracks/${encoded_track}" "${output_file}" '' true
 }
 
+play_list_bundles() {
+  local edit_id="$1"
+  local output_file="$2"
+  play_api_request GET "${PLAY_API_BASE}/edits/${edit_id}/bundles" "${output_file}" '' true
+}
+
 play_delete_edit() {
   local edit_id="$1"
   local output_file="$2"
@@ -81,7 +87,9 @@ play_upload_bundle() {
   local edit_id="$1"
   local bundle_path="$2"
   local output_file="$3"
-  curl \
+  local url="${PLAY_UPLOAD_BASE}/edits/${edit_id}/bundles?uploadType=media"
+
+  if curl \
     --silent --show-error --fail-with-body \
     --connect-timeout "${PLAY_CONNECT_TIMEOUT_SECONDS}" \
     --max-time "${PLAY_UPLOAD_TIMEOUT_SECONDS}" \
@@ -89,5 +97,13 @@ play_upload_bundle() {
     --header "Authorization: Bearer ${GOOGLE_PLAY_ACCESS_TOKEN}" \
     --header 'Content-Type: application/octet-stream' \
     --data-binary "@${bundle_path}" \
-    "${PLAY_UPLOAD_BASE}/edits/${edit_id}/bundles?uploadType=media" > "${output_file}"
+    "${url}" > "${output_file}"; then
+    return 0
+  fi
+
+  local error_message
+  error_message="$(jq -r '.error.message // empty' "${output_file}" 2>/dev/null || true)"
+  echo "Android Publisher bundle upload failed: POST ${url}" >&2
+  [[ -z "${error_message}" ]] || echo "Google Play: ${error_message}" >&2
+  return 1
 }

@@ -39,8 +39,19 @@ if [[ "${exact_matches}" -eq 1 ]]; then
   echo "Google Play beta already contains version code ${VERSION_CODE} for source ${SOURCE_SHA}."
   exit 0
 fi
+
+play_list_bundles "${edit_id}" "${temporary_directory}/bundles.json"
+bundle_version_matches="$(jq --arg version "${VERSION_CODE}" '[.bundles[]? | select(.versionCode | tostring == $version)] | length' "${temporary_directory}/bundles.json")"
+if [[ "${bundle_version_matches}" -ne 0 ]]; then
+  if [[ "${version_matches}" -ne 0 ]]; then
+    echo "Google Play track '${SOURCE_TRACK}' already contains version code ${VERSION_CODE} with different source provenance. Increment the application build number before publishing another beta." >&2
+  else
+    echo "Google Play already contains App Bundle version code ${VERSION_CODE}. Increment the application build number before publishing another beta." >&2
+  fi
+  exit 1
+fi
 if [[ "${version_matches}" -ne 0 ]]; then
-  echo "Google Play track '${SOURCE_TRACK}' already contains version code ${VERSION_CODE} with different source provenance." >&2
+  echo "Google Play track '${SOURCE_TRACK}' already contains version code ${VERSION_CODE} with different source provenance. Increment the application build number before publishing another beta." >&2
   exit 1
 fi
 

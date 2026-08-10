@@ -26,7 +26,14 @@ printf '%s\t%s\t%s\n' "${method}" "${url}" "${content_type}" >> "${TEST_LOG}"
 case "${method} ${url}" in
   POST\ */edits) printf '{"id":"edit-1"}\n' ;;
   GET\ */tracks/internal) printf '%s\n' "${TEST_TRACK}" ;;
-  POST\ *bundles*) printf '{"versionCode":47}\n' ;;
+  GET\ */edits/*/bundles) printf '%s\n' "${TEST_BUNDLES}" ;;
+  POST\ *bundles*)
+    if [[ -n "${TEST_UPLOAD_ERROR:-}" ]]; then
+      printf '{"error":{"message":"%s"}}\n' "${TEST_UPLOAD_ERROR}"
+      exit 22
+    fi
+    printf '{"versionCode":47}\n'
+    ;;
   PUT\ */tracks/internal) cp "${body}" "${TEST_PUT_BODY}"; cat "${body}" ;;
   POST\ *:commit*) [[ -z "${body}" ]] || exit 90; printf '{}\n' ;;
   DELETE\ */edits/*) printf '{}\n' ;;
@@ -39,10 +46,12 @@ export PATH="${test_root}/bin:${PATH}" RUNNER_TEMP="${test_root}/runner"
 export GOOGLE_PLAY_ACCESS_TOKEN=test PACKAGE_NAME=com.example.app SOURCE_TRACK=internal
 export SOURCE_SHA=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa VERSION_CODE=47 AAB_PATH="${test_root}/app.aab"
 export PLAY_RETRY_DELAY_SECONDS=0 TEST_LOG="${test_root}/requests.log" TEST_PUT_BODY="${test_root}/put.json"
+export TEST_BUNDLES='{"bundles":[]}' TEST_UPLOAD_ERROR=''
 
 export TEST_TRACK='{"track":"internal","releases":[]}'
 bash "${action_directory}/publish-beta.sh"
 jq -e '.releases[0].name == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" and .releases[0].versionCodes == ["47"]' "${TEST_PUT_BODY}" >/dev/null
+grep -Fq $'GET\thttps://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.example.app/edits/edit-1/bundles' "${TEST_LOG}"
 
 : > "${TEST_LOG}"
 export TEST_TRACK='{"track":"internal","releases":[{"name":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","versionCodes":["47"],"status":"completed"}]}'
@@ -51,7 +60,24 @@ if grep -Fq '/bundles' "${TEST_LOG}"; then exit 1; fi
 
 : > "${TEST_LOG}"
 export TEST_TRACK='{"track":"internal","releases":[{"name":"different","versionCodes":["47"],"status":"completed"}]}'
+export TEST_BUNDLES='{"bundles":[{"versionCode":47}]}'
 if bash "${action_directory}/publish-beta.sh" >/dev/null 2>"${test_root}/mismatch.err"; then exit 1; fi
 grep -Fq 'different source provenance' "${test_root}/mismatch.err"
+grep -Fq 'Increment the application build number' "${test_root}/mismatch.err"
+
+: > "${TEST_LOG}"
+export TEST_TRACK='{"track":"internal","releases":[]}'
+if bash "${action_directory}/publish-beta.sh" >/dev/null 2>"${test_root}/duplicate.err"; then exit 1; fi
+grep -Fq 'already contains App Bundle version code 47' "${test_root}/duplicate.err"
+grep -Fq 'Increment the application build number' "${test_root}/duplicate.err"
+if grep -Eq $'^POST\t.*/bundles\\?uploadType=media' "${TEST_LOG}"; then exit 1; fi
+
+: > "${TEST_LOG}"
+export TEST_BUNDLES='{"bundles":[]}' TEST_UPLOAD_ERROR='Version code 47 has already been used.'
+if bash "${action_directory}/publish-beta.sh" >/dev/null 2>"${test_root}/upload.err"; then exit 1; fi
+grep -Fq 'Android Publisher bundle upload failed: POST https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/com.example.app/edits/edit-1/bundles?uploadType=media' "${test_root}/upload.err"
+grep -Fq 'Google Play: Version code 47 has already been used.' "${test_root}/upload.err"
+upload_attempts="$(grep -Ec $'^POST\t.*/bundles\\?uploadType=media' "${TEST_LOG}")"
+[[ "${upload_attempts}" -eq 1 ]]
 
 echo 'Google Play beta provenance and idempotency tests passed.'
