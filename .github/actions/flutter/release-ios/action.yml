@@ -149,6 +149,7 @@ runs:
       if: inputs.runner == 'github-hosted'
       uses: ruby/setup-ruby@v1
       with:
+        ruby-version: '3.3'
         working-directory: ${{ inputs.working-directory }}
         bundler-cache: true
     - name: Install iOS release dependencies on the self-hosted runner

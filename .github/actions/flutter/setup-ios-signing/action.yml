@@ -146,6 +146,7 @@ runs:
       if: steps.config.outputs.configured == 'true' && inputs.runner == 'github-hosted'
       uses: ruby/setup-ruby@v1
       with:
+        ruby-version: '3.3'
         working-directory: ${{ inputs.working-directory }}
         bundler-cache: true
     - name: Install Fastlane dependencies on the self-hosted runner
