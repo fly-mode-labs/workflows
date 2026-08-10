@@ -352,11 +352,13 @@ with:
   technology: flutter
   platforms: android,ios
   android-build-format: appbundle
-  android-track: internal
+  android-track: alpha
 ```
 
-`android-track` usa `internal` por defecto, así que también puede omitirse. Se
-puede cambiar a `beta` o a un track personalizado existente en Play Console.
+`android-track` usa `alpha` por defecto como pista cerrada convencional, así que
+también puede omitirse. Si la app usa otra pista cerrada creada en Play Console,
+se debe configurar aquí su identificador exacto. `beta` identifica la pista de
+pruebas abiertas y no debe usarse cuando la política exige pruebas cerradas.
 
 Direct beta uses a short-lived Android Publisher access token, uploads the exact
 validated local `.aab`, and never writes the service-account JSON to disk.
@@ -364,20 +366,20 @@ validated local `.aab`, and never writes the service-account JSON to disk.
 `APP_IDENTIFIER` when configured. Artifact mode continues to use the pinned
 upload action with its existing inputs.
 
-Direct production does not download, rebuild, or upload an AAB. It reads the
-Flutter build number from `pubspec.yaml`, opens an Android Publisher edit, and
-requires exactly one release on `android-track` containing that version code.
-Only that exact version code is written to a completed `production` release and
-the edit is committed. Missing or ambiguous tested versions fail before the
-production track is changed. iOS production continues to submit or promote the
-existing TestFlight build through `ios release`.
+Direct production does not download, rebuild, or upload an AAB. It opens an
+Android Publisher edit, selects the highest version code from completed releases
+on `android-track`, and writes that version to a completed `production` release.
+It fails when the closed-testing track has no completed release, when production
+contains an active rollout, or when promotion would downgrade production. iOS
+production continues through `ios release`, whose consumer lane must select and
+submit the latest eligible processed TestFlight beta.
 
 Artifact mode preserves the previous integration for external callers: it
 downloads the signed AAB and uses the pinned upload action for beta or production.
 Direct Android beta names the release with the exact source SHA and is idempotent
-only when both version code and name match. Production requires that same pair,
-preserves completed production releases, and refuses to replace draft, halted,
-or staged rollouts.
+only when both version code and name match. Production selects by the latest
+completed version code, preserves completed production releases, and refuses to
+replace draft, halted, or staged rollouts.
 
 Each GitHub environment must define `ANDROID_PUBLISHER_CREDENTIALS` with the
 complete service-account JSON. Direct mode exchanges it for an in-memory,
@@ -418,8 +420,9 @@ FULL_VERSION=2.3.0+47
 
 Flutter uses these same values while building. Artifact-mode build names include
 the full version. Direct release lanes and tasks must not generate another
-version. Android direct production uses `BUILD_NUMBER` as the exact existing
-Google Play version code to promote.
+version. Android direct beta publishes `BUILD_NUMBER`; direct production instead
+derives the latest completed version code from the configured closed-testing
+track.
 
 Este número es independiente de la versión mayor del pipeline central (`@v3`). La
 primera versiona la aplicación; la segunda versiona las reglas de CI/CD.

@@ -13,10 +13,9 @@ usa [Semantic Versioning](https://semver.org/).
 - Direct iOS and Android beta releases now build and upload inside their existing
   `beta` environment jobs using validated local IPA/AAB paths. Draft validation
   builds discard binaries instead of uploading workflow artifacts.
-- Direct Android production now promotes the exact Flutter build number from the
-  configured testing track through the Android Publisher API. It fails when the
-  tested release is missing or ambiguous and never downloads, rebuilds, or
-  re-uploads an AAB.
+- Direct Android production now promotes the highest completed version code from
+  the configured closed-testing track through the Android Publisher API and
+  never downloads, rebuilds, or re-uploads an AAB.
 
 ### Changed
 
@@ -27,6 +26,9 @@ usa [Semantic Versioning](https://semver.org/).
   releases to the exact source SHA. Android API edits preserve completed
   production releases, reject active rollouts, reconcile uncertain commits, and
   use short-lived tokens without credential files.
+- The default Android beta destination is now the conventional `alpha` closed
+  track. Production selects the latest completed closed-test version and refuses
+  downgrades when production is already ahead.
 - Direct iOS passes `SOURCE_SHA` to both Fastlane lanes and requires the explicit
   `IOS_SOURCE_PROVENANCE_SUPPORTED=true` consumer attestation. The template now
   defaults to GitHub-hosted runners, release checkouts do not persist Git

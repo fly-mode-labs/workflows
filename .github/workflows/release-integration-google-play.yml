@@ -12,7 +12,7 @@ on:
       java-version: {type: string, default: '17'}
       runner: {type: string, default: self-hosted}
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
-      track: {type: string, default: internal}
+      track: {type: string, default: alpha}
       app-identifier: {type: string, default: ''}
     secrets:
       ANDROID_KEYSTORE_BASE64: {required: false, description: Base64-encoded Android signing keystore}

@@ -12,7 +12,7 @@ Actions.
 | Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Builds Android and iOS for validation, then discards local binaries. |
 | Open directly (`opened`, `reopened`) | Builds and uploads each mobile beta inside its store environment job. |
 | Ready for review (`ready_for_review`) | Rebuilds the same source and uploads each beta directly; no GitHub artifact transfer is used. |
-| Merge to `main` (`closed` + `merged`) | Submits the existing TestFlight build and promotes the exact tested Android version code to production. |
+| Merge to `main` (`closed` + `merged`) | Submits the latest eligible TestFlight beta and promotes the latest completed Android closed-test release to production. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
 2.3.0+47`). Es independiente del tag mayor del pipeline (`@v3`).
@@ -189,9 +189,9 @@ ampliar el caller de cada proyecto.
 `delivery-mode` accepts `direct` or `artifact`. The default remains `artifact`
 for external caller compatibility. In `direct`, CI never uploads build artifacts,
 beta builds and uploads in one environment job, iOS production remains
-artifactless, and Android production promotes the exact `pubspec.yaml` build
-number from `android-track` to `production` without rebuilding or downloading an
-AAB.
+artifactless, and Android production promotes the highest completed version code
+from the configured closed-testing `android-track` to `production` without
+rebuilding or downloading an AAB.
 
 The direct template defaults to GitHub-hosted runners. Both `beta` and
 `production` environments must require reviewers because these jobs execute
@@ -239,7 +239,9 @@ beta, y acepta `apk`, `appbundle` o `both` (valor predeterminado).
 El application ID se configura una sola vez mediante la Repository Variable
 `APP_IDENTIFIER`, por lo que no se duplica en el caller. El track de
 pruebas se puede cambiar con `android-track`; su valor predeterminado es
-`internal` y también puede omitirse del template.
+`alpha` (la pista cerrada convencional) y también puede omitirse del template.
+Si la app usa una pista cerrada personalizada, se debe indicar su identificador
+exacto mediante `android-track`.
 
 Si se omite `platforms`, el valor `auto` habilita Android, iOS o Web según los
 directorios presentes en el proyecto.

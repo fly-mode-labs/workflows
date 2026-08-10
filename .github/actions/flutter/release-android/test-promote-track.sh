@@ -33,7 +33,7 @@ case "${method} ${url}" in
     printf '%s' "${count}" > "${TEST_EDIT_COUNT}"
     printf '{"id":"edit-%s"}\n' "${count}"
     ;;
-  GET\ */tracks/internal)
+  GET\ */tracks/alpha)
     if [[ "${TEST_FAIL_SOURCE_ALWAYS:-false}" == true ]]; then
       exit 22
     fi
@@ -67,9 +67,10 @@ export PATH="${test_root}/bin:${PATH}"
 export RUNNER_TEMP="${test_root}/runner"
 export GOOGLE_PLAY_ACCESS_TOKEN=test
 export PACKAGE_NAME=com.example.app
-export SOURCE_TRACK=internal
+export SOURCE_TRACK=alpha
+# These deliberately stale workflow values must not influence production selection.
 export SOURCE_SHA=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-export VERSION_CODE=47
+export VERSION_CODE=38
 export PLAY_RETRY_DELAY_SECONDS=0
 export TEST_LOG="${test_root}/requests.log"
 export TEST_EDIT_COUNT="${test_root}/edit-count"
@@ -81,46 +82,68 @@ reset_case() {
   unset TEST_COMMIT_FAIL TEST_FAIL_SOURCE_ONCE TEST_FAIL_SOURCE_ALWAYS TEST_RECONCILED_PRODUCTION
 }
 
-source_release='{"track":"internal","releases":[{"name":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","versionCodes":["47"],"status":"completed"}]}'
-completed_production='{"track":"production","releases":[{"name":"previous","versionCodes":["46"],"status":"completed"}]}'
+source_release='{"track":"alpha","releases":[{"name":"older-beta","versionCodes":["51"],"status":"completed"},{"name":"beta-latest","versionCodes":["49","52"],"status":"completed","releaseNotes":[{"language":"en-US","text":"Latest"}],"userFraction":0.4,"countryTargeting":{"countries":["CO"]}},{"name":"unfinished-newer","versionCodes":["99"],"status":"inProgress"}]}'
+completed_production='{"track":"production","releases":[{"name":"previous","versionCodes":["50"],"status":"completed"}]}'
 
 reset_case
 export TEST_SOURCE="${source_release}" TEST_PRODUCTION="${completed_production}"
 bash "${action_directory}/promote-track.sh"
-jq -e '.releases | length == 2 and .[0].versionCodes == ["47"] and .[0].name == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" and .[1].versionCodes == ["46"]' "${TEST_PUT_BODY}" >/dev/null
+jq -e '
+  .releases | length == 2
+  and .[0].versionCodes == ["52"]
+  and .[0].name == "beta-latest"
+  and .[0].status == "completed"
+  and .[0].releaseNotes[0].text == "Latest"
+  and (.[0] | has("userFraction") | not)
+  and (.[0] | has("countryTargeting") | not)
+  and .[1].versionCodes == ["50"]
+' "${TEST_PUT_BODY}" >/dev/null
 grep -Fq 'changesInReviewBehavior=ERROR_IF_IN_REVIEW' "${TEST_LOG}"
 
 reset_case
-export TEST_SOURCE='{"track":"internal","releases":[{"name":"wrong-sha","versionCodes":["47"],"status":"completed"}]}' TEST_PRODUCTION="${completed_production}"
-if bash "${action_directory}/promote-track.sh" >/dev/null 2>"${test_root}/mismatch.err"; then exit 1; fi
-grep -Fq 'provenance matches=0' "${test_root}/mismatch.err"
+export TEST_SOURCE='{"track":"alpha","releases":[{"name":"unfinished","versionCodes":["53"],"status":"inProgress"},{"name":"invalid","versionCodes":["not-a-version"],"status":"completed"}]}' TEST_PRODUCTION="${completed_production}"
+if bash "${action_directory}/promote-track.sh" >/dev/null 2>"${test_root}/no-completed.err"; then exit 1; fi
+grep -Fq 'must contain at least one completed release' "${test_root}/no-completed.err"
 grep -Fq $'DELETE\t' "${TEST_LOG}"
 
 reset_case
-export TEST_SOURCE="${source_release}" TEST_PRODUCTION='{"track":"production","releases":[{"name":"rollout","versionCodes":["46"],"status":"inProgress","userFraction":0.5}]}'
+export TEST_SOURCE="${source_release}" TEST_PRODUCTION='{"track":"production","releases":[{"name":"rollout","versionCodes":["51"],"status":"inProgress","userFraction":0.5}]}'
 if bash "${action_directory}/promote-track.sh" >/dev/null 2>"${test_root}/rollout.err"; then exit 1; fi
 grep -Fq 'refusing to overwrite an active rollout' "${test_root}/rollout.err"
 if grep -Fq $'PUT\t' "${TEST_LOG}"; then exit 1; fi
 
 reset_case
-export TEST_SOURCE="${source_release}" TEST_PRODUCTION='{"track":"production","releases":[{"name":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","versionCodes":["47"],"status":"completed"}]}'
+export TEST_SOURCE="${source_release}" TEST_PRODUCTION='{"track":"production","releases":[{"name":"renamed-in-production","versionCodes":["52"],"status":"completed"}]}'
 bash "${action_directory}/promote-track.sh"
 if grep -Eq $'PUT\t|:commit' "${TEST_LOG}"; then exit 1; fi
 
 reset_case
+export TEST_SOURCE="${source_release}" TEST_PRODUCTION='{"track":"production","releases":[{"name":"newer-production","versionCodes":["53"],"status":"completed"}]}'
+if bash "${action_directory}/promote-track.sh" >/dev/null 2>"${test_root}/downgrade.err"; then exit 1; fi
+grep -Fq 'already contains higher version code 53' "${test_root}/downgrade.err"
+grep -Fq 'refusing to promote version code 52' "${test_root}/downgrade.err"
+if grep -Fq $'PUT\t' "${TEST_LOG}"; then exit 1; fi
+
+reset_case
 export TEST_SOURCE="${source_release}" TEST_PRODUCTION="${completed_production}" TEST_FAIL_SOURCE_ONCE=true
 bash "${action_directory}/promote-track.sh"
-[[ "$(grep -Fc '/tracks/internal' "${TEST_LOG}")" -eq 2 ]]
+[[ "$(grep -Fc '/tracks/alpha' "${TEST_LOG}")" -eq 2 ]]
 
 reset_case
 export TEST_SOURCE="${source_release}" TEST_PRODUCTION="${completed_production}" TEST_FAIL_SOURCE_ALWAYS=true
 if bash "${action_directory}/promote-track.sh" >/dev/null 2>"${test_root}/retry.err"; then exit 1; fi
-[[ "$(grep -Fc '/tracks/internal' "${TEST_LOG}")" -eq 3 ]]
+[[ "$(grep -Fc '/tracks/alpha' "${TEST_LOG}")" -eq 3 ]]
 grep -Fq $'DELETE\t' "${TEST_LOG}"
 
 reset_case
 export TEST_SOURCE="${source_release}" TEST_PRODUCTION="${completed_production}" TEST_COMMIT_FAIL=true
-export TEST_RECONCILED_PRODUCTION='{"track":"production","releases":[{"name":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","versionCodes":["47"],"status":"completed"},{"name":"previous","versionCodes":["46"],"status":"completed"}]}'
+export TEST_RECONCILED_PRODUCTION='{"track":"production","releases":[{"name":"renamed-after-commit","versionCodes":["52"],"status":"completed"},{"name":"previous","versionCodes":["50"],"status":"completed"}]}'
 bash "${action_directory}/promote-track.sh"
+
+reset_case
+export TEST_SOURCE="${source_release}" TEST_PRODUCTION="${completed_production}" TEST_COMMIT_FAIL=true
+if bash "${action_directory}/promote-track.sh" >/dev/null 2>"${test_root}/reconcile.err"; then exit 1; fi
+grep -Fq 'Unable to prove whether the Google Play production commit succeeded' "${test_root}/reconcile.err"
+[[ "$(grep -Fc $'DELETE\t' "${TEST_LOG}")" -eq 2 ]]
 
 echo 'Google Play production safety tests passed.'

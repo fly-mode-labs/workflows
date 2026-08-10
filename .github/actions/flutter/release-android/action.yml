@@ -1,5 +1,5 @@
 name: Release Flutter Android
-description: Uploads a local or artifact App Bundle, or promotes an exact tested version to production.
+description: Uploads a local or artifact App Bundle, or promotes the latest completed testing version to production.
 
 inputs:
   stage: {required: true, description: beta or production}
@@ -7,7 +7,7 @@ inputs:
   source-sha: {required: false, default: '', description: Exact source commit represented by the Google Play release}
   artifact-run-id: {required: false, default: '', description: Workflow run containing the App Bundle}
   working-directory: {required: true, description: Flutter application directory retained for caller compatibility}
-  track: {required: false, default: internal, description: Google Play testing track receiving the beta release}
+  track: {required: false, default: alpha, description: Google Play closed-testing track receiving the beta release}
   identifier: {required: false, default: '', description: Application identifier used for Google Play uploads}
   local-aab-path: {required: false, default: '', description: Local App Bundle path used for direct beta delivery}
   local-package-name: {required: false, default: '', description: Package name resolved by the direct Android build}
@@ -150,14 +150,12 @@ runs:
         AAB_PATH: ${{ steps.bundle.outputs.aab-path }}
         BETA_SCRIPT: ${{ github.action_path }}/publish-beta.sh
       run: bash "${BETA_SCRIPT}"
-    - name: Promote exact tested version to Google Play production
+    - name: Promote latest completed testing version to Google Play production
       if: inputs.stage == 'production' && inputs.delivery-mode == 'direct'
       shell: bash
       env:
         GOOGLE_PLAY_ACCESS_TOKEN: ${{ steps.google_auth.outputs.access_token }}
         PACKAGE_NAME: ${{ steps.metadata.outputs.package-name }}
         SOURCE_TRACK: ${{ inputs.track }}
-        SOURCE_SHA: ${{ inputs.source-sha }}
-        VERSION_CODE: ${{ inputs.version-code }}
         PROMOTION_SCRIPT: ${{ github.action_path }}/promote-track.sh
       run: bash "${PROMOTION_SCRIPT}"

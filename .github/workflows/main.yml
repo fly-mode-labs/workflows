@@ -24,9 +24,9 @@ on:
         type: string
         default: both
       android-track:
-        description: Google Play testing track receiving beta releases
+        description: Google Play closed-testing track receiving beta releases
         type: string
-        default: internal
+        default: alpha
       working-directory:
         description: Application path or auto to locate pubspec.yaml
         type: string

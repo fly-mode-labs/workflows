@@ -102,8 +102,8 @@ Las apps necesitan Fastlane para iOS, un `fastlane/Matchfile`, los Repository
 Secrets `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION`, y las credenciales
 de cada tienda en los environments `beta`/`production`. Android direct beta
 builds and uploads the signed AAB in the same `beta` job. Direct production
-promotes the exact `pubspec.yaml` build number from the configured testing track
-to `production` without transferring or rebuilding an AAB. If `self-hosted` is
+promotes the highest completed version code from the configured closed-testing
+track to `production` without transferring or rebuilding an AAB. If `self-hosted` is
 selected, each repository still needs its own registered runner.
 Both `beta` and `production` environments require reviewers. iOS callers must
 not set `IOS_SOURCE_PROVENANCE_SUPPORTED=true` until their Fastlane lanes enforce

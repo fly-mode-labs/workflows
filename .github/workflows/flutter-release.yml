@@ -45,9 +45,9 @@ on:
         type: string
         default: ''
       android-track:
-        description: Google Play testing track receiving beta releases
+        description: Google Play closed-testing track receiving beta releases
         type: string
-        default: internal
+        default: alpha
       release-ios:
         type: boolean
         default: false
