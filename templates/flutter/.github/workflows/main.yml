@@ -17,8 +17,15 @@ on:
         default: github-hosted
         type: choice
         options: [self-hosted, github-hosted]
+      delivery-mode:
+        description: Mobile binary delivery for this manual execution
+        required: true
+        default: direct
+        type: choice
+        options: [direct, artifact]
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -27,7 +34,7 @@ jobs:
     with:
       technology: flutter
       pipeline: ci
-      delivery-mode: direct
+      delivery-mode: ${{ inputs.delivery-mode || 'direct' }}
       platforms: android,ios
       android-build-format: appbundle
       runner: ${{ inputs.runner || 'github-hosted' }}
@@ -48,7 +55,7 @@ jobs:
     with:
       technology: flutter
       pipeline: cd
-      delivery-mode: direct
+      delivery-mode: ${{ inputs.delivery-mode || 'direct' }}
       platforms: android,ios
       android-build-format: appbundle
       runner: ${{ inputs.runner || 'github-hosted' }}

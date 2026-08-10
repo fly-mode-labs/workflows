@@ -61,15 +61,14 @@ for signing_secret in \
   fi
 done
 
-direct_opt_ins="$(grep -Fc 'delivery-mode: direct' "${template}")"
-if [[ "${direct_opt_ins}" -ne 2 ]]; then
-  echo 'The Flutter template must select direct delivery in both CI and CD calls.' >&2
+delivery_selections="$(grep -Fc "delivery-mode: \${{ inputs.delivery-mode || 'direct' }}" "${template}")"
+if [[ "${delivery_selections}" -ne 2 ]]; then
+  echo 'The Flutter template must pass the selected delivery mode to both CI and CD and default automatic events to direct.' >&2
   exit 1
 fi
-if grep -Fq 'actions: read' "${template}"; then
-  echo 'The direct Flutter template must not request artifact API permission.' >&2
-  exit 1
-fi
+assert_contains "${template}" 'description: Mobile binary delivery for this manual execution' 'The Flutter template must expose the manual delivery selector.'
+assert_contains "${template}" 'options: [direct, artifact]' 'The Flutter template delivery selector must support direct and artifact modes.'
+assert_contains "${template}" 'actions: read' 'Selectable artifact delivery requires artifact API read permission.'
 assert_contains "${template}" 'default: github-hosted' 'The direct template must default to an ephemeral GitHub-hosted runner.'
 assert_contains "${template}" "inputs.runner || 'github-hosted'" 'Automatic direct delivery must use GitHub-hosted runners by default.'
 assert_contains "${template}" 'ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}' 'The caller template must pass Google Play credentials explicitly.'
