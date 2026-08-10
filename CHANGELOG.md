@@ -23,9 +23,10 @@ usa [Semantic Versioning](https://semver.org/).
 - The direct Flutter caller no longer requests `actions: read`; artifact-mode
   callers retain artifact resolution, download, upload, and naming compatibility.
 - Direct beta now runs for every non-draft PR synchronization and binds Android
-  releases to the exact source SHA. Android API edits preserve completed
-  production releases, reject active rollouts, reconcile uncertain commits, and
-  use short-lived tokens without credential files.
+  releases to the exact source SHA. Android API edits consolidate prior production
+  version codes into exactly one completed release, reject active rollouts,
+  reconcile uncertain commits, and use short-lived tokens without credential
+  files.
 - The default Android beta destination is now the conventional `alpha` closed
   track. Production selects the latest completed closed-test version and refuses
   downgrades when production is already ahead.

@@ -74,10 +74,13 @@ fi
 
 jq --arg version "${selected_version}" --slurpfile production "${temporary_directory}/production.json" '
   .release
-  | .versionCodes = [$version]
+  | .versionCodes = (
+      [$version] + [$production[0].releases[]?.versionCodes[]? | tostring]
+      | unique_by(tonumber)
+    )
   | .status = "completed"
   | del(.userFraction, .countryTargeting)
-  | {track: "production", releases: ([.] + ($production[0].releases // []))}
+  | {track: "production", releases: [.]}
 ' "${temporary_directory}/selected-source.json" > "${temporary_directory}/updated-track.json"
 play_api_request PUT "${PLAY_API_BASE}/edits/${edit_id}/tracks/production" "${temporary_directory}/update.json" "${temporary_directory}/updated-track.json" true
 

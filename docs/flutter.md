@@ -369,18 +369,19 @@ upload action with its existing inputs.
 
 Direct production does not download, rebuild, or upload an AAB. It opens an
 Android Publisher edit, selects the highest version code from completed releases
-on `android-track`, and writes that version to a completed `production` release.
-It fails when the closed-testing track has no completed release, when production
-contains an active rollout, or when promotion would downgrade production. iOS
-production continues through `ios release`, whose consumer lane must select and
-submit the latest eligible processed TestFlight beta.
+on `android-track`, and consolidates that version with retained production version
+codes in exactly one completed `production` release. It fails when the
+closed-testing track has no completed release, when production contains an active
+rollout, or when promotion would downgrade production. iOS production continues
+through `ios release`, whose consumer lane must select and submit the latest
+eligible processed TestFlight beta.
 
 Artifact mode preserves the previous integration for external callers: it
 downloads the signed AAB and uses the pinned upload action for beta or production.
 Direct Android beta names the release with the exact source SHA and is idempotent
 only when both version code and name match. Production selects by the latest
-completed version code, preserves completed production releases, and refuses to
-replace draft, halted, or staged rollouts.
+completed version code, retains active production version codes in a single
+completed release, and refuses to replace draft, halted, or staged rollouts.
 
 Each GitHub environment must define `ANDROID_PUBLISHER_CREDENTIALS` with the
 complete service-account JSON. Direct mode exchanges it for an in-memory,

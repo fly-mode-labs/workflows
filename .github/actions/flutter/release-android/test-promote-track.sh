@@ -50,6 +50,10 @@ case "${method} ${url}" in
     printf '%s\n' "${TEST_PRODUCTION}"
     ;;
   PUT\ */tracks/production)
+    if [[ "$(jq '[.releases[]? | select(.status == "completed")] | length' "${body}")" -ne 1 ]]; then
+      printf '{"error":{"message":"Only one completed release is allowed."}}\n'
+      exit 22
+    fi
     cp "${body}" "${TEST_PUT_BODY}"
     cat "${body}"
     ;;
@@ -89,14 +93,13 @@ reset_case
 export TEST_SOURCE="${source_release}" TEST_PRODUCTION="${completed_production}"
 bash "${action_directory}/promote-track.sh"
 jq -e '
-  .releases | length == 2
-  and .[0].versionCodes == ["52"]
+  .releases | length == 1
+  and .[0].versionCodes == ["50", "52"]
   and .[0].name == "beta-latest"
   and .[0].status == "completed"
   and .[0].releaseNotes[0].text == "Latest"
   and (.[0] | has("userFraction") | not)
   and (.[0] | has("countryTargeting") | not)
-  and .[1].versionCodes == ["50"]
 ' "${TEST_PUT_BODY}" >/dev/null
 grep -Fq 'changesInReviewBehavior=ERROR_IF_IN_REVIEW' "${TEST_LOG}"
 
