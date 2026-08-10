@@ -51,6 +51,37 @@ on:
       release-ios:
         type: boolean
         default: false
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        description: Base64-encoded Android signing keystore
+        required: false
+      KEYALIAS:
+        description: Android signing key alias
+        required: false
+      STOREPASSWORD:
+        description: Android signing store password
+        required: false
+      KEYPASSWORD:
+        description: Android signing key password
+        required: false
+      MATCH_PASSWORD:
+        description: Fastlane Match repository encryption password
+        required: false
+      MATCH_GIT_BASIC_AUTHORIZATION:
+        description: Fastlane Match Git basic authorization
+        required: false
+      APP_STORE_CONNECT_API_KEY_BASE64:
+        description: Base64-encoded App Store Connect API private key
+        required: false
+      APP_STORE_CONNECT_ISSUER_ID:
+        description: App Store Connect API issuer ID
+        required: false
+      APP_STORE_CONNECT_KEY_ID:
+        description: App Store Connect API key ID
+        required: false
+      ANDROID_PUBLISHER_CREDENTIALS:
+        description: Google Play service-account JSON
+        required: false
 
 permissions:
   actions: read
@@ -198,7 +229,12 @@ jobs:
       xcode-version: ${{ inputs.xcode-version }}
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels }}
-    secrets: inherit
+    secrets:
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
 
   google-play:
     name: Release / Integration / Google Play
@@ -220,4 +256,9 @@ jobs:
       app-identifier: ${{ inputs.app-identifier }}
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels }}
-    secrets: inherit
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYALIAS: ${{ secrets.KEYALIAS }}
+      STOREPASSWORD: ${{ secrets.STOREPASSWORD }}
+      KEYPASSWORD: ${{ secrets.KEYPASSWORD }}
+      ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}

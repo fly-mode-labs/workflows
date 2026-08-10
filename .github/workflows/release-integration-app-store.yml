@@ -14,6 +14,12 @@ on:
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
       beta-command: {type: string, default: bundle exec fastlane ios beta}
       production-command: {type: string, default: bundle exec fastlane ios release}
+    secrets:
+      MATCH_PASSWORD: {required: false, description: Fastlane Match repository encryption password}
+      MATCH_GIT_BASIC_AUTHORIZATION: {required: false, description: Fastlane Match Git basic authorization}
+      APP_STORE_CONNECT_API_KEY_BASE64: {required: false, description: Base64-encoded App Store Connect API private key}
+      APP_STORE_CONNECT_ISSUER_ID: {required: false, description: App Store Connect API issuer ID}
+      APP_STORE_CONNECT_KEY_ID: {required: false, description: App Store Connect API key ID}
 
 permissions:
   actions: read

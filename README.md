@@ -36,7 +36,9 @@ de nuevo desde `workflow_dispatch`.
 2. El template referencia `fly-mode-labs/workflows` y consume el alias
    compatible `@v3`, nunca `@main`.
 3. Keep `contents: read` in direct callers. Artifact-mode callers must also grant
-   `actions: read` so releases can resolve and download build artifacts.
+   `actions: read` so releases can resolve and download build artifacts. Pass
+   mobile secrets with the explicit map in the supplied template; `secrets:
+   inherit` is not supported across unrelated owners.
 4. Crear en GitHub el environment `beta` y el environment `production`, con sus
    secretos y protecciones.
 5. Crear las variables de repositorio `FLUTTER_VERSION` y `XCODE_VERSION` con

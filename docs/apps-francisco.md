@@ -37,7 +37,16 @@ jobs:
       pipeline: ci
       delivery-mode: direct
       runner: ${{ inputs.runner || 'github-hosted' }}
-    secrets: inherit
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYALIAS: ${{ secrets.KEYALIAS }}
+      STOREPASSWORD: ${{ secrets.STOREPASSWORD }}
+      KEYPASSWORD: ${{ secrets.KEYPASSWORD }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
 
   cd:
     needs: ci
@@ -47,7 +56,17 @@ jobs:
       pipeline: cd
       delivery-mode: direct
       runner: ${{ inputs.runner || 'github-hosted' }}
-    secrets: inherit
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYALIAS: ${{ secrets.KEYALIAS }}
+      STOREPASSWORD: ${{ secrets.STOREPASSWORD }}
+      KEYPASSWORD: ${{ secrets.KEYPASSWORD }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
 ```
 
 The runner selector appears for manual runs. Automatic PR delivery defaults to
@@ -59,6 +78,9 @@ El job `ci` valida y compila. El job `cd` espera a que CI termine correctamente
 y se encarga únicamente de las publicaciones beta o production. Ambos llaman al
 mismo workflow reutilizable con `pipeline: ci` o `pipeline: cd`; los callers
 anteriores que no envían este input conservan el comportamiento combinado.
+Los secrets se pasan por nombre para que el contrato también funcione cuando la
+aplicación y el workflow central tienen owners diferentes; no se debe sustituir
+este mapa por `secrets: inherit`.
 
 ## Valores instalados
 

@@ -12,6 +12,16 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local file="$1"
+  local text="$2"
+  local message="$3"
+  if grep -Fq -- "${text}" "${file}"; then
+    echo "${message}" >&2
+    exit 1
+  fi
+}
+
 main='.github/workflows/main.yml'
 build='.github/workflows/flutter-build.yml'
 release='.github/workflows/flutter-release.yml'
@@ -28,6 +38,9 @@ assert_contains "${main}" 'default: artifact' 'Artifact delivery must remain the
 assert_contains "${main}" 'artifact|direct)' 'Configuration validation must accept only artifact and direct delivery.'
 assert_contains "${main}" "inputs.delivery-mode == 'direct' && github.event.action == 'synchronize'" 'Direct non-draft synchronize events must rebuild and republish beta.'
 assert_contains "${main}" 'source-sha: ${{ github.event.pull_request.head.sha || github.sha }}' 'Release orchestration must use the exact source SHA.'
+assert_contains "${main}" 'ANDROID_PUBLISHER_CREDENTIALS:' 'The public workflow must declare the Google Play secret contract.'
+assert_not_contains "${main}" 'secrets: inherit' 'The public workflow must pass secrets explicitly to nested workflows.'
+assert_not_contains "${release}" 'secrets: inherit' 'The release workflow must pass only store-specific secrets to integrations.'
 
 direct_opt_ins="$(grep -Fc 'delivery-mode: direct' "${template}")"
 if [[ "${direct_opt_ins}" -ne 2 ]]; then
@@ -40,6 +53,8 @@ if grep -Fq 'actions: read' "${template}"; then
 fi
 assert_contains "${template}" 'default: github-hosted' 'The direct template must default to an ephemeral GitHub-hosted runner.'
 assert_contains "${template}" "inputs.runner || 'github-hosted'" 'Automatic direct delivery must use GitHub-hosted runners by default.'
+assert_contains "${template}" 'ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}' 'The caller template must pass Google Play credentials explicitly.'
+assert_not_contains "${template}" 'secrets: inherit' 'The caller template must support explicit cross-owner secret passing.'
 
 assert_contains "${build}" "upload-artifact: \${{ inputs.delivery-mode == 'artifact' }}" 'Direct CI builds must skip artifact uploads.'
 assert_contains "${release}" "inputs.delivery-mode == 'artifact' &&" 'Artifact resolution must be gated to artifact delivery.'

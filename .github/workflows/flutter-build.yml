@@ -45,6 +45,34 @@ on:
         description: Mobile binary delivery; artifact or direct
         type: string
         default: artifact
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        description: Base64-encoded Android signing keystore
+        required: false
+      KEYALIAS:
+        description: Android signing key alias
+        required: false
+      STOREPASSWORD:
+        description: Android signing store password
+        required: false
+      KEYPASSWORD:
+        description: Android signing key password
+        required: false
+      MATCH_PASSWORD:
+        description: Fastlane Match repository encryption password
+        required: false
+      MATCH_GIT_BASIC_AUTHORIZATION:
+        description: Fastlane Match Git basic authorization
+        required: false
+      APP_STORE_CONNECT_API_KEY_BASE64:
+        description: Base64-encoded App Store Connect API private key
+        required: false
+      APP_STORE_CONNECT_ISSUER_ID:
+        description: App Store Connect API issuer ID
+        required: false
+      APP_STORE_CONNECT_KEY_ID:
+        description: App Store Connect API key ID
+        required: false
 
 permissions:
   contents: read

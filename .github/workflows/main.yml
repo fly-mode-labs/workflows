@@ -43,6 +43,37 @@ on:
         description: auto, draft, beta or production
         type: string
         default: auto
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        description: Base64-encoded Android signing keystore
+        required: false
+      KEYALIAS:
+        description: Android signing key alias
+        required: false
+      STOREPASSWORD:
+        description: Android signing store password
+        required: false
+      KEYPASSWORD:
+        description: Android signing key password
+        required: false
+      MATCH_PASSWORD:
+        description: Fastlane Match repository encryption password
+        required: false
+      MATCH_GIT_BASIC_AUTHORIZATION:
+        description: Fastlane Match Git basic authorization
+        required: false
+      APP_STORE_CONNECT_API_KEY_BASE64:
+        description: Base64-encoded App Store Connect API private key
+        required: false
+      APP_STORE_CONNECT_ISSUER_ID:
+        description: App Store Connect API issuer ID
+        required: false
+      APP_STORE_CONNECT_KEY_ID:
+        description: App Store Connect API key ID
+        required: false
+      ANDROID_PUBLISHER_CREDENTIALS:
+        description: Google Play service-account JSON
+        required: false
 
 permissions:
   actions: read
@@ -204,7 +235,16 @@ jobs:
       build-web: ${{ needs.validate.outputs.web == 'true' }}
       android-build-format: ${{ inputs.android-build-format }}
       delivery-mode: ${{ inputs.delivery-mode }}
-    secrets: inherit
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYALIAS: ${{ secrets.KEYALIAS }}
+      STOREPASSWORD: ${{ secrets.STOREPASSWORD }}
+      KEYPASSWORD: ${{ secrets.KEYPASSWORD }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
 
   flutter-beta-release:
     name: Flutter / Beta release
@@ -238,7 +278,11 @@ jobs:
       app-identifier: ${{ vars.APP_IDENTIFIER }}
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
-    secrets: inherit
+    secrets:
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
 
   flutter-production-release:
     name: Flutter / Production release
@@ -263,4 +307,14 @@ jobs:
       app-identifier: ${{ vars.APP_IDENTIFIER }}
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
-    secrets: inherit
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYALIAS: ${{ secrets.KEYALIAS }}
+      STOREPASSWORD: ${{ secrets.STOREPASSWORD }}
+      KEYPASSWORD: ${{ secrets.KEYPASSWORD }}
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}

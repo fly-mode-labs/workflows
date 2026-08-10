@@ -385,10 +385,12 @@ short-lived access token without creating a credentials file.
 
 ## Secrets y environments
 
-El template usa `secrets: inherit`: los secretos permanecen en el repo de cada
-app y no pasan a este repositorio central. Los secrets de Match son Repository
-Secrets porque se consumen durante los builds draft y beta. Configure las
-credenciales de subida que consuman Fastlane y Google Play dentro de los
+El template pasa cada secret por nombre. Esto mantiene el mínimo privilegio y
+funciona aunque la app y el workflow central tengan owners diferentes, donde
+`secrets: inherit` no está soportado. Los valores permanecen en el repositorio de
+cada app; no se configuran en este repositorio central. Los secrets de Match son
+Repository Secrets porque se consumen durante los builds draft y beta. Configure
+las credenciales de subida que consuman Fastlane y Google Play dentro de los
 environments `beta` y `production`.
 
 Direct mode requires reviewers on both environments because these jobs execute
