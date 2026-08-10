@@ -117,9 +117,10 @@ perfiles que no estaban instalados antes del job. Esto funciona igual en
 
 Cuando Match está configurado, el pipeline lee el provisioning profile que
 instaló para el bundle identifier del target `Runner` y fuerza la firma manual
-en la configuración `Release` de ese target dentro del checkout temporal de
-CI. No pasa el profile como un build setting global, por lo que los targets de
-CocoaPods conservan su configuración sin firma. Para `match-type: appstore` usa
+en la configuración `Release` de ese target dentro del checkout temporal del
+job de build. No pasa el profile como un build setting global, por lo que los
+targets de CocoaPods conservan su configuración sin firma. Para
+`match-type: appstore` usa
 `Apple Distribution`, el team del profile y su nombre exacto tanto en el
 archive como en `ExportOptions.plist`. De esta forma Xcode no intenta iniciar
 sesión con una cuenta de Apple ni busca un certificado `iOS Development`. El
@@ -185,8 +186,8 @@ app_identifier([
 ```
 
 The application needs these **Repository Secrets** because signing happens in
-both validation builds and direct beta jobs. A direct **Ready for review** run
-rebuilds the same source inside the `beta` environment job:
+artifact-mode CI builds and direct beta jobs. A direct **Ready for review** run
+builds the source once inside the `beta` environment job:
 
 ```text
 MATCH_PASSWORD
@@ -391,7 +392,8 @@ El template pasa cada secret por nombre. Esto mantiene el mínimo privilegio y
 funciona aunque la app y el workflow central tengan owners diferentes, donde
 `secrets: inherit` no está soportado. Los valores permanecen en el repositorio de
 cada app; no se configuran en este repositorio central. Los secrets de Match son
-Repository Secrets porque se consumen durante los builds draft y beta. Configure
+Repository Secrets porque se consumen durante builds CI en modo `artifact` y
+builds beta en modo `direct`. Configure
 las credenciales de subida que consuman Fastlane y Google Play dentro de los
 environments `beta` y `production`.
 

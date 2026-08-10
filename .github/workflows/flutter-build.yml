@@ -26,11 +26,11 @@ on:
         type: string
         default: '["self-hosted", "macOS", "ARM64"]'
       build-android:
-        description: Run the Android build job
+        description: Request the Android artifact build job
         type: boolean
         default: false
       build-ios:
-        description: Run the iOS build job
+        description: Request the iOS artifact build job
         type: boolean
         default: false
       build-web:
@@ -109,7 +109,7 @@ jobs:
 
   android:
     name: Flutter build / Android
-    if: inputs.build-android
+    if: inputs.build-android && inputs.delivery-mode == 'artifact'
     runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 40
     steps:
@@ -160,7 +160,7 @@ jobs:
 
   ios:
     name: Flutter build / iOS
-    if: inputs.build-ios
+    if: inputs.build-ios && inputs.delivery-mode == 'artifact'
     runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 40
     steps:

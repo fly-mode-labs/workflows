@@ -9,30 +9,28 @@ Actions.
 
 | Estado de la PR | Acción |
 | --- | --- |
-| Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Builds Android and iOS for validation, then discards local binaries. |
+| Draft (`opened`, `synchronize`, `reopened`, `converted_to_draft`) | Runs Flutter analysis and tests; direct mode does not compile mobile binaries. |
 | Open directly (`opened`, `reopened`) | Builds and uploads each mobile beta inside its store environment job. |
-| Ready for review (`ready_for_review`) | Rebuilds the same source and uploads each beta directly; no GitHub artifact transfer is used. |
+| Ready for review (`ready_for_review`) | Builds and uploads each beta directly; no GitHub artifact transfer is used. |
 | Merge to `main` (`closed` + `merged`) | Submits the latest eligible TestFlight beta and promotes the latest completed Android closed-test release to production. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
 2.3.0+47`). Es independiente del tag mayor del pipeline (`@v3`).
 
-The supplied Flutter template selects `delivery-mode: direct`. Direct beta jobs
-build and publish on the same runner, so **Ready for review** may rebuild the
-same source and never waits for GitHub artifacts. Existing external callers keep
-`delivery-mode: artifact` by default; that compatibility mode continues to
-resolve and transfer binaries through workflow artifacts.
+The supplied Flutter template selects `delivery-mode: direct`. CI runs Flutter
+analysis and tests but skips Android and iOS compilation. Each direct beta job
+builds and publishes once on the same runner and never waits for GitHub
+artifacts. Existing external callers keep `delivery-mode: artifact` by default;
+that compatibility mode continues to build in CI and transfer binaries through
+workflow artifacts.
 Non-draft `synchronize` events also run direct beta so every new PR head SHA is
 published or fails before merge.
-Nuevos commits en una PR que ya está abierta no vuelven a distribuir una beta
-automáticamente; esto evita publicar una versión por cada push. Se puede ejecutar
-de nuevo desde `workflow_dispatch`.
 
 ## Uso desde una app
 
 1. Copiar `templates/flutter/.github/workflows/main.yml` a la app. El template
-   expone dos jobs independientes: `ci` para validación/build y `cd` para
-   distribución.
+   expone dos jobs independientes: `ci` para validación (y build en modo
+   `artifact`) y `cd` para distribución.
 2. El template referencia `fly-mode-labs/workflows` y consume el alias
    compatible `@v3`, nunca `@main`.
 3. Keep `contents: read` in direct callers. Artifact-mode callers must also grant
@@ -170,8 +168,8 @@ workflows en cada PR y push a `main`.
   publicación a las composite actions `release-ios` y `release-android`.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.
 - `.github/actions/flutter`: preparación del SDK y lectura normalizada de la
-  versión de `pubspec.yaml`, además de las operaciones aisladas de build (CI) y
-  release (CD), sin duplicar steps.
+  versión de `pubspec.yaml`, además de las operaciones aisladas de build y
+  release, sin duplicar steps.
 
 Las plataformas se autodetectan o se fijan mediante `platforms`. Cada plataforma
 tiene un job propio; las no seleccionadas quedan omitidas y no consumen runner.
@@ -179,19 +177,20 @@ Los nombres comparten el prefijo `Flutter build /` para mantenerlos agrupados en
 la interfaz de Actions.
 
 Las apps llaman únicamente a `.github/workflows/main.yml`. Cada caller lo invoca
-dos veces: `pipeline: ci` ejecuta validación y build, mientras `pipeline: cd`
-ejecuta las publicaciones después de que CI termina correctamente. El valor
+dos veces: `pipeline: ci` siempre valida y solo compila binarios móviles en modo
+`artifact`; `pipeline: cd` ejecuta las publicaciones después de que CI termina
+correctamente. El valor
 predeterminado `pipeline: all` conserva la compatibilidad con callers anteriores
 que ejecutan todo en un único job. El input `technology` selecciona la
 implementación (`flutter` actualmente); agregar otra tecnología no requiere
 ampliar el caller de cada proyecto.
 
 `delivery-mode` accepts `direct` or `artifact`. The default remains `artifact`
-for external caller compatibility. In `direct`, CI never uploads build artifacts,
-beta builds and uploads in one environment job, iOS production remains
-artifactless, and Android production promotes the highest completed version code
-from the configured closed-testing `android-track` to `production` without
-rebuilding or downloading an AAB.
+for external caller compatibility. In `direct`, CI skips Android and iOS
+compilation, beta builds and uploads once in one environment job, iOS production
+remains artifactless, and Android production promotes the highest completed
+version code from the configured closed-testing `android-track` to `production`
+without rebuilding or downloading an AAB.
 
 The direct template defaults to GitHub-hosted runners. Both `beta` and
 `production` environments must require reviewers because these jobs execute
