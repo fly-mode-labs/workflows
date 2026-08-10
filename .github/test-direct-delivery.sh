@@ -85,9 +85,17 @@ assert_contains "${android_integration}" 'local-aab-path: ${{ steps.build.output
 assert_contains "${android_release}" "if: inputs.delivery-mode == 'artifact'" 'Legacy Android artifact download must remain available.'
 assert_contains "${ios_release}" "inputs.stage == 'beta' && inputs.delivery-mode == 'artifact'" 'Direct iOS beta must skip artifact download.'
 assert_contains "${android_release}" "inputs.stage == 'production' && inputs.delivery-mode == 'direct'" 'Direct Android production must use its promotion path.'
-assert_contains "${android_release}" 'VERSION_CODE: ${{ inputs.version-code }}' 'Direct Android production must promote the exact Flutter build number.'
+android_production_contract="$(sed -n '/- name: Promote latest completed testing version to Google Play production/,$p' "${android_release}")"
+if grep -Eq 'SOURCE_SHA:|VERSION_CODE:' <<< "${android_production_contract}"; then
+  echo 'Direct Android production must select the latest completed testing release from Google Play state.' >&2
+  exit 1
+fi
 assert_contains "${android_release}" 'uses: r0adkll/upload-google-play@v1.1.5' 'Legacy artifact upload must remain pinned and functional.'
-assert_contains "${android_release}" 'SOURCE_SHA: ${{ inputs.source-sha }}' 'Android direct delivery must bind releases to the source SHA.'
+assert_contains "${android_release}" 'SOURCE_SHA: ${{ inputs.source-sha }}' 'Android direct beta delivery must bind releases to the source SHA.'
+assert_contains "${android_release}" 'track: {required: false, default: alpha' 'The Android action must default beta delivery to Google Play closed testing.'
+assert_contains "${main}" 'default: alpha' 'The public workflow must default Android beta delivery to Google Play closed testing.'
+assert_contains "${release}" 'default: alpha' 'The Flutter release orchestrator must default Android beta delivery to Google Play closed testing.'
+assert_contains "${android_integration}" 'track: {type: string, default: alpha}' 'The Google Play integration must default beta delivery to closed testing.'
 assert_contains "${android_release}" 'create_credentials_file: false' 'Direct Google authentication must not write a credential file.'
 assert_contains "${android_release}" 'export_environment_variables: false' 'Direct Google authentication must not export credential environment variables.'
 assert_contains "${android_release}" 'google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093' 'Secret-bearing Google authentication must be pinned to the verified v3 commit.'
