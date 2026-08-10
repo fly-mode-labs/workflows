@@ -4,14 +4,14 @@ description: Uploads a local or artifact App Bundle, or promotes the latest comp
 inputs:
   stage: {required: true, description: beta or production}
   delivery-mode: {required: false, default: artifact, description: artifact or direct}
-  source-sha: {required: false, default: '', description: Exact source commit represented by the Google Play release}
+  source-sha: {required: false, default: '', description: Exact source commit recorded on the Google Play beta release}
   artifact-run-id: {required: false, default: '', description: Workflow run containing the App Bundle}
   working-directory: {required: true, description: Flutter application directory retained for caller compatibility}
   track: {required: false, default: alpha, description: Google Play closed-testing track receiving the beta release}
   identifier: {required: false, default: '', description: Application identifier used for Google Play uploads}
   local-aab-path: {required: false, default: '', description: Local App Bundle path used for direct beta delivery}
   local-package-name: {required: false, default: '', description: Package name resolved by the direct Android build}
-  version-code: {required: false, default: '', description: Exact Flutter build number promoted in direct production delivery}
+  version-code: {required: false, default: '', description: Exact Flutter build number published in direct beta delivery}
   service-account-json: {required: true, description: Google Play service account JSON}
 
 runs:
