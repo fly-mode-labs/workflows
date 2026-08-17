@@ -72,12 +72,9 @@ if [[ "${production_version_matches}" -ne 0 ]]; then
   exit 0
 fi
 
-jq --arg version "${selected_version}" --slurpfile production "${temporary_directory}/production.json" '
+jq --arg version "${selected_version}" '
   .release
-  | .versionCodes = (
-      [$version] + [$production[0].releases[]?.versionCodes[]? | tostring]
-      | unique_by(tonumber)
-    )
+  | .versionCodes = [$version]
   | .status = "completed"
   | del(.userFraction, .countryTargeting)
   | {track: "production", releases: [.]}

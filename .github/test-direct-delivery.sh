@@ -111,6 +111,8 @@ if ! grep -Fq 'APP_STORE_LOCALE: ${{ inputs.app-store-locale }}' <<< "${ios_beta
 fi
 assert_contains "${flutter_docs}" 'localized_build_info: {' 'The iOS provenance documentation must require localized build information.'
 assert_contains "${flutter_docs}" 'locale => { whats_new: marker }' 'The iOS provenance documentation must use an explicit locale key.'
+assert_contains "${flutter_docs}" 'changelog: marker' 'The iOS provenance documentation must trigger Fastlane partial waiting with the source marker.'
+assert_contains "${flutter_docs}" 'Do not use `changelog` alone' 'The iOS provenance documentation must require explicit localized metadata alongside changelog.'
 assert_not_contains "${flutter_docs}" 'localized_build_info.default.whats_new' 'Default localized build information does not guarantee localization creation.'
 assert_contains "${ios_build}" 'build/ios/archive/*.xcarchive' 'Artifact-mode iOS uploads must retain the XCArchive.'
 assert_contains "${ios_build}" "always() && inputs.cleanup-output == 'true'" 'Direct iOS validation must always clean signed outputs.'

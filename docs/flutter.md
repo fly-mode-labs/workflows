@@ -241,19 +241,22 @@ UI.user_error!("APP_STORE_LOCALE is required") if locale.empty?
 
 upload_to_testflight(
   # Other required upload options...
+  changelog: marker,
   localized_build_info: {
     locale => { whats_new: marker }
-  }
+  },
+  skip_waiting_for_build_processing: true
 )
 ```
 
-Do not use `changelog` or a default `localized_build_info` entry for this
-contract. When a new TestFlight build has no beta localization yet, Fastlane can
-report that it set the changelog without creating one. The explicit locale key
-allows Fastlane to create the `BetaBuildLocalization` and persist its
-`whatsNew` value. `ios release` must fetch the same TestFlight build and fail
-unless its metadata contains that exact marker before selecting or submitting
-it. Merely accepting `SOURCE_SHA` does not satisfy the contract.
+Do not use `changelog` alone or a default `localized_build_info` entry for this
+contract. With `skip_waiting_for_build_processing`, Fastlane uses `changelog` as
+the signal to wait only until the new build appears and then applies distribution
+metadata. The explicit locale key lets that distribution step create the
+`BetaBuildLocalization` and persist its `whatsNew` value. `ios release` must fetch
+the same TestFlight build and fail unless its metadata contains that exact marker
+before selecting or submitting it. Merely accepting `SOURCE_SHA` does not satisfy
+the contract.
 
 ### Metadata de App Store
 
@@ -385,8 +388,8 @@ upload action with its existing inputs.
 
 Direct production does not download, rebuild, or upload an AAB. It opens an
 Android Publisher edit, selects the highest version code from completed releases
-on `android-track`, and consolidates that version with retained production version
-codes in exactly one completed `production` release. It fails when the
+on `android-track`, and replaces the completed `production` release with only that
+selected version code. It fails when the
 closed-testing track has no completed release, when production contains an active
 rollout, or when promotion would downgrade production. iOS production continues
 through `ios release`, whose consumer lane must select and submit the latest
@@ -396,8 +399,8 @@ Artifact mode preserves the previous integration for external callers: it
 downloads the signed AAB and uses the pinned upload action for beta or production.
 Direct Android beta names the release with the exact source SHA and is idempotent
 only when both version code and name match. Production selects by the latest
-completed version code, retains active production version codes in a single
-completed release, and refuses to replace draft, halted, or staged rollouts.
+completed version code, removes older fully superseded production version codes,
+and refuses to replace draft, halted, or staged rollouts.
 
 Each GitHub environment must define `ANDROID_PUBLISHER_CREDENTIALS` with the
 complete service-account JSON. Direct mode exchanges it for an in-memory,

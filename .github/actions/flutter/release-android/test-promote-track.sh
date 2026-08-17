@@ -94,7 +94,8 @@ export TEST_SOURCE="${source_release}" TEST_PRODUCTION="${completed_production}"
 bash "${action_directory}/promote-track.sh"
 jq -e '
   .releases | length == 1
-  and .[0].versionCodes == ["50", "52"]
+  and .[0].versionCodes == ["52"]
+  and (.[0].versionCodes | index("50") | not)
   and .[0].name == "beta-latest"
   and .[0].status == "completed"
   and .[0].releaseNotes[0].text == "Latest"
