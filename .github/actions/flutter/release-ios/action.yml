@@ -31,12 +31,18 @@ runs:
       if: inputs.delivery-mode == 'direct'
       shell: bash
       env:
+        STAGE: ${{ inputs.stage }}
         SOURCE_SHA: ${{ inputs.source-sha }}
         SOURCE_PROVENANCE_SUPPORTED: ${{ inputs.source-provenance-supported }}
+        APP_STORE_LOCALE: ${{ inputs.app-store-locale }}
       run: |
         set -euo pipefail
         if [[ ! "${SOURCE_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
           echo "Direct iOS delivery requires the exact 40-character source SHA." >&2
+          exit 1
+        fi
+        if [[ "${STAGE}" == 'beta' && -z "${APP_STORE_LOCALE//[[:space:]]/}" ]]; then
+          echo "Direct iOS beta delivery requires APP_STORE_LOCALE to persist SOURCE_SHA provenance." >&2
           exit 1
         fi
         if [[ "${SOURCE_PROVENANCE_SUPPORTED}" != 'true' ]]; then
@@ -169,6 +175,7 @@ runs:
         BUILD_NUMBER: ${{ inputs.build-number }}
         FULL_VERSION: ${{ inputs.full-version }}
         SOURCE_SHA: ${{ inputs.source-sha }}
+        APP_STORE_LOCALE: ${{ inputs.app-store-locale }}
         IPA_PATH: ${{ steps.artifact.outputs.ipa-path }}
         FASTLANE_SKIP_UPDATE_CHECK: '1'
       run: ${{ inputs.beta-command }}

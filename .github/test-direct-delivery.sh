@@ -32,6 +32,7 @@ ios_release='.github/actions/flutter/release-ios/action.yml'
 ios_build='.github/actions/flutter/build-ios/action.yml'
 android_build='.github/actions/flutter/build-android/action.yml'
 template='templates/flutter/.github/workflows/main.yml'
+flutter_docs='docs/flutter.md'
 
 assert_contains "${main}" 'delivery-mode:' 'The public workflow must expose delivery-mode.'
 assert_contains "${main}" 'default: artifact' 'Artifact delivery must remain the public default.'
@@ -102,6 +103,15 @@ assert_contains "${android_release}" 'export_environment_variables: false' 'Dire
 assert_contains "${android_release}" 'google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093' 'Secret-bearing Google authentication must be pinned to the verified v3 commit.'
 assert_contains "${ios_release}" 'SOURCE_PROVENANCE_SUPPORTED' 'Direct iOS delivery must fail without consumer provenance support.'
 assert_contains "${ios_release}" 'SOURCE_SHA: ${{ inputs.source-sha }}' 'Both iOS Fastlane lanes must receive the source SHA.'
+assert_contains "${ios_release}" 'Direct iOS beta delivery requires APP_STORE_LOCALE to persist SOURCE_SHA provenance.' 'Direct iOS beta delivery must require an explicit provenance locale.'
+ios_beta_contract="$(sed -n '/- name: Upload beta to TestFlight/,/- name: Promote to App Store/p' "${ios_release}")"
+if ! grep -Fq 'APP_STORE_LOCALE: ${{ inputs.app-store-locale }}' <<< "${ios_beta_contract}"; then
+  echo 'The iOS beta lane must receive APP_STORE_LOCALE for explicit localized provenance.' >&2
+  exit 1
+fi
+assert_contains "${flutter_docs}" 'localized_build_info: {' 'The iOS provenance documentation must require localized build information.'
+assert_contains "${flutter_docs}" 'locale => { whats_new: marker }' 'The iOS provenance documentation must use an explicit locale key.'
+assert_not_contains "${flutter_docs}" 'localized_build_info.default.whats_new' 'Default localized build information does not guarantee localization creation.'
 assert_contains "${ios_build}" 'build/ios/archive/*.xcarchive' 'Artifact-mode iOS uploads must retain the XCArchive.'
 assert_contains "${ios_build}" "always() && inputs.cleanup-output == 'true'" 'Direct iOS validation must always clean signed outputs.'
 assert_contains "${android_build}" "always() && inputs.cleanup-output == 'true'" 'Direct Android validation must always clean signed outputs.'

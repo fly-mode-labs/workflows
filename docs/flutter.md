@@ -233,11 +233,27 @@ the contract.
 `ios beta` must look up the exact `APP_VERSION` and `BUILD_NUMBER`. If TestFlight
 **What to Test** metadata already contains `Source SHA: <SOURCE_SHA>`, it must
 return success without uploading again. Otherwise it must upload `IPA_PATH` and
-attach that marker through `changelog` or
-`localized_build_info.default.whats_new`. `ios release` must fetch the same
-TestFlight build and fail unless its metadata contains that exact marker before
-selecting or submitting it. Merely accepting `SOURCE_SHA` does not satisfy the
-contract.
+attach that marker to an explicit `APP_STORE_LOCALE`:
+
+```ruby
+locale = ENV["APP_STORE_LOCALE"].to_s.strip
+UI.user_error!("APP_STORE_LOCALE is required") if locale.empty?
+
+upload_to_testflight(
+  # Other required upload options...
+  localized_build_info: {
+    locale => { whats_new: marker }
+  }
+)
+```
+
+Do not use `changelog` or a default `localized_build_info` entry for this
+contract. When a new TestFlight build has no beta localization yet, Fastlane can
+report that it set the changelog without creating one. The explicit locale key
+allows Fastlane to create the `BetaBuildLocalization` and persist its
+`whatsNew` value. `ios release` must fetch the same TestFlight build and fail
+unless its metadata contains that exact marker before selecting or submitting
+it. Merely accepting `SOURCE_SHA` does not satisfy the contract.
 
 ### Metadata de App Store
 
