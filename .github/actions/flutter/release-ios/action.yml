@@ -16,6 +16,9 @@ inputs:
   app-store-connect-api-key-base64: {required: true, description: Base64-encoded App Store Connect API private key}
   app-store-connect-issuer-id: {required: true, description: App Store Connect API issuer ID}
   app-store-connect-key-id: {required: true, description: App Store Connect API key ID}
+  firebase-app-id: {required: false, default: '', description: Firebase iOS app ID for beta distribution}
+  firebase-service-account-json: {required: false, default: '', description: Firebase service account JSON}
+  firebase-groups: {required: false, default: '', description: Firebase App Distribution tester groups}
   app-store-locale: {required: false, default: '', description: App Store locale used for release metadata}
   app-store-description: {required: false, default: '', description: Localized App Store description}
   app-store-keywords: {required: false, default: '', description: Comma-separated localized App Store keywords}
@@ -151,6 +154,14 @@ runs:
         fi
 
         echo "ipa-path=${ipa_path}" >> "${GITHUB_OUTPUT}"
+    - name: Distribute beta to Firebase App Distribution
+      if: inputs.stage == 'beta' && inputs.firebase-app-id != ''
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{ inputs.firebase-app-id }}
+        serviceCredentialsFileContent: ${{ inputs.firebase-service-account-json }}
+        file: ${{ steps.artifact.outputs.ipa-path }}
+        groups: ${{ inputs.firebase-groups }}
     - name: Setup hosted Ruby, Bundler and gem cache
       if: inputs.runner == 'github-hosted'
       uses: ruby/setup-ruby@v1

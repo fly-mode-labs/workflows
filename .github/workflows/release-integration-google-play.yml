@@ -21,6 +21,7 @@ on:
       STOREPASSWORD: {required: false, description: Android signing store password}
       KEYPASSWORD: {required: false, description: Android signing key password}
       ANDROID_PUBLISHER_CREDENTIALS: {required: false, description: Google Play service-account JSON}
+      FIREBASE_SERVICE_ACCOUNT_JSON: {required: false, description: Firebase App Distribution service account JSON}
 
 permissions:
   actions: read
@@ -94,6 +95,9 @@ jobs:
           local-package-name: ${{ steps.build.outputs.package-name }}
           version-code: ${{ steps.version.outputs.build-number }}
           service-account-json: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
+          firebase-app-id: ${{ vars.FIREBASE_APP_ID_ANDROID }}
+          firebase-service-account-json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          firebase-groups: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
       - name: Remove direct Android beta binaries
         if: always() && inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
         shell: bash

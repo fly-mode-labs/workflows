@@ -13,6 +13,9 @@ inputs:
   local-package-name: {required: false, default: '', description: Package name resolved by the direct Android build}
   version-code: {required: false, default: '', description: Exact Flutter build number published in direct beta delivery}
   service-account-json: {required: true, description: Google Play service account JSON}
+  firebase-app-id: {required: false, default: '', description: Firebase Android app ID for beta distribution}
+  firebase-service-account-json: {required: false, default: '', description: Firebase service account JSON}
+  firebase-groups: {required: false, default: '', description: Firebase App Distribution tester groups}
 
 runs:
   using: composite
@@ -118,6 +121,14 @@ runs:
           exit 1
         fi
         echo "aab-path=${aab_path}" >> "${GITHUB_OUTPUT}"
+    - name: Distribute beta to Firebase App Distribution
+      if: inputs.stage == 'beta' && inputs.firebase-app-id != ''
+      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      with:
+        appId: ${{ inputs.firebase-app-id }}
+        serviceCredentialsFileContent: ${{ inputs.firebase-service-account-json }}
+        file: ${{ steps.bundle.outputs.aab-path }}
+        groups: ${{ inputs.firebase-groups }}
     - name: Upload Android release to Google Play
       if: inputs.delivery-mode == 'artifact'
       uses: r0adkll/upload-google-play@v1.1.5
