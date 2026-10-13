@@ -44,6 +44,9 @@ on:
         type: string
         default: auto
     secrets:
+      PACKAGES_TOKEN:
+        description: GitHub token with read access to private Flutter package repositories
+        required: false
       ANDROID_KEYSTORE_BASE64:
         description: Base64-encoded Android signing keystore
         required: false
@@ -236,6 +239,7 @@ jobs:
       android-build-format: ${{ inputs.android-build-format }}
       delivery-mode: ${{ inputs.delivery-mode }}
     secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYALIAS: ${{ secrets.KEYALIAS }}
       STOREPASSWORD: ${{ secrets.STOREPASSWORD }}

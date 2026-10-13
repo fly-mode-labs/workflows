@@ -46,6 +46,9 @@ on:
         type: string
         default: artifact
     secrets:
+      PACKAGES_TOKEN:
+        description: GitHub token with read access to private Flutter package repositories
+        required: false
       ANDROID_KEYSTORE_BASE64:
         description: Base64-encoded Android signing keystore
         required: false
@@ -94,6 +97,7 @@ jobs:
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Run Flutter static analysis and tests
         shell: bash
         working-directory: ${{ inputs.working-directory }}
@@ -140,6 +144,7 @@ jobs:
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read and validate application version
         uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
         id: version
@@ -176,6 +181,7 @@ jobs:
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read and validate application version
         uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
         id: version
@@ -208,6 +214,7 @@ jobs:
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read and validate application version
         uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
         id: version
