@@ -13,6 +13,10 @@ inputs:
     description: Run flutter pub get after preparing the SDK
     required: false
     default: 'true'
+  packages-token:
+    description: GitHub token with read access to private Flutter package repositories
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -69,4 +73,15 @@ runs:
       if: inputs.resolve-dependencies == 'true'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: flutter pub get
+      env:
+        PACKAGES_TOKEN: ${{ inputs.packages-token }}
+      run: |
+        set -euo pipefail
+
+        if [[ -n "${PACKAGES_TOKEN}" ]]; then
+          export GIT_CONFIG_GLOBAL="$(mktemp "${RUNNER_TEMP}/gitconfig.XXXXXX")"
+          trap 'rm -f "${GIT_CONFIG_GLOBAL}"' EXIT
+          git config --global url."https://x-access-token:${PACKAGES_TOKEN}@github.com/".insteadOf "git@github.com:"
+        fi
+
+        flutter pub get
