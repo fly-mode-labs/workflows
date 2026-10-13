@@ -15,6 +15,7 @@ on:
       track: {type: string, default: alpha}
       app-identifier: {type: string, default: ''}
     secrets:
+      PACKAGES_TOKEN: {required: false, description: GitHub token with read access to private Flutter package repositories}
       ANDROID_KEYSTORE_BASE64: {required: false, description: Base64-encoded Android signing keystore}
       KEYALIAS: {required: false, description: Android signing key alias}
       STOREPASSWORD: {required: false, description: Android signing store password}
@@ -59,6 +60,7 @@ jobs:
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read application version for direct delivery
         if: inputs.delivery-mode == 'direct'
         id: version

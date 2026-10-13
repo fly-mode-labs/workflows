@@ -52,6 +52,9 @@ on:
         type: boolean
         default: false
     secrets:
+      PACKAGES_TOKEN:
+        description: GitHub token with read access to private Flutter package repositories
+        required: false
       ANDROID_KEYSTORE_BASE64:
         description: Base64-encoded Android signing keystore
         required: false
@@ -230,6 +233,7 @@ jobs:
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels }}
     secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
       MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
       APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
@@ -257,6 +261,7 @@ jobs:
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels }}
     secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYALIAS: ${{ secrets.KEYALIAS }}
       STOREPASSWORD: ${{ secrets.STOREPASSWORD }}

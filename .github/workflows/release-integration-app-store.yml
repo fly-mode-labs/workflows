@@ -15,6 +15,7 @@ on:
       beta-command: {type: string, default: bundle exec fastlane ios beta}
       production-command: {type: string, default: bundle exec fastlane ios release}
     secrets:
+      PACKAGES_TOKEN: {required: false, description: GitHub token with read access to private Flutter package repositories}
       MATCH_PASSWORD: {required: false, description: Fastlane Match repository encryption password}
       MATCH_GIT_BASIC_AUTHORIZATION: {required: false, description: Fastlane Match Git basic authorization}
       APP_STORE_CONNECT_API_KEY_BASE64: {required: false, description: Base64-encoded App Store Connect API private key}
@@ -46,6 +47,7 @@ jobs:
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
         id: version
         with:

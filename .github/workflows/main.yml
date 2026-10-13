@@ -283,6 +283,7 @@ jobs:
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYALIAS: ${{ secrets.KEYALIAS }}
       STOREPASSWORD: ${{ secrets.STOREPASSWORD }}
@@ -318,6 +319,7 @@ jobs:
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
