@@ -43,7 +43,7 @@ jobs:
           runner: ${{ inputs.runner }}
       - name: Setup Flutter SDK and dependencies
         if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@codex/private-pub-release-auth
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
