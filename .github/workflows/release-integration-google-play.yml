@@ -15,6 +15,7 @@ on:
       track: {type: string, default: alpha}
       app-identifier: {type: string, default: ''}
     secrets:
+      PACKAGES_TOKEN: {required: false, description: GitHub token with read access to private Flutter package repositories}
       ANDROID_KEYSTORE_BASE64: {required: false, description: Base64-encoded Android signing keystore}
       KEYALIAS: {required: false, description: Android signing key alias}
       STOREPASSWORD: {required: false, description: Android signing store password}
@@ -55,10 +56,11 @@ jobs:
           echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.java.home=${JAVA_HOME}" >> "${GITHUB_ENV}"
       - name: Setup Flutter SDK and dependencies
         if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@codex/private-pub-release-auth
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read application version for direct delivery
         if: inputs.delivery-mode == 'direct'
         id: version

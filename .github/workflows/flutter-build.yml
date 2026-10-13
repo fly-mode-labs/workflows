@@ -93,7 +93,7 @@ jobs:
       - name: Checkout application
         uses: actions/checkout@v4
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@codex/private-pub-release-auth
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -140,7 +140,7 @@ jobs:
           echo "Gradle JDK: ${JAVA_HOME}"
           java -version
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@codex/private-pub-release-auth
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -177,7 +177,7 @@ jobs:
           xcode-version: ${{ inputs.xcode-version }}
           runner: ${{ inputs.runner }}
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@codex/private-pub-release-auth
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -210,7 +210,7 @@ jobs:
       - name: Checkout application
         uses: actions/checkout@v4
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@codex/private-pub-release-auth
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
