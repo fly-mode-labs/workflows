@@ -30,7 +30,7 @@ permissions:
 jobs:
   google-play:
     name: ${{ inputs.stage == 'beta' && 'Google Play beta' || 'Google Play production' }}
-    environment: ${{ inputs.stage }}
+    environment: ${{ inputs.stage == 'beta' && 'qa' || inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: ${{ inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && 75 || 45 }}
     steps:

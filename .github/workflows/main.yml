@@ -92,6 +92,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       stage: ${{ steps.config.outputs.stage }}
+      environment: ${{ steps.config.outputs.environment }}
       working-directory: ${{ steps.config.outputs.working-directory }}
       android: ${{ steps.config.outputs.android }}
       ios: ${{ steps.config.outputs.ios }}
@@ -208,6 +209,11 @@ jobs:
 
           {
             echo "stage=${effective_stage}"
+            if [[ "${effective_stage}" == "production" ]]; then
+              echo "environment=production"
+            else
+              echo "environment=qa"
+            fi
             echo "flutter-version=${effective_flutter_version}"
             echo "java-version=${effective_java_version}"
             echo "xcode-version=${effective_xcode_version}"
@@ -231,6 +237,7 @@ jobs:
     uses: ./.github/workflows/flutter-build.yml
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
+      environment: ${{ needs.validate.outputs.environment }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       java-version: ${{ needs.validate.outputs.java-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}

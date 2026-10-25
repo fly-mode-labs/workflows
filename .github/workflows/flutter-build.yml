@@ -6,6 +6,10 @@ on:
       working-directory:
         required: true
         type: string
+      environment:
+        description: GitHub Environment that supplies pipeline secrets and variables
+        required: true
+        type: string
       flutter-version:
         type: string
         default: stable
@@ -87,6 +91,7 @@ concurrency:
 jobs:
   checks:
     name: Flutter build / Checks
+    environment: ${{ inputs.environment }}
     runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 40
     steps:
@@ -113,6 +118,7 @@ jobs:
 
   android:
     name: Flutter build / Android
+    environment: ${{ inputs.environment }}
     if: inputs.build-android && inputs.delivery-mode == 'artifact'
     runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 40
@@ -165,6 +171,7 @@ jobs:
 
   ios:
     name: Flutter build / iOS
+    environment: ${{ inputs.environment }}
     if: inputs.build-ios && inputs.delivery-mode == 'artifact'
     runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 40
@@ -203,6 +210,7 @@ jobs:
 
   web:
     name: Flutter build / Web
+    environment: ${{ inputs.environment }}
     if: inputs.build-web
     runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 40
