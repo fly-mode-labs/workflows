@@ -123,10 +123,10 @@ runs:
         echo "aab-path=${aab_path}" >> "${GITHUB_OUTPUT}"
     - name: Distribute beta to Firebase App Distribution
       if: inputs.stage == 'beta' && inputs.firebase-app-id != ''
-      uses: wzieba/Firebase-Distribution-Github-Action@v1
+      uses: fly-mode-labs/workflows/.github/actions/flutter/firebase-app-distribution@v3
       with:
-        appId: ${{ inputs.firebase-app-id }}
-        serviceCredentialsFileContent: ${{ inputs.firebase-service-account-json }}
+        app-id: ${{ inputs.firebase-app-id }}
+        service-account-json: ${{ inputs.firebase-service-account-json }}
         file: ${{ steps.bundle.outputs.aab-path }}
         groups: ${{ inputs.firebase-groups }}
     - name: Upload Android release to Google Play

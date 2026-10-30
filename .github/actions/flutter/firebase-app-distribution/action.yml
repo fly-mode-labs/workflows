@@ -1,0 +1,63 @@
+name: Distribute Flutter build to Firebase
+description: Uploads an APK, AAB or IPA to Firebase App Distribution using a service account.
+
+inputs:
+  app-id: {required: true, description: Firebase App ID resolved for the built application}
+  file: {required: true, description: Absolute path to an APK, AAB or IPA}
+  service-account-json: {required: true, description: Firebase service account JSON}
+  groups: {required: false, default: '', description: Comma-separated Firebase App Distribution tester groups}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate Firebase distribution inputs
+      shell: bash
+      env:
+        FIREBASE_APP_ID: ${{ inputs.app-id }}
+        FIREBASE_FILE: ${{ inputs.file }}
+        FIREBASE_SERVICE_ACCOUNT_JSON: ${{ inputs.service-account-json }}
+      run: |
+        set -euo pipefail
+        if [[ -z "${FIREBASE_APP_ID}" || -z "${FIREBASE_SERVICE_ACCOUNT_JSON}" ]]; then
+          echo "Firebase App ID and service account JSON are required." >&2
+          exit 1
+        fi
+        if [[ ! -f "${FIREBASE_FILE}" ]]; then
+          echo "Firebase distribution file does not exist: ${FIREBASE_FILE}" >&2
+          exit 1
+        fi
+    - name: Set up Node.js for Firebase CLI
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Create temporary Firebase service account file
+      id: credentials
+      shell: bash
+      env:
+        FIREBASE_SERVICE_ACCOUNT_JSON: ${{ inputs.service-account-json }}
+      run: |
+        set -euo pipefail
+        umask 077
+        credential_file="$(mktemp "${RUNNER_TEMP}/firebase-service-account.XXXXXX")"
+        printf '%s' "${FIREBASE_SERVICE_ACCOUNT_JSON}" > "${credential_file}"
+        echo "path=${credential_file}" >> "${GITHUB_OUTPUT}"
+    - name: Upload build to Firebase App Distribution
+      shell: bash
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.credentials.outputs.path }}
+        FIREBASE_APP_ID: ${{ inputs.app-id }}
+        FIREBASE_FILE: ${{ inputs.file }}
+        FIREBASE_GROUPS: ${{ inputs.groups }}
+      run: |
+        set -euo pipefail
+        firebase_args=(appdistribution:distribute "${FIREBASE_FILE}" --app "${FIREBASE_APP_ID}")
+        if [[ -n "${FIREBASE_GROUPS}" ]]; then
+          firebase_args+=(--groups "${FIREBASE_GROUPS}")
+        fi
+        npx --yes --package=firebase-tools@14 firebase "${firebase_args[@]}"
+    - name: Remove temporary Firebase service account file
+      if: always() && steps.credentials.outputs.path != ''
+      shell: bash
+      env:
+        CREDENTIAL_FILE: ${{ steps.credentials.outputs.path }}
+      run: rm -f -- "${CREDENTIAL_FILE}"

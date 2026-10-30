@@ -131,6 +131,7 @@ un commit nuevo a la misma PR.
 │   ├── build-ios/action.yml
 │   ├── build-web/action.yml
 │   ├── release-android/action.yml
+│   ├── firebase-app-distribution/action.yml
 │   └── release-ios/action.yml
 └── CODEOWNERS
 templates/flutter/        # main.yml mínimo que vive en cada app

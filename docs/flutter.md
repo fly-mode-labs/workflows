@@ -402,6 +402,53 @@ only when both version code and name match. Production selects by the latest
 completed version code, removes older fully superseded production version codes,
 and refuses to replace draft, halted, or staged rollouts.
 
+### Firebase App Distribution por flavor
+
+La distribución Android a Firebase se configura por aplicación mediante la
+Repository Variable `FIREBASE_ANDROID_DISTRIBUTIONS`. Es una lista JSON con una
+entrada por flavor; cada entrada elige el comando de build (`apk` o
+`appbundle`) y el nombre del flavor de esa app:
+
+```json
+[
+  {"flavor":"qa","format":"apk"},
+  {"flavor":"preprod","format":"appbundle"}
+]
+```
+
+Los nombres `qa` y `preprod` son ejemplos. El workflow central no conoce los
+flavors de las compañías que lo consumen; cada repositorio define sus propios
+valores. Cada entrada se compila usando `--flavor`. El pipeline obtiene el
+package name de ese build y lo cruza con las apps Android registradas en el
+proyecto de la cuenta de servicio para resolver el App ID correcto. Si las
+variantes usan distintos proyectos Firebase, se puede añadir `project_id` a la
+entrada correspondiente; la cuenta debe tener permisos en cada proyecto. Una
+lista vacía (`[]`) omite esta distribución por flavor.
+
+Configurar también estas variables y credenciales en el repositorio consumidor:
+
+```text
+FIREBASE_APP_DISTRIBUTION_GROUPS=qa-testers
+FIREBASE_SERVICE_ACCOUNT_JSON=<service account JSON como Actions Secret>
+```
+
+`FIREBASE_SERVICE_ACCOUNT_JSON` debe guardarse como **Repository Secret**; la
+plantilla lo pasa al job `cd`. El pipeline usa el `project_id` de esa cuenta y
+el package name generado por el build para resolver automáticamente el App ID
+entre las apps Android activas del proyecto. La lista no necesita guardar un
+App ID por flavor. La cuenta requiere el rol **Firebase App Distribution
+Admin**, que permite subir builds y listar las apps. Los grupos son comunes a
+todas las entradas de la lista. Si se distribuye un AAB, Firebase requiere que
+la app Android esté vinculada a una aplicación de Google Play. También deben
+estar disponibles los secrets de firma Android usados por los builds.
+
+La subida usa Firebase CLI con Application Default Credentials para funcionar
+en los runners Linux y macOS admitidos por el pipeline; no requiere Docker.
+
+Para mantener compatibilidad, si `FIREBASE_ANDROID_DISTRIBUTIONS` vale `[]` y
+está configurada la variable antigua `FIREBASE_APP_ID_ANDROID`, se conserva la
+distribución anterior del AAB beta sin selección de flavor.
+
 Each GitHub environment must define `ANDROID_PUBLISHER_CREDENTIALS` with the
 complete service-account JSON. Direct mode exchanges it for an in-memory,
 short-lived access token without creating a credentials file.

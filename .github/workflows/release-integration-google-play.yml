@@ -28,6 +28,155 @@ permissions:
   contents: read
 
 jobs:
+  firebase-app-distribution:
+    name: Firebase / Android / ${{ matrix.distribution.flavor }}
+    if: >-
+      inputs.stage == 'beta' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' &&
+      vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]'
+    environment: qa
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        distribution: ${{ fromJSON(vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]' && vars.FIREBASE_ANDROID_DISTRIBUTIONS || '[{"flavor":"_skip_","format":"apk"}]') }}
+    steps:
+      - name: Validate Firebase distribution configuration
+        shell: bash
+        env:
+          FLAVOR: ${{ matrix.distribution.flavor }}
+          BUILD_FORMAT: ${{ matrix.distribution.format }}
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${FIREBASE_SERVICE_ACCOUNT_JSON}" ]]; then
+            echo "Set the FIREBASE_SERVICE_ACCOUNT_JSON secret to enable Firebase App Distribution." >&2
+            exit 1
+          fi
+          if [[ -z "${FLAVOR}" ]]; then
+            echo "Each Firebase Android distribution requires a non-empty flavor." >&2
+            exit 1
+          fi
+          case "${BUILD_FORMAT}" in
+            apk|appbundle) ;;
+            *) echo "Unsupported Firebase Android format: ${BUILD_FORMAT}" >&2; exit 1 ;;
+          esac
+      - name: Checkout application source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source-sha }}
+          persist-credentials: false
+      - name: Setup hosted Android JDK
+        if: inputs.runner == 'github-hosted'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java-version }}
+      - name: Select hosted JDK for Gradle
+        if: inputs.runner == 'github-hosted'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${JAVA_HOME:-}" || ! -x "${JAVA_HOME}/bin/java" ]]; then
+            echo "The hosted JDK was not installed correctly: JAVA_HOME=${JAVA_HOME:-<unset>}" >&2
+            exit 1
+          fi
+          echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.java.home=${JAVA_HOME}" >> "${GITHUB_ENV}"
+      - name: Setup Flutter SDK and dependencies
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
+      - name: Read application version
+        id: version
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
+        with:
+          working-directory: ${{ inputs.working-directory }}
+      - name: Build flavored Android distribution
+        id: build
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v3
+        with:
+          working-directory: ${{ inputs.working-directory }}
+          full-version: ${{ steps.version.outputs.full-version }}
+          build-format: ${{ matrix.distribution.format }}
+          flavor: ${{ matrix.distribution.flavor }}
+          upload-artifact: 'false'
+          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          key-alias: ${{ secrets.KEYALIAS }}
+          store-password: ${{ secrets.STOREPASSWORD }}
+          key-password: ${{ secrets.KEYPASSWORD }}
+      - name: Authenticate to Firebase Management API
+        id: firebase-auth
+        # v3
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform.read-only
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Resolve Firebase App ID from Android package name
+        id: firebase-app
+        shell: bash
+        env:
+          ACCESS_TOKEN: ${{ steps.firebase-auth.outputs.access_token }}
+          SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          ANDROID_PACKAGE_NAME: ${{ steps.build.outputs.package-name }}
+          CONFIGURED_PROJECT_ID: ${{ matrix.distribution.project_id }}
+        run: |
+          set -euo pipefail
+
+          service_account_project_id="$(jq -r '.project_id // empty' <<< "${SERVICE_ACCOUNT_JSON}")"
+          project_id="${CONFIGURED_PROJECT_ID:-${service_account_project_id}}"
+          if [[ -z "${project_id}" || -z "${ANDROID_PACKAGE_NAME}" ]]; then
+            echo "Could not resolve Firebase project ID or Android package name." >&2
+            exit 1
+          fi
+
+          apps='[]'
+          page_token=''
+          while true; do
+            query_args=(--data-urlencode 'pageSize=100')
+            if [[ -n "${page_token}" ]]; then
+              query_args+=(--data-urlencode "pageToken=${page_token}")
+            fi
+            response="$(curl --fail --silent --show-error --get \
+              --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+              "${query_args[@]}" \
+              "https://firebase.googleapis.com/v1beta1/projects/${project_id}/androidApps")"
+            apps="$(jq -cn --argjson previous "${apps}" --argjson response "${response}" \
+              '$previous + ($response.apps // [])')"
+            page_token="$(jq -r '.nextPageToken // empty' <<< "${response}")"
+            if [[ -z "${page_token}" ]]; then
+              break
+            fi
+          done
+
+          app_ids="$(jq -c --arg package "${ANDROID_PACKAGE_NAME}" \
+            '[.[] | select(.packageName == $package and .state == "ACTIVE") | .appId] | unique' \
+            <<< "${apps}")"
+          app_count="$(jq 'length' <<< "${app_ids}")"
+          if [[ "${app_count}" -ne 1 ]]; then
+            echo "Expected exactly one active Firebase Android app for package ${ANDROID_PACKAGE_NAME} in project ${project_id}, found ${app_count}." >&2
+            exit 1
+          fi
+
+          echo "app-id=$(jq -r '.[0]' <<< "${app_ids}")" >> "${GITHUB_OUTPUT}"
+      - name: Distribute Android flavor to Firebase App Distribution
+        uses: fly-mode-labs/workflows/.github/actions/flutter/firebase-app-distribution@v3
+        with:
+          app-id: ${{ steps.firebase-app.outputs.app-id }}
+          service-account-json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          file: ${{ matrix.distribution.format == 'apk' && steps.build.outputs.apk-path || steps.build.outputs.aab-path }}
+          groups: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
+      - name: Remove local Android build outputs
+        if: always()
+        shell: bash
+        env:
+          APPLICATION_DIRECTORY: ${{ inputs.working-directory }}
+        run: rm -rf -- "${APPLICATION_DIRECTORY}/build/app/outputs/flutter-apk" "${APPLICATION_DIRECTORY}/build/app/outputs/bundle" "${APPLICATION_DIRECTORY}/build/app/outputs/pipeline-metadata"
+
   google-play:
     name: ${{ inputs.stage == 'beta' && 'Google Play beta' || 'Google Play production' }}
     environment: ${{ inputs.stage == 'beta' && 'qa' || inputs.stage }}
@@ -95,7 +244,7 @@ jobs:
           local-package-name: ${{ steps.build.outputs.package-name }}
           version-code: ${{ steps.version.outputs.build-number }}
           service-account-json: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
-          firebase-app-id: ${{ vars.FIREBASE_APP_ID_ANDROID }}
+          firebase-app-id: ${{ (vars.FIREBASE_ANDROID_DISTRIBUTIONS == '' || vars.FIREBASE_ANDROID_DISTRIBUTIONS == '[]') && vars.FIREBASE_APP_ID_ANDROID || '' }}
           firebase-service-account-json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           firebase-groups: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
       - name: Remove direct Android beta binaries

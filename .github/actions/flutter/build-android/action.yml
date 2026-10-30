@@ -5,6 +5,7 @@ inputs:
   working-directory: {required: true, description: Flutter application directory}
   full-version: {required: true, description: Full pubspec version}
   build-format: {required: false, default: both, description: apk, appbundle or both}
+  flavor: {required: false, default: '', description: Optional Flutter Android product flavor}
   upload-artifact: {required: false, default: 'true', description: Whether to upload the build outputs as a GitHub artifact}
   cleanup-output: {required: false, default: 'false', description: Whether to remove local build outputs before the action exits}
   keystore-base64: {required: false, description: Base64-encoded Android keystore}
@@ -16,6 +17,9 @@ outputs:
   aab-path:
     description: Absolute path to the single generated Android App Bundle, when requested
     value: ${{ steps.bundle.outputs.aab-path }}
+  apk-path:
+    description: Absolute path to the single generated APK, when requested
+    value: ${{ steps.apk.outputs.apk-path }}
   package-name:
     description: Android application identifier resolved from AGP metadata
     value: ${{ steps.metadata.outputs.package-name }}
@@ -93,12 +97,28 @@ runs:
       if: inputs.build-format == 'apk' || inputs.build-format == 'both'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: flutter build apk --release
+      env:
+        FLAVOR: ${{ inputs.flavor }}
+      run: |
+        set -euo pipefail
+        build_args=(build apk --release)
+        if [[ -n "${FLAVOR}" ]]; then
+          build_args+=(--flavor "${FLAVOR}")
+        fi
+        flutter "${build_args[@]}"
     - name: Compile release Android App Bundle
       if: inputs.build-format == 'appbundle' || inputs.build-format == 'both'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
-      run: flutter build appbundle --release
+      env:
+        FLAVOR: ${{ inputs.flavor }}
+      run: |
+        set -euo pipefail
+        build_args=(build appbundle --release)
+        if [[ -n "${FLAVOR}" ]]; then
+          build_args+=(--flavor "${FLAVOR}")
+        fi
+        flutter "${build_args[@]}"
     - name: Export Android application identifier
       id: metadata
       shell: bash
@@ -146,6 +166,27 @@ runs:
         fi
 
         echo "aab-path=${PWD}/${aab_path}" >> "${GITHUB_OUTPUT}"
+    - name: Resolve APK
+      if: inputs.build-format == 'apk'
+      id: apk
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+
+        apk_path=''
+        apk_count=0
+        while IFS= read -r candidate; do
+          apk_path="${candidate}"
+          apk_count=$((apk_count + 1))
+        done < <(find build/app/outputs/flutter-apk -type f -name '*.apk' -print)
+
+        if [[ "${apk_count}" -ne 1 ]]; then
+          echo "Expected exactly one APK, found ${apk_count}." >&2
+          exit 1
+        fi
+
+        echo "apk-path=${PWD}/${apk_path}" >> "${GITHUB_OUTPUT}"
     - name: Remove Gradle CI project cache
       if: always()
       shell: bash

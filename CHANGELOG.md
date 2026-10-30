@@ -7,6 +7,9 @@ usa [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Firebase Android beta distribution now accepts a per-repository flavor and
+  format matrix, resolves Firebase apps by the generated Android package name,
+  and uploads APK or AAB builds using the repository's service account.
 - Added `delivery-mode: direct|artifact` to the public Flutter pipeline. The
   default remains `artifact` for existing external callers, while the supplied
   Flutter template explicitly selects `direct` for CI and CD.
