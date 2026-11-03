@@ -221,7 +221,7 @@ jobs:
       always() && !cancelled() && inputs.release-ios &&
       (inputs.delivery-mode == 'direct' || inputs.stage != 'beta' || inputs.artifact-run-id != '' ||
       needs.resolve-build-artifacts.result == 'success')
-    uses: ./.github/workflows/release-integration-app-store.yml
+    uses: fly-mode-labs/workflows/.github/workflows/release-integration-app-store.yml@v5
     with:
       stage: ${{ inputs.stage }}
       delivery-mode: ${{ inputs.delivery-mode }}
@@ -248,7 +248,7 @@ jobs:
       always() && !cancelled() && inputs.release-android &&
       (inputs.delivery-mode == 'direct' || inputs.artifact-run-id != '' ||
       needs.resolve-build-artifacts.result == 'success')
-    uses: ./.github/workflows/release-integration-google-play.yml
+    uses: fly-mode-labs/workflows/.github/workflows/release-integration-google-play.yml@v5
     with:
       stage: ${{ inputs.stage }}
       delivery-mode: ${{ inputs.delivery-mode }}
