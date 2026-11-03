@@ -39,7 +39,9 @@ assert_contains "${main}" 'default: artifact' 'Artifact delivery must remain the
 assert_contains "${main}" 'artifact|direct)' 'Configuration validation must accept only artifact and direct delivery.'
 assert_contains "${main}" "inputs.delivery-mode == 'direct' && github.event.action == 'synchronize'" 'Direct non-draft synchronize events must revalidate and republish beta.'
 assert_contains "${main}" 'source-sha: ${{ github.event.pull_request.head.sha || github.sha }}' 'Release orchestration must use the exact source SHA.'
-assert_contains "${main}" 'ANDROID_PUBLISHER_CREDENTIALS:' 'The public workflow must declare the Google Play secret contract.'
+assert_contains "${main}" 'FIREBASE_SERVICE_ACCOUNT_JSON:' 'The public workflow must declare the shared Google service-account secret contract.'
+assert_not_contains "${main}" 'ANDROID_PUBLISHER_CREDENTIALS:' 'The public workflow must not require a duplicate Google Play service-account secret.'
+assert_contains "${template}" 'fly-mode-labs/workflows/.github/workflows/main.yml@v4' 'The caller template must use the reusable workflow version that defines the shared service-account contract.'
 assert_not_contains "${main}" 'secrets: inherit' 'The public workflow must pass secrets explicitly to nested workflows.'
 assert_not_contains "${release}" 'secrets: inherit' 'The release workflow must pass only store-specific secrets to integrations.'
 
@@ -72,7 +74,8 @@ assert_contains "${template}" 'options: [direct, artifact]' 'The Flutter templat
 assert_contains "${template}" 'actions: read' 'Selectable artifact delivery requires artifact API read permission.'
 assert_contains "${template}" 'default: github-hosted' 'The direct template must default to an ephemeral GitHub-hosted runner.'
 assert_contains "${template}" "inputs.runner || 'github-hosted'" 'Automatic direct delivery must use GitHub-hosted runners by default.'
-assert_contains "${template}" 'ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}' 'The caller template must pass Google Play credentials explicitly.'
+assert_contains "${template}" 'FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' 'The caller template must pass the shared Google service-account secret explicitly.'
+assert_not_contains "${template}" 'ANDROID_PUBLISHER_CREDENTIALS:' 'The caller template must not require a duplicate Google Play service-account secret.'
 assert_not_contains "${template}" 'secrets: inherit' 'The caller template must support explicit cross-owner secret passing.'
 
 assert_contains "${build}" "upload-artifact: \${{ inputs.delivery-mode == 'artifact' }}" 'Only artifact-mode CI builds may upload mobile artifacts.'

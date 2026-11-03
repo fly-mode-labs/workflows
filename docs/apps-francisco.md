@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   ci:
-    uses: fly-mode-labs/workflows/.github/workflows/main.yml@v3
+    uses: fly-mode-labs/workflows/.github/workflows/main.yml@v4
     with:
       technology: flutter
       pipeline: ci
@@ -50,7 +50,7 @@ jobs:
 
   cd:
     needs: ci
-    uses: fly-mode-labs/workflows/.github/workflows/main.yml@v3
+    uses: fly-mode-labs/workflows/.github/workflows/main.yml@v4
     with:
       technology: flutter
       pipeline: cd
@@ -66,7 +66,7 @@ jobs:
       APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-      ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
 ```
 
 The runner selector appears for manual runs. Automatic PR delivery defaults to

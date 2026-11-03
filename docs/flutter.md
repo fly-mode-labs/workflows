@@ -449,9 +449,11 @@ Para mantener compatibilidad, si `FIREBASE_ANDROID_DISTRIBUTIONS` vale `[]` y
 está configurada la variable antigua `FIREBASE_APP_ID_ANDROID`, se conserva la
 distribución anterior del AAB beta sin selección de flavor.
 
-Each GitHub environment must define `ANDROID_PUBLISHER_CREDENTIALS` with the
-complete service-account JSON. Direct mode exchanges it for an in-memory,
-short-lived access token without creating a credentials file.
+Define one `FIREBASE_SERVICE_ACCOUNT_JSON` Repository Secret with the complete
+service-account JSON. The same account is used for Firebase App Distribution
+and Google Play, so grant it the required Firebase App Distribution and Play
+Console permissions. Direct mode exchanges it for an in-memory, short-lived
+access token without creating a credentials file.
 
 ## Secrets y environments
 

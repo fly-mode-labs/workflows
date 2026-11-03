@@ -52,7 +52,8 @@ published or fails before merge.
 7. Añadir como Repository Secrets `APP_STORE_CONNECT_API_KEY_BASE64`,
    `APP_STORE_CONNECT_ISSUER_ID` y `APP_STORE_CONNECT_KEY_ID`, preparar en el
    proyecto las lanes `ios beta` y `ios release`, y configurar el secret
-   `ANDROID_PUBLISHER_CREDENTIALS` de Google Play según
+   `FIREBASE_SERVICE_ACCOUNT_JSON`, compartido por Firebase App Distribution y
+   Google Play, según
    [docs/flutter.md](docs/flutter.md). La metadata requerida por App Store se
    configura con las Repository Variables `APP_STORE_LOCALE`,
    `APP_STORE_DESCRIPTION`, `APP_STORE_KEYWORDS`, `APP_STORE_SUPPORT_URL` y
@@ -74,7 +75,7 @@ repositorios de la organización que consumirán los workflows.
 La referencia canónica es:
 
 ```yaml
-uses: fly-mode-labs/workflows/.github/workflows/main.yml@v3
+uses: fly-mode-labs/workflows/.github/workflows/main.yml@v4
 ```
 
 Los runners compartidos se registran a nivel de la organización y se asignan a
