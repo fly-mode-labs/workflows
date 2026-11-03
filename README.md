@@ -15,7 +15,7 @@ Actions.
 | Merge to `main` (`closed` + `merged`) | Submits the latest eligible TestFlight beta and promotes the latest completed Android closed-test release to production. |
 
 La versión de la aplicación siempre se obtiene de su `pubspec.yaml` (`version:
-2.3.0+47`). Es independiente del tag mayor del pipeline (`@v3`).
+2.3.0+47`). Es independiente del contrato de workflows reutilizables (`@v4`).
 
 The supplied Flutter template selects `delivery-mode: direct`. CI runs Flutter
 analysis and tests but skips Android and iOS compilation. Each direct beta job
@@ -32,7 +32,7 @@ published or fails before merge.
    expone dos jobs independientes: `ci` para validación (y build en modo
    `artifact`) y `cd` para distribución.
 2. El template referencia `fly-mode-labs/workflows` y consume el alias
-   compatible `@v3`, nunca `@main`.
+   compatible `@v4`, nunca `@main`.
 3. Keep `contents: read` in direct callers. Artifact-mode callers must also grant
    `actions: read` so releases can resolve and download build artifacts. Pass
    mobile secrets with the explicit map in the supplied template; `secrets:
@@ -43,7 +43,8 @@ published or fails before merge.
    las versiones usadas por la app. Para aplicaciones Android, crear también
    `APP_IDENTIFIER` con su application ID, por ejemplo
    `com.example.app`. No se declaran en el caller; únicamente las variables de
-   versión tienen valores por defecto.
+   versión tienen valores por defecto. Si Gradle define product flavors,
+   configurar `ANDROID_FLAVOR` con la variante beta de esa app.
 6. Configurar Fastlane Match en cada app y añadir los Repository Secrets
    `MATCH_PASSWORD` y `MATCH_GIT_BASIC_AUTHORIZATION` para firmar los builds iOS.
    En la primera ejecución, el token necesita acceso de escritura si el
@@ -84,11 +85,15 @@ requiere registrar runners.
 
 ## Versionado del pipeline
 
-Los callers usan el alias mayor `@v3`. Las versiones exactas (`v3.0.1`,
-`v3.1.0`) permanecen inmutables y el release actualiza `v3` al último cambio
-compatible. Así las apps reciben fixes y capacidades compatibles sin modificar
-sus repositorios. Solo un breaking change futuro exige cambiar los callers a
-`@v4`.
+El template actual usa el contrato de workflow reutilizable `@v4`. Los callers
+que aún usan `@v3` pueden permanecer en ese contrato. Los alias mayores son
+flotantes; los tags exactos permanecen inmutables. Un cambio incompatible debe
+publicarse bajo una nueva major y requiere actualizar los callers.
+
+`VERSION` y `Release pipeline version` publican el tag semántico y actualizan el
+alias mayor correspondiente. Actualmente, `VERSION` gobierna el alias `v3` de
+las referencias a composite actions; el alias `v4` del workflow reutilizable se
+mantiene por separado.
 
 - `PATCH` (`3.0.1`): correcciones compatibles.
 - `MINOR` (`3.1.0`): capacidades nuevas compatibles.
@@ -101,7 +106,8 @@ Para publicar una versión:
 3. Crear y subir el tag exacto: `git tag v3.0.1` y `git push origin v3.0.1`.
 4. El workflow `Release pipeline version` valida que el tag coincida con
    `VERSION` y crea el GitHub Release.
-5. El release mueve automáticamente el alias `v3`; las apps no cambian.
+5. El release mueve automáticamente el alias de la major de `VERSION`; los
+   callers que usan otra major conservan su referencia.
 
 Los tags SemVer exactos son inmutables. Únicamente los alias mayores (`v1`,
 `v2`, `v3`)
@@ -143,9 +149,9 @@ docs/                     # Contratos por tecnología
 directamente en `.github/workflows`; las operaciones repetidas a nivel de steps
 se organizan como composite actions bajo `.github/actions`.
 
-Las aplicaciones y las referencias internas consumen el pipeline mediante el
-alias mayor abreviado `@v3`; el proceso de release mueve ese alias al último tag
-compatible.
+El template de aplicaciones consume el workflow reutilizable mediante el alias
+mayor `@v4`. Las composite actions mantienen sus referencias `@v3`, administradas
+por el versionado de `VERSION`.
 
 Cuando una integración dispone de una GitHub Action mantenida, el pipeline usa
 esa acción y los inputs publicados en su documentación upstream. Los scripts o
@@ -233,10 +239,16 @@ with:
   technology: flutter
   platforms: android,ios
   android-build-format: appbundle
+  android-flavor: ${{ vars.ANDROID_FLAVOR }}
 ```
 
 `android-build-format` controla los artefactos Android de los builds draft y
 beta, y acepta `apk`, `appbundle` o `both` (valor predeterminado).
+`android-flavor` es opcional y por defecto está vacío. El template lee la
+Repository Variable `ANDROID_FLAVOR`; configúrala cuando el proyecto Gradle
+define product flavors. Se usa tanto para builds de artefactos como para la
+publicación beta directa. La matriz `FIREBASE_ANDROID_DISTRIBUTIONS` conserva su
+propia selección de flavor por entrada.
 El application ID se configura una sola vez mediante la Repository Variable
 `APP_IDENTIFIER`, por lo que no se duplica en el caller. El track de
 pruebas se puede cambiar con `android-track`; su valor predeterminado es

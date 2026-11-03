@@ -36,6 +36,7 @@ jobs:
       technology: flutter
       pipeline: ci
       delivery-mode: direct
+      android-flavor: ${{ vars.ANDROID_FLAVOR }}
       runner: ${{ inputs.runner || 'github-hosted' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -55,6 +56,7 @@ jobs:
       technology: flutter
       pipeline: cd
       delivery-mode: direct
+      android-flavor: ${{ vars.ANDROID_FLAVOR }}
       runner: ${{ inputs.runner || 'github-hosted' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -90,7 +92,7 @@ este mapa por `secrets: inherit`.
 | `artistic` | `main` | `app_artistic` | `1.1.7+1014` |
 | `booty_factory_admin` | `main` | `app_sybellafit` | `2.7.3+277` |
 
-Los tres callers viven en `.github/workflows/main.yml` y deben usar `@v3`
+Los tres callers viven en `.github/workflows/main.yml` y deben usar `@v4`
 con los permisos mostrados antes de habilitar beta. El dispatcher encuentra el
 único `pubspec.yaml` y obtiene de allí la ruta de la app. Para una tecnología
 futura solo cambia `technology`; la lógica se agrega en el dispatcher central

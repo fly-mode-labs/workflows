@@ -23,6 +23,10 @@ on:
         description: Android draft artifact format; apk, appbundle or both
         type: string
         default: both
+      android-flavor:
+        description: Optional Android product flavor used for artifact and beta builds
+        type: string
+        default: ''
       android-track:
         description: Google Play closed-testing track receiving beta releases
         type: string
@@ -231,7 +235,7 @@ jobs:
       (github.event.pull_request.draft == false &&
       (github.event.action == 'opened' || github.event.action == 'reopened' ||
       (inputs.delivery-mode == 'direct' && github.event.action == 'synchronize'))))))
-    uses: fly-mode-labs/workflows/.github/workflows/flutter-build.yml@v5
+    uses: fly-mode-labs/workflows/.github/workflows/flutter-build.yml@v4
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       environment: ${{ needs.validate.outputs.environment }}
@@ -244,6 +248,7 @@ jobs:
       build-ios: ${{ needs.validate.outputs.ios == 'true' }}
       build-web: ${{ needs.validate.outputs.web == 'true' }}
       android-build-format: ${{ inputs.android-build-format }}
+      android-flavor: ${{ inputs.android-flavor }}
       delivery-mode: ${{ inputs.delivery-mode }}
     secrets:
       PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
@@ -273,7 +278,7 @@ jobs:
       (github.event.action == 'ready_for_review' ||
       inputs.pipeline == 'cd' ||
       needs.flutter-build.result == 'success')
-    uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@v5
+    uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@v4
     with:
       stage: beta
       delivery-mode: ${{ inputs.delivery-mode }}
@@ -287,6 +292,7 @@ jobs:
       runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       app-identifier: ${{ vars.APP_IDENTIFIER }}
+      android-flavor: ${{ inputs.android-flavor }}
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets:
@@ -310,7 +316,7 @@ jobs:
       ((needs.validate.outputs.stage == 'production') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.action == 'closed' && github.event.pull_request.merged == true))
-    uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@v5
+    uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@v4
     with:
       stage: production
       delivery-mode: ${{ inputs.delivery-mode }}
@@ -323,6 +329,7 @@ jobs:
       runner-labels: ${{ inputs.runner-labels }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       app-identifier: ${{ vars.APP_IDENTIFIER }}
+      android-flavor: ${{ inputs.android-flavor }}
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
     secrets:

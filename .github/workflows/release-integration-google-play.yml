@@ -14,6 +14,7 @@ on:
       runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
       track: {type: string, default: alpha}
       app-identifier: {type: string, default: ''}
+      android-flavor: {type: string, default: ''}
     secrets:
       PACKAGES_TOKEN: {required: false, description: GitHub token with read access to private Flutter package repositories}
       ANDROID_KEYSTORE_BASE64: {required: false, description: Base64-encoded Android signing keystore}
@@ -224,6 +225,7 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
           build-format: appbundle
+          flavor: ${{ inputs.android-flavor }}
           upload-artifact: 'false'
           keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           key-alias: ${{ secrets.KEYALIAS }}

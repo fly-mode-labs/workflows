@@ -37,6 +37,7 @@ jobs:
       delivery-mode: ${{ inputs.delivery-mode || 'direct' }}
       platforms: android,ios
       android-build-format: appbundle
+      android-flavor: ${{ vars.ANDROID_FLAVOR }}
       runner: ${{ inputs.runner || 'github-hosted' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -58,6 +59,7 @@ jobs:
       delivery-mode: ${{ inputs.delivery-mode || 'direct' }}
       platforms: android,ios
       android-build-format: appbundle
+      android-flavor: ${{ vars.ANDROID_FLAVOR }}
       runner: ${{ inputs.runner || 'github-hosted' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

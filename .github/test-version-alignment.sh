@@ -16,7 +16,7 @@ fi
 
 references="$({
   grep -RInE "uses:[[:space:]]+${repository}/.+@v[0-9]+([[:space:]]|$)" \
-    .github/actions .github/workflows || true
+    .github/actions .github/workflows | grep '/.github/actions/' || true
 })"
 
 mismatches="$(printf '%s\n' "${references}" | grep -vE "@${major}([[:space:]]|$)" || true)"
@@ -26,14 +26,17 @@ if [[ -n "${mismatches}" ]]; then
   exit 1
 fi
 
-if grep -RInE 'uses:[[:space:]]+fly-mode-labs/workflows/.github/workflows/' \
-  .github/workflows; then
-  echo 'Reusable workflows in this repository must use local paths so they stay on the caller commit.' >&2
+if ! grep -Fq 'main.yml@v4' templates/flutter/.github/workflows/main.yml; then
+  echo 'The Flutter caller template must use the supported @v4 reusable workflow contract.' >&2
   exit 1
 fi
 
-if ! grep -Fq "main.yml@${major}" templates/flutter/.github/workflows/main.yml; then
-  echo "The Flutter caller template must use @${major}." >&2
+workflow_references="$(grep -RhoE 'uses:[[:space:]]+fly-mode-labs/workflows/\.github/workflows/[^[:space:]]+' .github/workflows templates || true)"
+unexpected_workflow_references="$(grep -vF '@v4' <<< "${workflow_references}" | grep -vF 'release-integration-app-store.yml@v5' || true)"
+if [[ -z "${workflow_references}" || -n "${unexpected_workflow_references}" ]] ||
+  ! grep -Fq 'release-integration-app-store.yml@v5' <<< "${workflow_references}"; then
+  echo 'Central and Google Play reusable workflows must use @v4; retain the existing App Store @v5 route.' >&2
+  printf '%s\n' "${unexpected_workflow_references}" >&2
   exit 1
 fi
 
@@ -50,4 +53,4 @@ if ! grep -Eq '^[[:space:]]+needs:[[:space:]]+ci$' templates/flutter/.github/wor
   exit 1
 fi
 
-echo "All first-party workflow references are aligned with ${major}."
+echo "Composite actions are aligned with ${major}; reusable workflow refs use the v4/v5 contracts."

@@ -373,12 +373,18 @@ with:
   platforms: android,ios
   android-build-format: appbundle
   android-track: alpha
+  android-flavor: ${{ vars.ANDROID_FLAVOR }}
 ```
 
 `android-track` usa `alpha` por defecto como pista cerrada convencional, así que
 también puede omitirse. Si la app usa otra pista cerrada creada en Play Console,
 se debe configurar aquí su identificador exacto. `beta` identifica la pista de
 pruebas abiertas y no debe usarse cuando la política exige pruebas cerradas.
+`android-flavor` es opcional y queda vacío por defecto. El template lo lee de la
+Repository Variable `ANDROID_FLAVOR`; configúrala si el proyecto Android declara
+product flavors. El valor se pasa a los builds de artefactos y al build directo
+de beta. La matriz `FIREBASE_ANDROID_DISTRIBUTIONS` elige independientemente el
+flavor de cada distribución Firebase.
 
 Direct beta uses a short-lived Android Publisher access token, uploads the exact
 validated local `.aab`, and never writes the service-account JSON to disk.
@@ -495,5 +501,5 @@ version. Android direct beta publishes `BUILD_NUMBER`; direct production instead
 derives the latest completed version code from the configured closed-testing
 track.
 
-Este número es independiente de la versión mayor del pipeline central (`@v3`). La
+Este número es independiente de la versión mayor del workflow central (`@v4`). La
 primera versiona la aplicación; la segunda versiona las reglas de CI/CD.

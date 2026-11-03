@@ -45,6 +45,10 @@ on:
         description: Android artifact format; apk, appbundle or both
         type: string
         default: both
+      android-flavor:
+        description: Optional Android product flavor used by the artifact build
+        type: string
+        default: ''
       delivery-mode:
         description: Mobile binary delivery; artifact or direct
         type: string
@@ -162,6 +166,7 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
           build-format: ${{ inputs.android-build-format }}
+          flavor: ${{ inputs.android-flavor }}
           keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           key-alias: ${{ secrets.KEYALIAS }}
           store-password: ${{ secrets.STOREPASSWORD }}
