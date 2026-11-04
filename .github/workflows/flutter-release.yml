@@ -6,6 +6,10 @@ on:
       stage:
         required: true
         type: string
+      deployment-environment:
+        description: GitHub Environment supplying secrets and variables for this release
+        type: string
+        default: auto
       delivery-mode:
         description: Mobile binary delivery; artifact or direct
         type: string
@@ -105,7 +109,7 @@ jobs:
       inputs.delivery-mode == 'artifact' &&
       inputs.artifact-run-id == '' &&
       ((inputs.stage == 'beta' && (inputs.release-android || inputs.release-ios)) ||
-      (inputs.stage == 'production' && inputs.release-android))
+      (inputs.stage == 'production' && (inputs.release-android || inputs.release-ios)))
     runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["ubuntu-latest"]' || inputs.runner-labels) }}
     timeout-minutes: 45
     outputs:
@@ -124,7 +128,7 @@ jobs:
           FULL_VERSION: ${{ steps.version.outputs.full-version }}
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           REQUIRE_ANDROID: ${{ inputs.release-android }}
-          REQUIRE_IOS: ${{ inputs.stage == 'beta' && inputs.release-ios }}
+          REQUIRE_IOS: ${{ inputs.release-ios }}
         with:
           github-token: ${{ github.token }}
           result-encoding: string
@@ -228,6 +232,7 @@ jobs:
     uses: fly-mode-labs/workflows/.github/workflows/release-integration-app-store.yml@main
     with:
       stage: ${{ inputs.stage }}
+      deployment-environment: ${{ inputs.deployment-environment }}
       delivery-mode: ${{ inputs.delivery-mode }}
       source-sha: ${{ inputs.source-sha }}
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}
@@ -255,6 +260,7 @@ jobs:
     uses: fly-mode-labs/workflows/.github/workflows/release-integration-google-play.yml@main
     with:
       stage: ${{ inputs.stage }}
+      deployment-environment: ${{ inputs.deployment-environment }}
       delivery-mode: ${{ inputs.delivery-mode }}
       source-sha: ${{ inputs.source-sha }}
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}

@@ -4,6 +4,7 @@ on:
   workflow_call:
     inputs:
       stage: {required: true, type: string}
+      deployment-environment: {type: string, default: auto}
       delivery-mode: {type: string, default: artifact}
       source-sha: {required: true, type: string}
       artifact-run-id: {type: string, default: ''}
@@ -31,15 +32,16 @@ jobs:
   firebase-app-distribution:
     name: Firebase / Android / ${{ matrix.flavor }}
     if: >-
-      inputs.stage == 'beta' && inputs.delivery-mode == 'direct' &&
-      inputs.android-flavor == 'qa'
-    environment: qa
+      inputs.stage == 'beta' &&
+      ((inputs.android-flavor == 'qa') ||
+      (inputs.android-flavor == 'pdn' && inputs.deployment-environment == 'production'))
+    environment: ${{ inputs.deployment-environment != 'auto' && inputs.deployment-environment || (inputs.stage == 'beta' && 'qa' || inputs.stage) }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]' && vars.FIREBASE_ANDROID_DISTRIBUTIONS || (inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && inputs.android-flavor == 'qa' && '[{"flavor":"qa","format":"apk"}]') || '[{"flavor":"_skip_","format":"apk"}]') }}
+        include: ${{ fromJSON(vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]' && vars.FIREBASE_ANDROID_DISTRIBUTIONS || (inputs.android-flavor == 'qa' && '[{"flavor":"qa","format":"apk"}]') || (inputs.android-flavor == 'pdn' && '[{"flavor":"pdn","format":"appbundle"}]') || '[{"flavor":"_skip_","format":"apk"}]') }}
     steps:
       - name: Validate Firebase distribution configuration
         shell: bash
@@ -62,18 +64,29 @@ jobs:
             *) echo "Unsupported Firebase Android format: ${BUILD_FORMAT}" >&2; exit 1 ;;
           esac
       - name: Checkout application source
+        if: inputs.delivery-mode == 'direct'
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source-sha }}
           persist-credentials: false
+      - name: Download Android build artifact
+        if: inputs.delivery-mode == 'artifact'
+        id: artifact
+        uses: actions/download-artifact@v8
+        with:
+          pattern: android-*-${{ inputs.source-sha }}
+          path: ${{ runner.temp }}/firebase-android-${{ github.run_id }}
+          merge-multiple: true
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.artifact-run-id }}
       - name: Setup hosted Android JDK
-        if: inputs.runner == 'github-hosted'
+        if: inputs.delivery-mode == 'direct' && inputs.runner == 'github-hosted'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ inputs.java-version }}
       - name: Select hosted JDK for Gradle
-        if: inputs.runner == 'github-hosted'
+        if: inputs.delivery-mode == 'direct' && inputs.runner == 'github-hosted'
         shell: bash
         run: |
           set -euo pipefail
@@ -83,17 +96,20 @@ jobs:
           fi
           echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.java.home=${JAVA_HOME}" >> "${GITHUB_ENV}"
       - name: Setup Flutter SDK and dependencies
+        if: inputs.delivery-mode == 'direct'
         uses: fly-mode-labs/workflows/.github/actions/flutter/setup@main
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
           packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read application version
+        if: inputs.delivery-mode == 'direct'
         id: version
         uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@main
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build flavored Android distribution
+        if: inputs.delivery-mode == 'direct'
         id: build
         uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@main
         with:
@@ -106,6 +122,64 @@ jobs:
           key-alias: ${{ secrets.KEYALIAS }}
           store-password: ${{ secrets.STOREPASSWORD }}
           key-password: ${{ secrets.KEYPASSWORD }}
+      - name: Resolve Firebase distribution artifact
+        id: distribution
+        shell: bash
+        env:
+          DELIVERY_MODE: ${{ inputs.delivery-mode }}
+          BUILD_FORMAT: ${{ matrix.format }}
+          ARTIFACT_DIRECTORY: ${{ steps.artifact.outputs.download-path }}
+          LOCAL_PACKAGE_NAME: ${{ steps.build.outputs.package-name }}
+          LOCAL_APK_PATH: ${{ steps.build.outputs.apk-path }}
+          LOCAL_AAB_PATH: ${{ steps.build.outputs.aab-path }}
+        run: |
+          set -euo pipefail
+
+          case "${BUILD_FORMAT}" in
+            apk|appbundle) ;;
+            *) echo "Unsupported Firebase Android format: ${BUILD_FORMAT}" >&2; exit 1 ;;
+          esac
+
+          if [[ "${DELIVERY_MODE}" == 'direct' ]]; then
+            package_name="${LOCAL_PACKAGE_NAME}"
+            if [[ "${BUILD_FORMAT}" == 'apk' ]]; then
+              file_path="${LOCAL_APK_PATH}"
+            else
+              file_path="${LOCAL_AAB_PATH}"
+            fi
+          else
+            package_name_file=''
+            package_name_file_count=0
+            while IFS= read -r candidate; do
+              package_name_file="${candidate}"
+              package_name_file_count=$((package_name_file_count + 1))
+            done < <(find "${ARTIFACT_DIRECTORY}" -type f -name android-package-name.txt -print)
+            if [[ "${package_name_file_count}" -ne 1 ]]; then
+              echo "Expected exactly one Android package-name file, found ${package_name_file_count}." >&2
+              exit 1
+            fi
+            package_name="$(tr -d '\r\n' < "${package_name_file}")"
+
+            extension='aab'
+            [[ "${BUILD_FORMAT}" == 'apk' ]] && extension='apk'
+            file_path=''
+            file_count=0
+            while IFS= read -r candidate; do
+              file_path="${candidate}"
+              file_count=$((file_count + 1))
+            done < <(find "${ARTIFACT_DIRECTORY}" -type f -name "*.${extension}" -print)
+            if [[ "${file_count}" -ne 1 ]]; then
+              echo "Expected one Android .${extension} artifact, found ${file_count}." >&2
+              exit 1
+            fi
+          fi
+
+          if [[ -z "${package_name}" || -z "${file_path}" || ! -f "${file_path}" ]]; then
+            echo "Could not resolve the Firebase Android artifact and package metadata." >&2
+            exit 1
+          fi
+          echo "package-name=${package_name}" >> "${GITHUB_OUTPUT}"
+          echo "file-path=${file_path}" >> "${GITHUB_OUTPUT}"
       - name: Authenticate to Firebase Management API
         id: firebase-auth
         # v3
@@ -122,7 +196,7 @@ jobs:
         env:
           ACCESS_TOKEN: ${{ steps.firebase-auth.outputs.access_token }}
           SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          ANDROID_PACKAGE_NAME: ${{ steps.build.outputs.package-name }}
+          ANDROID_PACKAGE_NAME: ${{ steps.distribution.outputs.package-name }}
           CONFIGURED_PROJECT_ID: ${{ matrix.project_id }}
         run: |
           set -euo pipefail
@@ -168,10 +242,10 @@ jobs:
         with:
           app-id: ${{ steps.firebase-app.outputs.app-id }}
           service-account-json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          file: ${{ matrix.format == 'apk' && steps.build.outputs.apk-path || steps.build.outputs.aab-path }}
+          file: ${{ steps.distribution.outputs.file-path }}
           groups: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
       - name: Remove local Android build outputs
-        if: always()
+        if: always() && inputs.delivery-mode == 'direct'
         shell: bash
         env:
           APPLICATION_DIRECTORY: ${{ inputs.working-directory }}
@@ -180,9 +254,8 @@ jobs:
   google-play:
     name: Google Play
     if: >-
-      inputs.stage != 'beta' || inputs.delivery-mode != 'direct' ||
-      inputs.android-flavor != 'qa'
-    environment: ${{ inputs.stage == 'beta' && 'qa' || inputs.stage }}
+      inputs.stage != 'beta' || inputs.android-flavor != 'qa'
+    environment: ${{ inputs.deployment-environment != 'auto' && inputs.deployment-environment || (inputs.stage == 'beta' && 'qa' || inputs.stage) }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: ${{ inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && 75 || 45 }}
     steps:
@@ -248,7 +321,7 @@ jobs:
           local-package-name: ${{ steps.build.outputs.package-name }}
           version-code: ${{ steps.version.outputs.build-number }}
           service-account-json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          firebase-app-id: ${{ (vars.FIREBASE_ANDROID_DISTRIBUTIONS == '' || vars.FIREBASE_ANDROID_DISTRIBUTIONS == '[]') && vars.FIREBASE_APP_ID_ANDROID || '' }}
+          firebase-app-id: ${{ (inputs.android-flavor != 'qa' && !(inputs.android-flavor == 'pdn' && inputs.deployment-environment == 'production') && (vars.FIREBASE_ANDROID_DISTRIBUTIONS == '' || vars.FIREBASE_ANDROID_DISTRIBUTIONS == '[]')) && vars.FIREBASE_APP_ID_ANDROID || '' }}
           firebase-service-account-json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           firebase-groups: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
       - name: Remove direct Android beta binaries

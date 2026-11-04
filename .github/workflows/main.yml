@@ -47,6 +47,14 @@ on:
         description: auto, draft, beta or production
         type: string
         default: auto
+      deployment-environment:
+        description: GitHub Environment used for this execution; auto resolves from the stage and event
+        type: string
+        default: auto
+      production-release-on-merge-only:
+        description: Keep production publication limited to merged pull requests; production dispatches create candidates
+        type: boolean
+        default: false
     secrets:
       PACKAGES_TOKEN:
         description: GitHub token with read access to private Flutter package repositories
@@ -111,7 +119,12 @@ jobs:
           CONFIGURED_PIPELINE: ${{ inputs.pipeline }}
           DELIVERY_MODE: ${{ inputs.delivery-mode }}
           CONFIGURED_STAGE: ${{ inputs.stage }}
+          CONFIGURED_ENVIRONMENT: ${{ inputs.deployment-environment }}
           EVENT_STAGE: ${{ github.event.inputs.stage }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          EVENT_PR_DRAFT: ${{ github.event.pull_request.draft }}
+          EVENT_PR_MERGED: ${{ github.event.pull_request.merged }}
           CONFIGURED_DIRECTORY: ${{ inputs.working-directory }}
           CONFIGURED_PLATFORMS: ${{ inputs.platforms }}
           ANDROID_BUILD_FORMAT: ${{ inputs.android-build-format }}
@@ -147,6 +160,22 @@ jobs:
           case "${effective_stage}" in
             auto|draft|beta|production) ;;
             *) echo "Unsupported stage: ${effective_stage}"; exit 1 ;;
+          esac
+
+          effective_environment="${CONFIGURED_ENVIRONMENT:-auto}"
+          if [[ "${effective_environment}" == "auto" ]]; then
+            if [[ "${effective_stage}" == "production" ||
+              ( "${EVENT_NAME}" == "pull_request" &&
+                ( "${EVENT_PR_MERGED}" == "true" ||
+                  ( "${EVENT_PR_DRAFT}" == "false" && "${EVENT_ACTION}" != "converted_to_draft" ) ) ) ]]; then
+              effective_environment="production"
+            else
+              effective_environment="qa"
+            fi
+          fi
+          case "${effective_environment}" in
+            qa|production) ;;
+            *) echo "Unsupported deployment environment: ${effective_environment}"; exit 1 ;;
           esac
 
           effective_flutter_version="${REPOSITORY_FLUTTER_VERSION:-stable}"
@@ -210,11 +239,7 @@ jobs:
 
           {
             echo "stage=${effective_stage}"
-            if [[ "${effective_stage}" == "production" ]]; then
-              echo "environment=production"
-            else
-              echo "environment=qa"
-            fi
+            echo "environment=${effective_environment}"
             echo "flutter-version=${effective_flutter_version}"
             echo "java-version=${effective_java_version}"
             echo "xcode-version=${effective_xcode_version}"
@@ -230,6 +255,7 @@ jobs:
     if: >-
       inputs.pipeline != 'cd' &&
       ((needs.validate.outputs.stage == 'draft') || (needs.validate.outputs.stage == 'beta') ||
+      (needs.validate.outputs.stage == 'production' && inputs.pipeline == 'ci') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       ((github.event.pull_request.draft == true && github.event.action != 'closed') ||
       (github.event.pull_request.draft == false &&
@@ -270,6 +296,7 @@ jobs:
       inputs.pipeline != 'ci' &&
       needs.validate.result == 'success' &&
       ((needs.validate.outputs.stage == 'beta') ||
+      (needs.validate.outputs.stage == 'production' && inputs.production-release-on-merge-only && github.event_name == 'workflow_dispatch') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       (github.event.action == 'ready_for_review' ||
       (github.event.pull_request.draft == false &&
@@ -283,13 +310,14 @@ jobs:
       stage: beta
       delivery-mode: ${{ inputs.delivery-mode }}
       source-sha: ${{ github.event.pull_request.head.sha || github.sha }}
-      artifact-run-id: ${{ github.event.action != 'ready_for_review' && github.run_id || '' }}
+      artifact-run-id: ${{ github.run_id }}
       working-directory: ${{ needs.validate.outputs.working-directory }}
       flutter-version: ${{ needs.validate.outputs.flutter-version }}
       java-version: ${{ needs.validate.outputs.java-version }}
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
+      deployment-environment: ${{ needs.validate.outputs.environment }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       app-identifier: ${{ vars.APP_IDENTIFIER }}
       android-flavor: ${{ inputs.android-flavor }}
@@ -313,7 +341,7 @@ jobs:
     needs: validate
     if: >-
       inputs.pipeline != 'ci' &&
-      ((needs.validate.outputs.stage == 'production') ||
+      ((needs.validate.outputs.stage == 'production' && !inputs.production-release-on-merge-only) ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.action == 'closed' && github.event.pull_request.merged == true))
     uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@main
@@ -327,6 +355,7 @@ jobs:
       xcode-version: ${{ needs.validate.outputs.xcode-version }}
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
+      deployment-environment: ${{ needs.validate.outputs.environment }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       app-identifier: ${{ vars.APP_IDENTIFIER }}
       android-flavor: ${{ inputs.android-flavor }}
