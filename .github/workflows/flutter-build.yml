@@ -161,7 +161,7 @@ jobs:
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build Android artifacts
-        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v4
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}

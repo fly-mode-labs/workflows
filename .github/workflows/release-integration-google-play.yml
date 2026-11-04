@@ -95,7 +95,7 @@ jobs:
           working-directory: ${{ inputs.working-directory }}
       - name: Build flavored Android distribution
         id: build
-        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v4
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
@@ -220,7 +220,7 @@ jobs:
       - name: Build App Bundle for direct beta delivery
         if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
         id: build
-        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v4
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
