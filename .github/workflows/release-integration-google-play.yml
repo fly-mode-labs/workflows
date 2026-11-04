@@ -31,15 +31,15 @@ jobs:
   firebase-app-distribution:
     name: Firebase / Android / ${{ matrix.flavor }}
     if: >-
-      inputs.stage == 'beta' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' &&
-      vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]'
+      inputs.stage == 'beta' && inputs.delivery-mode == 'direct' &&
+      inputs.android-flavor == 'qa'
     environment: qa
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]' && vars.FIREBASE_ANDROID_DISTRIBUTIONS || '[{"flavor":"_skip_","format":"apk"}]') }}
+        include: ${{ fromJSON(vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]' && vars.FIREBASE_ANDROID_DISTRIBUTIONS || (inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && inputs.android-flavor == 'qa' && '[{"flavor":"qa","format":"apk"}]') || '[{"flavor":"_skip_","format":"apk"}]') }}
     steps:
       - name: Validate Firebase distribution configuration
         shell: bash
@@ -179,6 +179,9 @@ jobs:
 
   google-play:
     name: ${{ inputs.stage == 'beta' && 'Google Play beta' || 'Google Play production' }}
+    if: >-
+      inputs.stage != 'beta' || inputs.delivery-mode != 'direct' ||
+      inputs.android-flavor != 'qa'
     environment: ${{ inputs.stage == 'beta' && 'qa' || inputs.stage }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: ${{ inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && 75 || 45 }}
