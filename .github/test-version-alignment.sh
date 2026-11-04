@@ -3,7 +3,6 @@
 set -euo pipefail
 
 repository='fly-mode-labs/workflows'
-major="v$(cut -d. -f1 VERSION)"
 
 legacy_references="$(grep -RInE \
   '(Juanpabedoyav|juanpbedoya|YOUR_GITHUB_USER)/workflows' \
@@ -14,28 +13,26 @@ if [[ -n "${legacy_references}" ]]; then
   exit 1
 fi
 
-references="$({
-  grep -RInE "uses:[[:space:]]+${repository}/.+@v[0-9]+([[:space:]]|$)" \
-    .github/actions .github/workflows | grep '/.github/actions/' || true
-})"
+references="$(grep -RInE \
+  "uses:[[:space:]]+${repository}/[^[:space:]]+" \
+  .github/actions .github/workflows templates || true)"
 
-mismatches="$(printf '%s\n' "${references}" | grep -vE "@${major}([[:space:]]|$)" || true)"
-if [[ -n "${mismatches}" ]]; then
-  echo "First-party workflow references must use @${major}:" >&2
-  printf '%s\n' "${mismatches}" >&2
+non_main_references="$(printf '%s\n' "${references}" | grep -vF '@main' || true)"
+if [[ -z "${references}" || -n "${non_main_references}" ]]; then
+  echo 'First-party workflow and action references must use @main:' >&2
+  printf '%s\n' "${non_main_references}" >&2
   exit 1
 fi
 
-if ! grep -Fq 'main.yml@v4' templates/flutter/.github/workflows/main.yml; then
-  echo 'The Flutter caller template must use the supported @v4 reusable workflow contract.' >&2
+if ! grep -Fq 'main.yml@main' templates/flutter/.github/workflows/main.yml; then
+  echo 'The Flutter caller template must use the shared main branch.' >&2
   exit 1
 fi
 
 workflow_references="$(grep -RhoE 'uses:[[:space:]]+fly-mode-labs/workflows/\.github/workflows/[^[:space:]]+' .github/workflows templates || true)"
-unexpected_workflow_references="$(grep -vF '@v4' <<< "${workflow_references}" | grep -vF 'release-integration-app-store.yml@v5' || true)"
-if [[ -z "${workflow_references}" || -n "${unexpected_workflow_references}" ]] ||
-  ! grep -Fq 'release-integration-app-store.yml@v5' <<< "${workflow_references}"; then
-  echo 'Central and Google Play reusable workflows must use @v4; retain the existing App Store @v5 route.' >&2
+unexpected_workflow_references="$(grep -vF '@main' <<< "${workflow_references}" || true)"
+if [[ -z "${workflow_references}" || -n "${unexpected_workflow_references}" ]]; then
+  echo 'Reusable workflows must use the shared main branch:' >&2
   printf '%s\n' "${unexpected_workflow_references}" >&2
   exit 1
 fi
@@ -53,4 +50,4 @@ if ! grep -Eq '^[[:space:]]+needs:[[:space:]]+ci$' templates/flutter/.github/wor
   exit 1
 fi
 
-echo "Composite actions are aligned with ${major}; reusable workflow refs use the v4/v5 contracts."
+echo 'First-party workflow and action references use @main.'
