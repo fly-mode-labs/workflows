@@ -123,7 +123,7 @@ runs:
         echo "aab-path=${aab_path}" >> "${GITHUB_OUTPUT}"
     - name: Distribute beta to Firebase App Distribution
       if: inputs.stage == 'beta' && inputs.firebase-app-id != ''
-      uses: fly-mode-labs/workflows/.github/actions/flutter/firebase-app-distribution@v3
+      uses: fly-mode-labs/workflows/.github/actions/flutter/firebase-app-distribution@v4
       with:
         app-id: ${{ inputs.firebase-app-id }}
         service-account-json: ${{ inputs.firebase-service-account-json }}

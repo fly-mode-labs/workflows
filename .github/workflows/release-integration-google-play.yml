@@ -83,14 +83,14 @@ jobs:
           fi
           echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.java.home=${JAVA_HOME}" >> "${GITHUB_ENV}"
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v4
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
           packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read application version
         id: version
-        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v4
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build flavored Android distribution
@@ -164,7 +164,7 @@ jobs:
 
           echo "app-id=$(jq -r '.[0]' <<< "${app_ids}")" >> "${GITHUB_OUTPUT}"
       - name: Distribute Android flavor to Firebase App Distribution
-        uses: fly-mode-labs/workflows/.github/actions/flutter/firebase-app-distribution@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/firebase-app-distribution@v4
         with:
           app-id: ${{ steps.firebase-app.outputs.app-id }}
           service-account-json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
@@ -206,7 +206,7 @@ jobs:
           echo "GRADLE_OPTS=${GRADLE_OPTS:-} -Dorg.gradle.java.home=${JAVA_HOME}" >> "${GITHUB_ENV}"
       - name: Setup Flutter SDK and dependencies
         if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v4
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -214,7 +214,7 @@ jobs:
       - name: Read application version for direct delivery
         if: inputs.delivery-mode == 'direct'
         id: version
-        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v4
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build App Bundle for direct beta delivery
@@ -232,7 +232,7 @@ jobs:
           store-password: ${{ secrets.STOREPASSWORD }}
           key-password: ${{ secrets.KEYPASSWORD }}
       - name: Release Android application
-        uses: fly-mode-labs/workflows/.github/actions/flutter/release-android@v3
+        uses: fly-mode-labs/workflows/.github/actions/flutter/release-android@v4
         with:
           stage: ${{ inputs.stage }}
           delivery-mode: ${{ inputs.delivery-mode }}
