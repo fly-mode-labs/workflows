@@ -178,7 +178,7 @@ jobs:
         run: rm -rf -- "${APPLICATION_DIRECTORY}/build/app/outputs/flutter-apk" "${APPLICATION_DIRECTORY}/build/app/outputs/bundle" "${APPLICATION_DIRECTORY}/build/app/outputs/pipeline-metadata"
 
   google-play:
-    name: ${{ inputs.stage == 'beta' && 'Google Play beta' || 'Google Play production' }}
+    name: Google Play
     if: >-
       inputs.stage != 'beta' || inputs.delivery-mode != 'direct' ||
       inputs.android-flavor != 'qa'
