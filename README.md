@@ -76,7 +76,7 @@ repositorios de la organización que consumirán los workflows.
 La referencia canónica es:
 
 ```yaml
-uses: fly-mode-labs/workflows/.github/workflows/main.yml@v4
+uses: fly-mode-labs/workflows/.github/workflows/main.yml@main
 ```
 
 Los runners compartidos se registran a nivel de la organización y se asignan a

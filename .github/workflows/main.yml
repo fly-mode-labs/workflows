@@ -235,7 +235,7 @@ jobs:
       (github.event.pull_request.draft == false &&
       (github.event.action == 'opened' || github.event.action == 'reopened' ||
       (inputs.delivery-mode == 'direct' && github.event.action == 'synchronize'))))))
-    uses: fly-mode-labs/workflows/.github/workflows/flutter-build.yml@v4
+    uses: fly-mode-labs/workflows/.github/workflows/flutter-build.yml@main
     with:
       working-directory: ${{ needs.validate.outputs.working-directory }}
       environment: ${{ needs.validate.outputs.environment }}
@@ -278,7 +278,7 @@ jobs:
       (github.event.action == 'ready_for_review' ||
       inputs.pipeline == 'cd' ||
       needs.flutter-build.result == 'success')
-    uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@v4
+    uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@main
     with:
       stage: beta
       delivery-mode: ${{ inputs.delivery-mode }}
@@ -316,7 +316,7 @@ jobs:
       ((needs.validate.outputs.stage == 'production') ||
       (needs.validate.outputs.stage == 'auto' && github.event_name == 'pull_request' &&
       github.event.action == 'closed' && github.event.pull_request.merged == true))
-    uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@v4
+    uses: fly-mode-labs/workflows/.github/workflows/flutter-release.yml@main
     with:
       stage: production
       delivery-mode: ${{ inputs.delivery-mode }}

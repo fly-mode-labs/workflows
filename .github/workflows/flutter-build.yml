@@ -102,7 +102,7 @@ jobs:
       - name: Checkout application
         uses: actions/checkout@v4
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@main
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
@@ -150,18 +150,18 @@ jobs:
           echo "Gradle JDK: ${JAVA_HOME}"
           java -version
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@main
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
           packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read and validate application version
-        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@main
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build Android artifacts
-        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-android@main
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
@@ -184,23 +184,23 @@ jobs:
       - name: Checkout application
         uses: actions/checkout@v4
       - name: Select Xcode version
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup-xcode@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup-xcode@main
         with:
           xcode-version: ${{ inputs.xcode-version }}
           runner: ${{ inputs.runner }}
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@main
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
           packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read and validate application version
-        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@main
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build iOS artifacts
-        uses: fly-mode-labs/workflows/.github/actions/flutter/build-ios@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-ios@main
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
@@ -223,18 +223,18 @@ jobs:
       - name: Checkout application
         uses: actions/checkout@v4
       - name: Setup Flutter SDK and dependencies
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@main
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
           packages-token: ${{ secrets.PACKAGES_TOKEN }}
       - name: Read and validate application version
-        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@main
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build Web artifacts
-        uses: fly-mode-labs/workflows/.github/actions/flutter/build-web@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-web@main
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}

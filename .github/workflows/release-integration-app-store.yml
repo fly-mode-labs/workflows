@@ -38,25 +38,25 @@ jobs:
         with:
           persist-credentials: false
       - name: Select Xcode version
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup-xcode@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup-xcode@main
         with:
           xcode-version: ${{ inputs.xcode-version }}
           runner: ${{ inputs.runner }}
       - name: Setup Flutter SDK and dependencies
         if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
-        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@main
         with:
           flutter-version: ${{ inputs.flutter-version }}
           working-directory: ${{ inputs.working-directory }}
           packages-token: ${{ secrets.PACKAGES_TOKEN }}
-      - uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v4
+      - uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@main
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
       - name: Build signed IPA for direct beta delivery
         if: inputs.stage == 'beta' && inputs.delivery-mode == 'direct'
         id: build
-        uses: fly-mode-labs/workflows/.github/actions/flutter/build-ios@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/build-ios@main
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
@@ -68,7 +68,7 @@ jobs:
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       - name: Release iOS application
-        uses: fly-mode-labs/workflows/.github/actions/flutter/release-ios@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/release-ios@main
         with:
           stage: ${{ inputs.stage }}
           delivery-mode: ${{ inputs.delivery-mode }}

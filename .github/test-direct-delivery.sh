@@ -41,7 +41,7 @@ assert_contains "${main}" "inputs.delivery-mode == 'direct' && github.event.acti
 assert_contains "${main}" 'source-sha: ${{ github.event.pull_request.head.sha || github.sha }}' 'Release orchestration must use the exact source SHA.'
 assert_contains "${main}" 'FIREBASE_SERVICE_ACCOUNT_JSON:' 'The public workflow must declare the shared Google service-account secret contract.'
 assert_not_contains "${main}" 'ANDROID_PUBLISHER_CREDENTIALS:' 'The public workflow must not require a duplicate Google Play service-account secret.'
-assert_contains "${template}" 'fly-mode-labs/workflows/.github/workflows/main.yml@v4' 'The caller template must use the reusable workflow version that defines the shared service-account contract.'
+assert_contains "${template}" 'fly-mode-labs/workflows/.github/workflows/main.yml@main' 'The caller template must use the reusable workflow version that defines the shared service-account contract.'
 assert_not_contains "${main}" 'secrets: inherit' 'The public workflow must pass secrets explicitly to nested workflows.'
 assert_not_contains "${release}" 'secrets: inherit' 'The release workflow must pass only store-specific secrets to integrations.'
 

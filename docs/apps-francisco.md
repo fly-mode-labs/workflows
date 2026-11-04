@@ -31,7 +31,7 @@ permissions:
 
 jobs:
   ci:
-    uses: fly-mode-labs/workflows/.github/workflows/main.yml@v4
+    uses: fly-mode-labs/workflows/.github/workflows/main.yml@main
     with:
       technology: flutter
       pipeline: ci
@@ -51,7 +51,7 @@ jobs:
 
   cd:
     needs: ci
-    uses: fly-mode-labs/workflows/.github/workflows/main.yml@v4
+    uses: fly-mode-labs/workflows/.github/workflows/main.yml@main
     with:
       technology: flutter
       pipeline: cd

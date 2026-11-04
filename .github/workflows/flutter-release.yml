@@ -113,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Read application version
-        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@v4
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@main
         id: version
         with:
           working-directory: ${{ inputs.working-directory }}
@@ -225,7 +225,7 @@ jobs:
       always() && !cancelled() && inputs.release-ios &&
       (inputs.delivery-mode == 'direct' || inputs.stage != 'beta' || inputs.artifact-run-id != '' ||
       needs.resolve-build-artifacts.result == 'success')
-    uses: fly-mode-labs/workflows/.github/workflows/release-integration-app-store.yml@v5
+    uses: fly-mode-labs/workflows/.github/workflows/release-integration-app-store.yml@main
     with:
       stage: ${{ inputs.stage }}
       delivery-mode: ${{ inputs.delivery-mode }}
@@ -252,7 +252,7 @@ jobs:
       always() && !cancelled() && inputs.release-android &&
       (inputs.delivery-mode == 'direct' || inputs.artifact-run-id != '' ||
       needs.resolve-build-artifacts.result == 'success')
-    uses: fly-mode-labs/workflows/.github/workflows/release-integration-google-play.yml@v4
+    uses: fly-mode-labs/workflows/.github/workflows/release-integration-google-play.yml@main
     with:
       stage: ${{ inputs.stage }}
       delivery-mode: ${{ inputs.delivery-mode }}
