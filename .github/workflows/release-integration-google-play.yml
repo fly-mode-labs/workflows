@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   firebase-app-distribution:
-    name: Firebase / Android / ${{ matrix.distribution.flavor }}
+    name: Firebase / Android / ${{ matrix.flavor }}
     if: >-
       inputs.stage == 'beta' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' &&
       vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]'
@@ -39,13 +39,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distribution: ${{ fromJSON(vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]' && vars.FIREBASE_ANDROID_DISTRIBUTIONS || '[{"flavor":"_skip_","format":"apk"}]') }}
+        include: ${{ fromJSON(vars.FIREBASE_ANDROID_DISTRIBUTIONS != '' && vars.FIREBASE_ANDROID_DISTRIBUTIONS != '[]' && vars.FIREBASE_ANDROID_DISTRIBUTIONS || '[{"flavor":"_skip_","format":"apk"}]') }}
     steps:
       - name: Validate Firebase distribution configuration
         shell: bash
         env:
-          FLAVOR: ${{ matrix.distribution.flavor }}
-          BUILD_FORMAT: ${{ matrix.distribution.format }}
+          FLAVOR: ${{ matrix.flavor }}
+          BUILD_FORMAT: ${{ matrix.format }}
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           set -euo pipefail
@@ -99,8 +99,8 @@ jobs:
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
-          build-format: ${{ matrix.distribution.format }}
-          flavor: ${{ matrix.distribution.flavor }}
+          build-format: ${{ matrix.format }}
+          flavor: ${{ matrix.flavor }}
           upload-artifact: 'false'
           keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           key-alias: ${{ secrets.KEYALIAS }}
@@ -123,7 +123,7 @@ jobs:
           ACCESS_TOKEN: ${{ steps.firebase-auth.outputs.access_token }}
           SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           ANDROID_PACKAGE_NAME: ${{ steps.build.outputs.package-name }}
-          CONFIGURED_PROJECT_ID: ${{ matrix.distribution.project_id }}
+          CONFIGURED_PROJECT_ID: ${{ matrix.project_id }}
         run: |
           set -euo pipefail
 
@@ -168,7 +168,7 @@ jobs:
         with:
           app-id: ${{ steps.firebase-app.outputs.app-id }}
           service-account-json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          file: ${{ matrix.distribution.format == 'apk' && steps.build.outputs.apk-path || steps.build.outputs.aab-path }}
+          file: ${{ matrix.format == 'apk' && steps.build.outputs.apk-path || steps.build.outputs.aab-path }}
           groups: ${{ vars.FIREBASE_APP_DISTRIBUTION_GROUPS }}
       - name: Remove local Android build outputs
         if: always()
