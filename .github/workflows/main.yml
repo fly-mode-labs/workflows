@@ -48,9 +48,13 @@ on:
         type: string
         default: auto
       deployment-environment:
-        description: GitHub Environment used for this execution; auto resolves from the stage and event
+        description: Logical deployment target; auto resolves from the stage and event
         type: string
         default: auto
+      github-environment:
+        description: Optional exact GitHub Environment name used to provide secrets and variables
+        type: string
+        default: ''
       production-release-on-merge-only:
         description: Keep production publication limited to merged pull requests; production dispatches create candidates
         type: boolean
@@ -102,6 +106,7 @@ jobs:
     outputs:
       stage: ${{ steps.config.outputs.stage }}
       environment: ${{ steps.config.outputs.environment }}
+      github-environment: ${{ steps.config.outputs.github-environment }}
       working-directory: ${{ steps.config.outputs.working-directory }}
       android: ${{ steps.config.outputs.android }}
       ios: ${{ steps.config.outputs.ios }}
@@ -120,6 +125,7 @@ jobs:
           DELIVERY_MODE: ${{ inputs.delivery-mode }}
           CONFIGURED_STAGE: ${{ inputs.stage }}
           CONFIGURED_ENVIRONMENT: ${{ inputs.deployment-environment }}
+          CONFIGURED_GITHUB_ENVIRONMENT: ${{ inputs.github-environment }}
           EVENT_STAGE: ${{ github.event.inputs.stage }}
           EVENT_NAME: ${{ github.event_name }}
           EVENT_ACTION: ${{ github.event.action }}
@@ -177,6 +183,7 @@ jobs:
             qa|production) ;;
             *) echo "Unsupported deployment environment: ${effective_environment}"; exit 1 ;;
           esac
+          effective_github_environment="${CONFIGURED_GITHUB_ENVIRONMENT:-${effective_environment}}"
 
           effective_flutter_version="${REPOSITORY_FLUTTER_VERSION:-stable}"
           effective_java_version="${REPOSITORY_JAVA_VERSION:-17}"
@@ -240,6 +247,7 @@ jobs:
           {
             echo "stage=${effective_stage}"
             echo "environment=${effective_environment}"
+            echo "github-environment=${effective_github_environment}"
             echo "flutter-version=${effective_flutter_version}"
             echo "java-version=${effective_java_version}"
             echo "xcode-version=${effective_xcode_version}"
@@ -318,6 +326,7 @@ jobs:
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
       deployment-environment: ${{ needs.validate.outputs.environment }}
+      github-environment: ${{ needs.validate.outputs.github-environment }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       app-identifier: ${{ vars.APP_IDENTIFIER }}
       android-flavor: ${{ inputs.android-flavor }}
@@ -356,6 +365,7 @@ jobs:
       runner: ${{ inputs.runner }}
       runner-labels: ${{ inputs.runner-labels }}
       deployment-environment: ${{ needs.validate.outputs.environment }}
+      github-environment: ${{ needs.validate.outputs.github-environment }}
       release-android: ${{ needs.validate.outputs.android == 'true' }}
       app-identifier: ${{ vars.APP_IDENTIFIER }}
       android-flavor: ${{ inputs.android-flavor }}

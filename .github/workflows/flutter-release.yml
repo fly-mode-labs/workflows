@@ -10,6 +10,10 @@ on:
         description: GitHub Environment supplying secrets and variables for this release
         type: string
         default: auto
+      github-environment:
+        description: Optional exact GitHub Environment name supplying secrets and variables
+        type: string
+        default: ''
       delivery-mode:
         description: Mobile binary delivery; artifact or direct
         type: string
@@ -233,6 +237,7 @@ jobs:
     with:
       stage: ${{ inputs.stage }}
       deployment-environment: ${{ inputs.deployment-environment }}
+      github-environment: ${{ inputs.github-environment }}
       delivery-mode: ${{ inputs.delivery-mode }}
       source-sha: ${{ inputs.source-sha }}
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}
@@ -261,6 +266,7 @@ jobs:
     with:
       stage: ${{ inputs.stage }}
       deployment-environment: ${{ inputs.deployment-environment }}
+      github-environment: ${{ inputs.github-environment }}
       delivery-mode: ${{ inputs.delivery-mode }}
       source-sha: ${{ inputs.source-sha }}
       artifact-run-id: ${{ inputs.artifact-run-id || needs.resolve-build-artifacts.outputs.run-id }}

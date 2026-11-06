@@ -5,6 +5,7 @@ on:
     inputs:
       stage: {required: true, type: string}
       deployment-environment: {type: string, default: auto}
+      github-environment: {type: string, default: ''}
       delivery-mode: {type: string, default: artifact}
       source-sha: {required: true, type: string}
       artifact-run-id: {type: string, default: ''}
@@ -31,7 +32,7 @@ permissions:
 jobs:
   app-store:
     name: ${{ inputs.stage == 'beta' && 'TestFlight' || 'App Store production' }}
-    environment: ${{ inputs.deployment-environment != 'auto' && inputs.deployment-environment || (inputs.stage == 'beta' && 'qa' || inputs.stage) }}
+    environment: ${{ inputs.github-environment != '' && inputs.github-environment || (inputs.deployment-environment != 'auto' && inputs.deployment-environment || (inputs.stage == 'beta' && 'qa' || inputs.stage)) }}
     runs-on: ${{ fromJSON(inputs.runner-labels) }}
     timeout-minutes: ${{ inputs.stage == 'beta' && inputs.delivery-mode == 'direct' && 75 || 45 }}
     steps:
