@@ -63,6 +63,16 @@ on:
       release-ios:
         type: boolean
         default: false
+      release-macos:
+        description: Route native macOS releases through App Store Connect and TestFlight
+        type: boolean
+        default: false
+      macos-beta-command:
+        type: string
+        default: bundle exec fastlane mac beta
+      macos-production-command:
+        type: string
+        default: bundle exec fastlane mac release
     secrets:
       PACKAGES_TOKEN:
         description: GitHub token with read access to private Flutter package repositories
@@ -254,6 +264,29 @@ jobs:
       APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
       FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+
+  macos-app-store:
+    name: Release / Integration / macOS App Store
+    if: >-
+      !cancelled() && inputs.release-macos
+    uses: fly-mode-labs/workflows/.github/workflows/release-integration-macos.yml@main
+    with:
+      stage: ${{ inputs.stage }}
+      deployment-environment: ${{ inputs.deployment-environment }}
+      github-environment: ${{ inputs.github-environment }}
+      source-sha: ${{ inputs.source-sha }}
+      working-directory: ${{ inputs.working-directory }}
+      flutter-version: ${{ inputs.flutter-version }}
+      xcode-version: ${{ inputs.xcode-version }}
+      runner: ${{ inputs.runner }}
+      runner-labels: ${{ inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels }}
+      beta-command: ${{ inputs.macos-beta-command }}
+      production-command: ${{ inputs.macos-production-command }}
+    secrets:
+      PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
+      APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
 
   google-play:
     name: Release / Integration / Google Play

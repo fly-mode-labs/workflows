@@ -41,6 +41,10 @@ on:
         description: Run the Web build job
         type: boolean
         default: false
+      build-macos:
+        description: Request the macOS build artifact job
+        type: boolean
+        default: false
       android-build-format:
         description: Android artifact format; apk, appbundle or both
         type: string
@@ -212,6 +216,44 @@ jobs:
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           upload-artifact: ${{ inputs.delivery-mode == 'artifact' }}
           cleanup-output: ${{ inputs.delivery-mode == 'direct' }}
+
+
+  macos:
+    name: Flutter build / macOS
+    environment: ${{ inputs.environment }}
+    if: inputs.build-macos && inputs.delivery-mode == 'artifact'
+    runs-on: ${{ fromJSON(inputs.runner == 'github-hosted' && '["macos-latest"]' || inputs.runner-labels) }}
+    timeout-minutes: 40
+    steps:
+      - name: Checkout application
+        uses: actions/checkout@v4
+      - name: Select Xcode version
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup-xcode@main
+        with:
+          xcode-version: ${{ inputs.xcode-version }}
+          runner: ${{ inputs.runner }}
+      - name: Setup Flutter SDK and dependencies
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@main
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
+      - name: Read and validate application version
+        uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@main
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
+      - name: Build macOS application
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: flutter build macos --release
+      - name: Upload macOS application artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ steps.version.outputs.full-version }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ inputs.working-directory }}/build/macos/Build/Products/Release/*.app
+          retention-days: 14
+          if-no-files-found: error
 
   web:
     name: Flutter build / Web

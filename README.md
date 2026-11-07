@@ -126,6 +126,7 @@ un commit nuevo a la misma PR.
 │   ├── flutter-build.yml
 │   ├── flutter-release.yml
 │   ├── release-integration-app-store.yml
+│   ├── release-integration-macos.yml
 │   ├── release-integration-google-play.yml
 │   └── pipeline-release.yml
 ├── actions/flutter/
@@ -168,21 +169,25 @@ self-hosted equivalentes a las de GitHub. `raven-actions/actionlint` valida los
 workflows en cada PR y push a `main`.
 
 - `flutter-build.yml`: agrupa jobs explícitos e independientes para checks,
-  Android, iOS y Web; todos los seleccionados comienzan en paralelo y cada uno
+  Android, iOS, macOS y Web; todos los seleccionados comienzan en paralelo y cada uno
   se puede reejecutar individualmente.
 - `flutter-release.yml`: selects direct local delivery or the compatible artifact
   resolver, and coordinates the `release-integration-*` store adapters.
 - `release-integration-*`: prepara cada job de distribución y delega la
-  publicación a las composite actions `release-ios` y `release-android`.
+  publicación a las composite actions `release-ios` y `release-android`; macOS
+  ejecuta las lanes Fastlane `mac beta` y `mac release` del consumidor.
 - `main.yml`: autodetección y orquestación; no contiene builds ni publicación.
 - `.github/actions/flutter`: preparación del SDK y lectura normalizada de la
   versión de `pubspec.yaml`, además de las operaciones aisladas de build y
   release, sin duplicar steps.
 
-Las plataformas se autodetectan o se fijan mediante `platforms`. Cada plataforma
-tiene un job propio; las no seleccionadas quedan omitidas y no consumen runner.
+Las plataformas Android, iOS, Web y macOS se autodetectan o se fijan mediante
+`platforms`. Cada plataforma tiene un job propio; las no seleccionadas quedan omitidas y no consumen runner.
 Los nombres comparten el prefijo `Flutter build /` para mantenerlos agrupados en
-la interfaz de Actions.
+la interfaz de Actions. El `.app` producido en CI es un artefacto de inspección;
+la distribución macOS nativa requiere `release-macos: true`, usa App Store
+Connect/TestFlight para beta y Mac App Store para producción, y no pasa por
+Firebase App Distribution.
 
 Las apps llaman únicamente a `.github/workflows/main.yml`. Cada caller lo invoca
 dos veces: `pipeline: ci` siempre valida y solo compila binarios móviles en modo
@@ -212,7 +217,7 @@ outside protected release environments. That pre-existing risk is not expanded
 or redesigned by direct mode.
 
 El input `runner` acepta `self-hosted` (predeterminado) o `github-hosted`. Con
-`github-hosted`, iOS y App Store usan `macos-latest`; validación, checks,
+`github-hosted`, iOS, macOS y App Store usan `macos-latest`; validación, checks,
 Android, Web y Google Play usan `ubuntu-latest`. Con `self-hosted`, todos los
 jobs usan las labels configuradas para el Mac mini. El build Android hospedado
 instala el JDK indicado por la Repository Variable `JAVA_VERSION` (17 por
@@ -256,8 +261,9 @@ pruebas se puede cambiar con `android-track`; su valor predeterminado es
 Si la app usa una pista cerrada personalizada, se debe indicar su identificador
 exacto mediante `android-track`.
 
-Si se omite `platforms`, el valor `auto` habilita Android, iOS o Web según los
-directorios presentes en el proyecto.
+Si se omite `platforms`, el valor `auto` habilita Android, iOS, Web o macOS según
+los directorios presentes en el proyecto. Publicar la app macOS es optativo y se
+activa con `release-macos: true` después de configurar las lanes Mac del consumidor.
 
 Al incorporar otra tecnología, se crea un directorio propio bajo `templates/`
 y documentación separada; los contratos compartidos permanecen en

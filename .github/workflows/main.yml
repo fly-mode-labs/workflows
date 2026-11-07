@@ -19,6 +19,10 @@ on:
         description: Comma-separated platforms or auto
         type: string
         default: auto
+      release-macos:
+        description: Explicitly publish native macOS builds through TestFlight and Mac App Store
+        type: boolean
+        default: false
       android-build-format:
         description: Android draft artifact format; apk, appbundle or both
         type: string
@@ -31,6 +35,14 @@ on:
         description: Google Play closed-testing track receiving beta releases
         type: string
         default: alpha
+      macos-beta-command:
+        description: Fastlane command that builds and uploads a native macOS beta to TestFlight
+        type: string
+        default: bundle exec fastlane mac beta
+      macos-production-command:
+        description: Fastlane command that promotes a processed macOS build to the Mac App Store
+        type: string
+        default: bundle exec fastlane mac release
       working-directory:
         description: Application path or auto to locate pubspec.yaml
         type: string
@@ -111,6 +123,7 @@ jobs:
       android: ${{ steps.config.outputs.android }}
       ios: ${{ steps.config.outputs.ios }}
       web: ${{ steps.config.outputs.web }}
+      macos: ${{ steps.config.outputs.macos }}
       flutter-version: ${{ steps.config.outputs.flutter-version }}
       java-version: ${{ steps.config.outputs.java-version }}
       xcode-version: ${{ steps.config.outputs.xcode-version }}
@@ -213,7 +226,7 @@ jobs:
             IFS=',' read -r -a requested_platforms <<< "${normalized_platforms}"
             for requested_platform in "${requested_platforms[@]}"; do
               case "${requested_platform}" in
-                android|ios|web) ;;
+                android|ios|web|macos) ;;
                 *) echo "Unsupported platform: ${requested_platform}"; exit 1 ;;
               esac
             done
@@ -223,7 +236,8 @@ jobs:
           android=false
           ios=false
           web=false
-          for platform in android ios web; do
+          macos=false
+          for platform in android ios web macos; do
             enabled=false
             if [[ "${normalized_platforms}" == "auto" && -d "${app_directory}/${platform}" ]]; then
               enabled=true
@@ -255,6 +269,7 @@ jobs:
             echo "android=${android}"
             echo "ios=${ios}"
             echo "web=${web}"
+            echo "macos=${macos}"
           } >> "${GITHUB_OUTPUT}"
 
   flutter-build:
@@ -281,6 +296,7 @@ jobs:
       build-android: ${{ needs.validate.outputs.android == 'true' }}
       build-ios: ${{ needs.validate.outputs.ios == 'true' }}
       build-web: ${{ needs.validate.outputs.web == 'true' }}
+      build-macos: ${{ needs.validate.outputs.macos == 'true' }}
       android-build-format: ${{ inputs.android-build-format }}
       android-flavor: ${{ inputs.android-flavor }}
       delivery-mode: ${{ inputs.delivery-mode }}
@@ -332,6 +348,9 @@ jobs:
       android-flavor: ${{ inputs.android-flavor }}
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
+      release-macos: ${{ inputs.release-macos && needs.validate.outputs.macos == 'true' }}
+      macos-beta-command: ${{ inputs.macos-beta-command }}
+      macos-production-command: ${{ inputs.macos-production-command }}
     secrets:
       PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -371,6 +390,9 @@ jobs:
       android-flavor: ${{ inputs.android-flavor }}
       android-track: ${{ inputs.android-track }}
       release-ios: ${{ needs.validate.outputs.ios == 'true' }}
+      release-macos: ${{ inputs.release-macos && needs.validate.outputs.macos == 'true' }}
+      macos-beta-command: ${{ inputs.macos-beta-command }}
+      macos-production-command: ${{ inputs.macos-production-command }}
     secrets:
       PACKAGES_TOKEN: ${{ secrets.PACKAGES_TOKEN }}
       APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}

@@ -18,9 +18,9 @@ self-hosted, macOS, ARM64
 
 Se pueden cambiar mediante el input JSON `runner-labels` del caller; este input
 solo se usa cuando `runner` es `self-hosted`.
-`github-hosted` asigna `macos-latest` a iOS y App Store, y `ubuntu-latest` a
-validación, checks, Android, Web y Google Play. No requiere registrar un runner
-y consume los minutos de GitHub Actions disponibles para el repositorio.
+`github-hosted` asigna `macos-latest` a iOS, macOS y App Store, y
+`ubuntu-latest` a validación, checks, Android, Web y Google Play. No requiere
+registrar un runner y consume los minutos de GitHub Actions disponibles para el repositorio.
 
 En Android, `github-hosted` instala el JDK remoto con `actions/setup-java` y
 fuerza a Gradle a usar su `JAVA_HOME`. Esto tiene precedencia sobre un
@@ -66,6 +66,48 @@ En repositorios pertenecientes a una cuenta personal, un runner de repositorio
 solo procesa jobs de ese repositorio. El reusable workflow toma los runners del
 contexto de la app que lo llama; no utiliza los runners registrados únicamente
 en el repositorio central `workflows`.
+
+## macOS nativo (Fastlane / App Store Connect)
+
+El target Flutter `macos` se autodetecta si existe el directorio `macos/` y
+también se puede pedir explícitamente con `platforms: android,ios,macos`. La
+publicación requiere además `release-macos: true`; permanece desactivada por
+defecto porque depende de una lane y firma Mac configuradas por el consumidor. El
+job CI compila `flutter build macos --release` y conserva el `.app` como
+artefacto de GitHub para inspección. Ese artefacto no se sube a Firebase y por sí
+solo no es un paquete listo para Mac App Store.
+
+Caller de ejemplo:
+
+```yaml
+with:
+  technology: flutter
+  platforms: android,ios,macos
+  release-macos: true
+```
+
+La distribución de la app nativa para Mac se hace en la ruta Apple: TestFlight
+para beta y promoción a Mac App Store en producción. El selector `platforms`
+controla tanto el build macOS de CI como esta ruta de release. El job reusable
+ejecuta las lanes del consumidor `bundle exec fastlane mac beta` y
+`bundle exec fastlane mac release` (configurables con los inputs
+`macos-beta-command` y `macos-production-command` del workflow central). Firebase
+App Distribution solo recibe builds Android o iOS; no añadir el target macOS a sus
+IDs o matrices.
+
+Las lanes `mac beta` y `mac release` pertenecen al proyecto consumidor. Deben
+crear y firmar un paquete macOS compatible con App Store Connect, usar la API key
+que reciben por entorno y cargar la versión/build/SHA recibidos como
+`APP_VERSION`, `BUILD_NUMBER`, `FULL_VERSION` y `SOURCE_SHA`. Deben resolver la
+firma Mac App Distribution y el paquete instalador requerido por el flujo del
+consumidor; el workflow común no reutiliza Match iOS ni afirma que la firma iOS
+cubra macOS. Para `production`, la lane `mac release` promueve el build procesado
+por Apple a Mac App Store.
+
+Se requieren los mismos secrets `APP_STORE_CONNECT_API_KEY_BASE64`,
+`APP_STORE_CONNECT_ISSUER_ID` y `APP_STORE_CONNECT_KEY_ID` en los environments
+que publiquen. La app necesita un registro de macOS válido en App Store Connect y
+la configuración de sandbox/copyright exigida para Mac App Store.
 
 ## iOS (Fastlane)
 

@@ -23,6 +23,16 @@ on:
         default: direct
         type: choice
         options: [direct, artifact]
+      platforms:
+        description: Comma-separated Flutter platforms to build
+        required: true
+        default: android,ios
+        type: string
+      release-macos:
+        description: Publish the native macOS app through TestFlight and Mac App Store
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   actions: read
@@ -35,7 +45,8 @@ jobs:
       technology: flutter
       pipeline: ci
       delivery-mode: ${{ inputs.delivery-mode || 'direct' }}
-      platforms: android,ios
+      platforms: ${{ inputs.platforms || 'android,ios' }}
+      release-macos: ${{ inputs.release-macos || false }}
       android-build-format: appbundle
       android-flavor: ${{ vars.ANDROID_FLAVOR }}
       runner: ${{ inputs.runner || 'github-hosted' }}
@@ -57,7 +68,8 @@ jobs:
       technology: flutter
       pipeline: cd
       delivery-mode: ${{ inputs.delivery-mode || 'direct' }}
-      platforms: android,ios
+      platforms: ${{ inputs.platforms || 'android,ios' }}
+      release-macos: ${{ inputs.release-macos || false }}
       android-build-format: appbundle
       android-flavor: ${{ vars.ANDROID_FLAVOR }}
       runner: ${{ inputs.runner || 'github-hosted' }}

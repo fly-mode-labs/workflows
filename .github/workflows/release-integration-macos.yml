@@ -1,0 +1,108 @@
+name: Release integration / macOS App Store
+
+on:
+  workflow_call:
+    inputs:
+      stage: {required: true, type: string}
+      deployment-environment: {type: string, default: auto}
+      github-environment: {type: string, default: ''}
+      source-sha: {required: true, type: string}
+      working-directory: {required: true, type: string}
+      flutter-version: {type: string, default: stable}
+      xcode-version: {type: string, default: default}
+      runner: {type: string, default: self-hosted}
+      runner-labels: {type: string, default: '["self-hosted", "macOS", "ARM64"]'}
+      beta-command: {type: string, default: bundle exec fastlane mac beta}
+      production-command: {type: string, default: bundle exec fastlane mac release}
+    secrets:
+      PACKAGES_TOKEN: {required: false, description: GitHub token with read access to private Flutter package repositories}
+      APP_STORE_CONNECT_API_KEY_BASE64: {required: false, description: Base64-encoded App Store Connect API private key}
+      APP_STORE_CONNECT_ISSUER_ID: {required: false, description: App Store Connect API issuer ID}
+      APP_STORE_CONNECT_KEY_ID: {required: false, description: App Store Connect API key ID}
+
+permissions:
+  contents: read
+
+jobs:
+  macos-app-store:
+    name: ${{ inputs.stage == 'beta' && 'macOS / TestFlight' || 'macOS / App Store' }}
+    environment: ${{ inputs.github-environment != '' && inputs.github-environment || (inputs.deployment-environment != 'auto' && inputs.deployment-environment || (inputs.stage == 'beta' && 'qa' || inputs.stage)) }}
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source-sha }}
+          persist-credentials: false
+      - name: Select Xcode version
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup-xcode@main
+        with:
+          xcode-version: ${{ inputs.xcode-version }}
+          runner: ${{ inputs.runner }}
+      - name: Setup Flutter SDK and dependencies for beta build
+        if: inputs.stage == 'beta'
+        uses: fly-mode-labs/workflows/.github/actions/flutter/setup@main
+        with:
+          flutter-version: ${{ inputs.flutter-version }}
+          working-directory: ${{ inputs.working-directory }}
+          packages-token: ${{ secrets.PACKAGES_TOKEN }}
+      - uses: fly-mode-labs/workflows/.github/actions/flutter/read-version@main
+        id: version
+        with:
+          working-directory: ${{ inputs.working-directory }}
+      - name: Validate App Store Connect API credentials
+        shell: bash
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "${APP_STORE_CONNECT_API_KEY_BASE64}" ]] || missing+=(APP_STORE_CONNECT_API_KEY_BASE64)
+          [[ -n "${APP_STORE_CONNECT_ISSUER_ID}" ]] || missing+=(APP_STORE_CONNECT_ISSUER_ID)
+          [[ -n "${APP_STORE_CONNECT_KEY_ID}" ]] || missing+=(APP_STORE_CONNECT_KEY_ID)
+          if [[ "${#missing[@]}" -ne 0 ]]; then
+            printf 'Missing required App Store Connect secrets: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+      - name: Setup hosted Ruby, Bundler and gem cache
+        if: inputs.runner == 'github-hosted'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          working-directory: ${{ inputs.working-directory }}
+          bundler-cache: true
+      - name: Install Fastlane dependencies on self-hosted runner
+        if: inputs.runner == 'self-hosted'
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        run: bundle install
+      - name: Submit macOS beta to TestFlight
+        if: inputs.stage == 'beta'
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
+          FULL_VERSION: ${{ steps.version.outputs.full-version }}
+          SOURCE_SHA: ${{ inputs.source-sha }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: ${{ inputs.beta-command }}
+      - name: Promote macOS build to Mac App Store
+        if: inputs.stage == 'production'
+        shell: bash
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_VERSION: ${{ steps.version.outputs.app-version }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build-number }}
+          FULL_VERSION: ${{ steps.version.outputs.full-version }}
+          SOURCE_SHA: ${{ inputs.source-sha }}
+          FASTLANE_SKIP_UPDATE_CHECK: '1'
+        run: ${{ inputs.production-command }}
