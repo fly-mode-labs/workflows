@@ -22,7 +22,7 @@ on:
       runner:
         description: Runner used for this manual execution
         required: true
-        default: github-hosted
+        default: self-hosted
         type: choice
         options: [self-hosted, github-hosted]
 
@@ -37,7 +37,7 @@ jobs:
       pipeline: ci
       delivery-mode: direct
       android-flavor: ${{ vars.ANDROID_FLAVOR }}
-      runner: ${{ inputs.runner || 'github-hosted' }}
+      runner: ${{ inputs.runner || 'self-hosted' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYALIAS: ${{ secrets.KEYALIAS }}
@@ -57,7 +57,7 @@ jobs:
       pipeline: cd
       delivery-mode: direct
       android-flavor: ${{ vars.ANDROID_FLAVOR }}
-      runner: ${{ inputs.runner || 'github-hosted' }}
+      runner: ${{ inputs.runner || 'self-hosted' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYALIAS: ${{ secrets.KEYALIAS }}
@@ -71,8 +71,8 @@ jobs:
       FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
 ```
 
-The runner selector appears for manual runs. Automatic PR delivery defaults to
-`github-hosted`; choosing `self-hosted` is an explicit persistent-runner choice.
+The runner selector appears for manual runs. Manual runs and automatic PR
+delivery default to `self-hosted`; `github-hosted` remains an explicit option.
 Direct delivery only needs `contents: read`; callers
 that intentionally keep the default artifact mode must also grant `actions: read`.
 

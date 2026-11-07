@@ -7,7 +7,7 @@ El pipeline acepta dos proveedores mediante el input `runner`:
 ```yaml
 with:
   technology: flutter
-  runner: github-hosted # o self-hosted
+  runner: self-hosted # o github-hosted
 ```
 
 `self-hosted` es el valor predeterminado y utiliza estas labels:

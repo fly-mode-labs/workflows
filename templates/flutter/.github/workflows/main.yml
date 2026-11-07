@@ -14,7 +14,7 @@ on:
       runner:
         description: Runner used for this manual execution
         required: true
-        default: github-hosted
+        default: self-hosted
         type: choice
         options: [self-hosted, github-hosted]
       delivery-mode:
@@ -49,7 +49,7 @@ jobs:
       release-macos: ${{ inputs.release-macos || false }}
       android-build-format: appbundle
       android-flavor: ${{ vars.ANDROID_FLAVOR }}
-      runner: ${{ inputs.runner || 'github-hosted' }}
+      runner: ${{ inputs.runner || 'self-hosted' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYALIAS: ${{ secrets.KEYALIAS }}
@@ -72,7 +72,7 @@ jobs:
       release-macos: ${{ inputs.release-macos || false }}
       android-build-format: appbundle
       android-flavor: ${{ vars.ANDROID_FLAVOR }}
-      runner: ${{ inputs.runner || 'github-hosted' }}
+      runner: ${{ inputs.runner || 'self-hosted' }}
     secrets:
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       KEYALIAS: ${{ secrets.KEYALIAS }}
