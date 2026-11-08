@@ -6,6 +6,7 @@ inputs:
   full-version: {required: true, description: Full pubspec version}
   upload-artifact: {required: false, default: 'true', description: Whether to upload the IPA as a GitHub artifact}
   cleanup-output: {required: false, default: 'false', description: Whether to remove local signed outputs before the action exits}
+  runtime-config-json: {required: false, default: '', description: Public flat AppConfig JSON; do not pass credentials or secrets}
   runner: {required: false, default: self-hosted, description: Runner provider; self-hosted or github-hosted}
   match-password: {required: false, description: Match repository encryption password}
   match-git-basic-authorization: {required: false, description: Base64 Git authorization for Match}
@@ -22,6 +23,34 @@ outputs:
 runs:
   using: composite
   steps:
+    - name: Prepare compile-time application configuration
+      id: app_config
+      shell: bash
+      env:
+        APP_RUNTIME_CONFIG_JSON: ${{ inputs.runtime-config-json }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "${APP_RUNTIME_CONFIG_JSON}" ]]; then
+          echo "path=" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        if ! printf '%s' "${APP_RUNTIME_CONFIG_JSON}" | jq -e '
+          type == "object" and
+          (.productId | type == "string" and length > 0) and
+          (.environment | type == "string" and length > 0) and
+          (.apiUrl | type == "string" and test("^https?://[^[:space:]]+$")) and
+          (.schemaVersion | type == "number" and . >= 1 and . <= 2) and
+          all(keys[]; test("(?i)(secret|password|token|credential|private)") | not)
+        ' > /dev/null; then
+          echo "APP_RUNTIME_CONFIG_JSON must be public AppConfig JSON without credentials or secrets." >&2
+          exit 1
+        fi
+
+        runtime_config_path="${RUNNER_TEMP}/app-runtime-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}.json"
+        printf '%s' "${APP_RUNTIME_CONFIG_JSON}" > "${runtime_config_path}"
+        echo "path=${runtime_config_path}" >> "${GITHUB_OUTPUT}"
     - name: Setup iOS signing with Match
       id: ios_signing
       uses: fly-mode-labs/workflows/.github/actions/flutter/setup-ios-signing@main
@@ -44,11 +73,17 @@ runs:
         IOS_PROFILE_NAME: ${{ steps.ios_signing.outputs.profile-name }}
         IOS_CODE_SIGN_IDENTITY: ${{ steps.ios_signing.outputs.code-sign-identity }}
         IOS_EXPORT_METHOD: ${{ steps.ios_signing.outputs.export-method }}
+        DART_DEFINE_FILE: ${{ steps.app_config.outputs.path }}
       run: |
         set -euo pipefail
 
+        build_args=(build ipa --release)
+        if [[ -n "${DART_DEFINE_FILE}" ]]; then
+          build_args+=(--dart-define-from-file="${DART_DEFINE_FILE}")
+        fi
+
         if [[ "${IOS_SIGNING_CONFIGURED}" != 'true' ]]; then
-          flutter build ipa --release
+          flutter "${build_args[@]}"
           exit 0
         fi
 
@@ -98,8 +133,7 @@ runs:
           "${export_options_plist}"
 
         echo "Signing Runner (${IOS_BUNDLE_IDENTIFIER}) manually with ${IOS_CODE_SIGN_IDENTITY} and profile '${IOS_PROFILE_NAME}'."
-        flutter build ipa \
-          --release \
+        flutter "${build_args[@]}" \
           --export-options-plist="${export_options_plist}"
     - name: Resolve signed IPA
       id: ipa
@@ -132,6 +166,12 @@ runs:
         retention-days: 14
         if-no-files-found: error
         overwrite: true
+    - name: Remove temporary compile-time application configuration
+      if: always() && steps.app_config.outputs.path != ''
+      shell: bash
+      env:
+        APP_RUNTIME_CONFIG_PATH: ${{ steps.app_config.outputs.path }}
+      run: rm -f -- "${APP_RUNTIME_CONFIG_PATH}"
     - name: Remove temporary iOS signing assets
       if: always() && steps.ios_signing.outputs.configured == 'true'
       shell: bash

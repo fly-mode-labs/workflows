@@ -6,6 +6,7 @@ inputs:
   full-version: {required: true, description: Full pubspec version}
   build-format: {required: false, default: both, description: apk, appbundle or both}
   flavor: {required: false, default: '', description: Optional Flutter Android product flavor}
+  runtime-config-json: {required: false, default: '', description: Public flat AppConfig JSON; do not pass credentials or secrets}
   upload-artifact: {required: false, default: 'true', description: Whether to upload the build outputs as a GitHub artifact}
   cleanup-output: {required: false, default: 'false', description: Whether to remove local build outputs before the action exits}
   keystore-base64: {required: false, description: Base64-encoded Android keystore}
@@ -93,17 +94,49 @@ runs:
         key-alias: ${{ inputs.key-alias }}
         store-password: ${{ inputs.store-password }}
         key-password: ${{ inputs.key-password }}
+    - name: Prepare compile-time application configuration
+      id: app_config
+      shell: bash
+      env:
+        APP_RUNTIME_CONFIG_JSON: ${{ inputs.runtime-config-json }}
+      run: |
+        set -euo pipefail
+
+        if [[ -z "${APP_RUNTIME_CONFIG_JSON}" ]]; then
+          echo "path=" >> "${GITHUB_OUTPUT}"
+          exit 0
+        fi
+
+        if ! printf '%s' "${APP_RUNTIME_CONFIG_JSON}" | jq -e '
+          type == "object" and
+          (.productId | type == "string" and length > 0) and
+          (.environment | type == "string" and length > 0) and
+          (.apiUrl | type == "string" and test("^https?://[^[:space:]]+$")) and
+          (.schemaVersion | type == "number" and . >= 1 and . <= 2) and
+          all(keys[]; test("(?i)(secret|password|token|credential|private)") | not)
+        ' > /dev/null; then
+          echo "APP_RUNTIME_CONFIG_JSON must be public AppConfig JSON without credentials or secrets." >&2
+          exit 1
+        fi
+
+        runtime_config_path="${RUNNER_TEMP}/app-runtime-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}.json"
+        printf '%s' "${APP_RUNTIME_CONFIG_JSON}" > "${runtime_config_path}"
+        echo "path=${runtime_config_path}" >> "${GITHUB_OUTPUT}"
     - name: Compile release APK
       if: inputs.build-format == 'apk' || inputs.build-format == 'both'
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       env:
         FLAVOR: ${{ inputs.flavor }}
+        DART_DEFINE_FILE: ${{ steps.app_config.outputs.path }}
       run: |
         set -euo pipefail
         build_args=(build apk --release)
         if [[ -n "${FLAVOR}" ]]; then
           build_args+=(--flavor "${FLAVOR}")
+        fi
+        if [[ -n "${DART_DEFINE_FILE}" ]]; then
+          build_args+=(--dart-define-from-file="${DART_DEFINE_FILE}")
         fi
         flutter "${build_args[@]}"
     - name: Compile release Android App Bundle
@@ -112,11 +145,15 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         FLAVOR: ${{ inputs.flavor }}
+        DART_DEFINE_FILE: ${{ steps.app_config.outputs.path }}
       run: |
         set -euo pipefail
         build_args=(build appbundle --release)
         if [[ -n "${FLAVOR}" ]]; then
           build_args+=(--flavor "${FLAVOR}")
+        fi
+        if [[ -n "${DART_DEFINE_FILE}" ]]; then
+          build_args+=(--dart-define-from-file="${DART_DEFINE_FILE}")
         fi
         flutter "${build_args[@]}"
     - name: Export Android application identifier
@@ -187,6 +224,12 @@ runs:
         fi
 
         echo "apk-path=${PWD}/${apk_path}" >> "${GITHUB_OUTPUT}"
+    - name: Remove temporary compile-time application configuration
+      if: always() && steps.app_config.outputs.path != ''
+      shell: bash
+      env:
+        APP_RUNTIME_CONFIG_PATH: ${{ steps.app_config.outputs.path }}
+      run: rm -f -- "${APP_RUNTIME_CONFIG_PATH}"
     - name: Remove Gradle CI project cache
       if: always()
       shell: bash

@@ -64,6 +64,7 @@ jobs:
           full-version: ${{ steps.version.outputs.full-version }}
           upload-artifact: 'false'
           runner: ${{ inputs.runner }}
+          runtime-config-json: ${{ vars.APP_RUNTIME_CONFIG_JSON }}
           match-password: ${{ secrets.MATCH_PASSWORD }}
           match-git-basic-authorization: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
           app-store-connect-api-key-base64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
