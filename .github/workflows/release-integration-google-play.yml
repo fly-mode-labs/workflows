@@ -116,6 +116,7 @@ jobs:
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
+          runtime-config-json: ${{ vars.APP_RUNTIME_CONFIG_JSON }}
           build-format: ${{ matrix.format }}
           flavor: ${{ matrix.flavor }}
           upload-artifact: 'false'
@@ -301,6 +302,7 @@ jobs:
         with:
           working-directory: ${{ inputs.working-directory }}
           full-version: ${{ steps.version.outputs.full-version }}
+          runtime-config-json: ${{ vars.APP_RUNTIME_CONFIG_JSON }}
           build-format: appbundle
           flavor: ${{ inputs.android-flavor }}
           upload-artifact: 'false'
